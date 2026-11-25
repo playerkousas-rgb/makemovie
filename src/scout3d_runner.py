@@ -11,6 +11,7 @@ Supports two zero-friction workflows on Windows / macOS / Linux:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import base64
 import hashlib
 import json
@@ -20,8 +21,10 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import wave
+import zlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -66,6 +69,30 @@ PRESET_CATALOG: Dict[str, str] = {
     "turntable_360_closeup": "360° 旋轉特寫・前後左右袖章與專章帶零死角",
     "mom_and_kid_proud": "母子開心出門・媽媽安心微笑＋童軍精神敬禮",
 }
+
+CANTONESE_VOICES: Dict[str, str] = {
+    "zh-HK-HiuMaanNeural": "曉曼（香港廣東話自然女聲）",
+    "zh-HK-HiuGaaiNeural": "曉佳（香港廣東話輕快女聲）",
+    "zh-HK-WanLungNeural": "雲龍（香港廣東話精神男聲）",
+    "none": "純背景音樂（唔配人聲）",
+}
+
+
+def _clean_cantonese_tts_text(text: str) -> str:
+    """Normalize Cantonese narration text so edge-tts speaks naturally without spelling symbols."""
+    t = str(text or "").strip()
+    if not t:
+        return ""
+    # Strip accidental speaker prefix like "旁白："
+    t = re.sub(r"^(?:旁白|VO|Voiceover)\s*[:：]\s*", "", t, flags=re.IGNORECASE)
+    # Mixed-case "Scout 3D" so neural TTS pronounces the word "Scout" instead of spelling S-C-O-U-T
+    t = re.sub(r"SCOUT\s*3D", "Scout 3D", t, flags=re.IGNORECASE)
+    t = t.replace("×", "乘").replace("✕", "").replace("✓", "").replace("✔", "")
+    t = re.sub(r"[\r\n]+", "，", t)
+    t = re.sub(r"(?:——|—|–|・|·|•|\|)+", "，", t)
+    t = re.sub(r"[，、,\s]*[，、,]+[，、,\s]*", "，", t)
+    t = t.strip(" ，、,")
+    return t
 
 _FONT_CACHE: Dict[Tuple[str, int], ImageFont.FreeTypeFont] = {}
 
@@ -168,6 +195,16 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
     default_hat = raw.get("hat", ep_char_cfg.get("hat", None))
     default_sash = raw.get("show_sash", ep_char_cfg.get("show_sash", None))
     bgm_mood = str(raw.get("bgm_mood") or "comedy_to_hero")
+    voice_raw = str(raw.get("voice") if raw.get("voice") is not None else "zh-HK-HiuMaanNeural").strip()
+    if voice_raw.lower() in ("", "none", "off", "false", "mute"):
+        voice = "none"
+    elif voice_raw.lower() == "auto":
+        voice = "zh-HK-HiuMaanNeural"
+    else:
+        voice = voice_raw
+    voice_rate = str(raw.get("voice_rate") or "+6%").strip()
+    if not re.match(r"^[+-]\d{1,3}%$", voice_rate):
+        voice_rate = "+6%"
     series_badge = _sanitize_text_for_font(str(raw.get("series_badge") or "如果系列 · 如果你有 SCOUT 3D"))
 
     ui_raw = raw.get("ui_card") or {}
@@ -191,7 +228,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         preset = str(sh.get("preset") or "scout3d_auto_snap")
         if preset not in PRESET_CATALOG:
             preset = "scout3d_auto_snap"
-        dur = float(clamp(float(sh.get("duration") or 3.0), 1.2, 12.0))
+        dur = float(clamp(float(sh.get("duration") or 3.0), 1.2, 16.0))
         n_frames = max(12, int(round(dur * fps)))
         sh_char = resolve_character_preset(sh.get("char_preset"))
         sec = str(sh.get("section") or sh_char.get("section") or default_section)
@@ -205,9 +242,10 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         hat_sh = sh.get("hat", sh_char.get("hat", default_hat if same_sec else None))
         sash_sh = sh.get("show_sash", sh_char.get("show_sash", default_sash if same_sec else None))
 
-        sub_txt = str(sh.get("subtitle") or "")
+        sub_txt = str(sh.get("subtitle") if sh.get("subtitle") is not None else (sh.get("narration") or ""))
         if subtitle_override and idx in subtitle_override:
             sub_txt = str(subtitle_override[idx])
+        vo_raw = str(sh.get("narration") if sh.get("narration") is not None else sub_txt)
 
         trio = sh.get("trio_sections") or ["cub", "scout", "venture"]
         trio_clean = [s if s in SECTION_STYLES else "scout" for s in list(trio)[:3]]
@@ -231,6 +269,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
                 "show_ui_card": bool(sh.get("show_ui_card", preset == "scout3d_auto_snap")),
                 "trio_sections": trio_clean,
                 "subtitle": _sanitize_text_for_font(sub_txt),
+                "narration": _clean_cantonese_tts_text(vo_raw),
             }
         )
         cur_frame += n_frames
@@ -247,6 +286,8 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "gender": default_gender,
         "hero_style": hero_style,
         "bgm_mood": bgm_mood,
+        "voice": voice,
+        "voice_rate": voice_rate,
         "ui_card": ui_card,
         "shots": shots_norm,
     }
@@ -666,8 +707,211 @@ def overlay_episode_ui_and_subtitles(clean_img: Image.Image, spec: Dict[str, Any
     return Image.alpha_composite(out, ui_layer).convert("RGB")
 
 
-def synthesize_episode_audio(spec: Dict[str, Any], out_wav: Path) -> Path:
-    """Synthesize shot-synced stereo 44.1kHz BGM + UI pop chimes + finale fanfare."""
+def _ensure_edge_tts_installed() -> bool:
+    """Import edge_tts, auto-installing via pip once if missing on local Windows."""
+    try:
+        import edge_tts  # noqa: F401
+        return True
+    except ImportError:
+        print("[scout3d-runner] 首次啟用廣東話配音，正在自動安裝 edge-tts ...")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-q", "edge-tts"],
+                check=False,
+                timeout=90,
+            )
+            import edge_tts  # noqa: F401
+            return True
+        except Exception as exc:
+            print(f"[scout3d-runner] 提示：無法自動安裝 edge-tts ({exc})，改用純 BGM 出片。")
+            return False
+
+
+def _load_mono_wav_44k(wav_path: Path) -> Tuple[np.ndarray, float]:
+    with wave.open(str(wav_path), "rb") as wf:
+        sr = wf.getframerate()
+        n_ch = wf.getnchannels()
+        raw = wf.readframes(wf.getnframes())
+    pcm = np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
+    if n_ch > 1:
+        pcm = pcm.reshape(-1, n_ch).mean(axis=1)
+    return pcm, len(pcm) / float(max(1, sr))
+
+
+def _decode_and_trim_speech_wav(src_audio: Path, dst_wav: Path, sr: int = 44100) -> Tuple[np.ndarray, float]:
+    """Decode TTS audio via bundled ffmpeg to 44.1kHz mono WAV and trim leading/trailing silence."""
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    dst_wav.parent.mkdir(parents=True, exist_ok=True)
+    tmp_raw_wav = dst_wav.with_suffix(".raw44k.wav")
+    cmd = [
+        ffmpeg_exe, "-y",
+        "-i", str(src_audio),
+        "-ac", "1",
+        "-ar", str(sr),
+        "-f", "wav",
+        "-acodec", "pcm_s16le",
+        str(tmp_raw_wav),
+    ]
+    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if res.returncode != 0 or not tmp_raw_wav.exists():
+        raise RuntimeError(f"ffmpeg TTS decode failed ({res.returncode})")
+
+    try:
+        samples, _ = _load_mono_wav_44k(tmp_raw_wav)
+    finally:
+        tmp_raw_wav.unlink(missing_ok=True)
+
+    if len(samples) == 0:
+        raise RuntimeError("Decoded TTS audio is empty")
+
+    active = np.flatnonzero(np.abs(samples) > 0.008)
+    if len(active) > 0:
+        i0 = max(0, int(active[0]) - int(0.03 * sr))
+        i1 = min(len(samples), int(active[-1]) + int(0.07 * sr))
+        samples = samples[i0:i1]
+
+    fade_n = min(int(0.012 * sr), max(1, len(samples) // 8))
+    if fade_n > 1:
+        ramp = np.linspace(0.0, 1.0, fade_n, dtype=np.float32)
+        samples[:fade_n] *= ramp
+        samples[-fade_n:] *= ramp[::-1]
+
+    peak = float(np.max(np.abs(samples)))
+    if peak > 1e-4:
+        samples = np.tanh((samples / peak) * 1.15) / math.tanh(1.15) * 0.90
+
+    pcm16 = np.clip(samples * 32767.0, -32767, 32767).astype(np.int16)
+    with wave.open(str(dst_wav), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sr)
+        wf.writeframes(pcm16.tobytes())
+
+    return samples.astype(np.float32), len(samples) / float(sr)
+
+
+def _synthesize_single_tts_wav(
+    text: str,
+    voice: str,
+    rate: str,
+    cache_dir: Path,
+    force: bool = False,
+) -> Optional[Tuple[Path, np.ndarray, float]]:
+    """Synthesize or load cached Cantonese voiceover clip for a single shot."""
+    cleaned = _clean_cantonese_tts_text(text)
+    if not cleaned or voice == "none":
+        return None
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    key = hashlib.sha256(f"v1|{voice}|{rate}|{cleaned}".encode("utf-8")).hexdigest()[:20]
+    safe_voice = re.sub(r"[^a-zA-Z0-9_-]+", "_", voice)
+    dst_wav = cache_dir / f"vo_{safe_voice}_{key}.wav"
+
+    if not force and dst_wav.exists() and dst_wav.stat().st_size > 256:
+        try:
+            samples, dur_s = _load_mono_wav_44k(dst_wav)
+            if dur_s > 0.08:
+                return dst_wav, samples, dur_s
+        except Exception:
+            pass
+
+    if not _ensure_edge_tts_installed():
+        return None
+
+    import edge_tts
+
+    last_err: Optional[Exception] = None
+    for attempt in range(2):
+        tmp_mp3: Optional[Path] = None
+        try:
+            with tempfile.NamedTemporaryFile(prefix="scout3d_tts_", suffix=".mp3", delete=False) as tf:
+                tmp_mp3 = Path(tf.name)
+            comm = edge_tts.Communicate(cleaned, voice, rate=rate)
+            if hasattr(comm, "save_sync"):
+                comm.save_sync(str(tmp_mp3))
+            else:
+                asyncio.run(comm.save(str(tmp_mp3)))
+            samples, dur_s = _decode_and_trim_speech_wav(tmp_mp3, dst_wav)
+            return dst_wav, samples, dur_s
+        except Exception as exc:
+            last_err = exc
+            if attempt == 0:
+                time.sleep(0.6)
+        finally:
+            if tmp_mp3 is not None:
+                tmp_mp3.unlink(missing_ok=True)
+
+    print(f"[scout3d-runner] 提示：廣東話配音連線失敗 ({last_err})，該鏡頭改用純 BGM。")
+    return None
+
+
+def prepare_episode_voiceovers(spec: Dict[str, Any], force: bool = False) -> Dict[int, np.ndarray]:
+    """Synthesize Cantonese narration per shot and auto-extend shot durations so speech never clips."""
+    voice = str(spec.get("voice") or "none")
+    rate = str(spec.get("voice_rate") or "+6%")
+    if voice == "none":
+        return {}
+
+    tts_cache_dir = REPO_ROOT / ".cache" / "tts"
+    fps = float(spec["fps"])
+    vo_clips: Dict[int, np.ndarray] = {}
+    expanded_any = False
+
+    voice_label = CANTONESE_VOICES.get(voice, voice)
+    has_narration = any(_clean_cantonese_tts_text(sh.get("narration", "")) for sh in spec["shots"])
+    if has_narration:
+        print(f"[scout3d-runner] 準備廣東話旁白配音：{voice_label} (語速 {rate}) ...")
+
+    for sh in spec["shots"]:
+        nar = str(sh.get("narration") or "")
+        if not nar:
+            continue
+        res = _synthesize_single_tts_wav(nar, voice=voice, rate=rate, cache_dir=tts_cache_dir, force=force)
+        if res is None:
+            continue
+        _, samples, tts_sec = res
+        vo_clips[sh["index"]] = samples
+        # Keep comfortable breathing room (0.14s lead-in + speech + 0.28s tail)
+        min_dur = 0.14 + tts_sec + 0.28
+        if min_dur > sh["duration"]:
+            new_frames = max(sh["num_frames"], int(math.ceil(min_dur * fps)))
+            sh["num_frames"] = new_frames
+            sh["duration"] = new_frames / fps
+            expanded_any = True
+
+    if expanded_any:
+        cur_f = 0
+        for sh in spec["shots"]:
+            sh["start_frame"] = cur_f
+            sh["end_frame"] = cur_f + sh["num_frames"] - 1
+            cur_f += sh["num_frames"]
+        spec["total_frames"] = cur_f
+
+    if vo_clips:
+        print(
+            f"[scout3d-runner] 已完成 {len(vo_clips)}/{len(spec['shots'])} 段廣東話配音"
+            f"（片長 {spec['total_frames'] / fps:.1f}s）。"
+        )
+    return vo_clips
+
+
+def _smooth_boxcar_1d(arr: np.ndarray, win: int) -> np.ndarray:
+    if win <= 1 or len(arr) == 0:
+        return arr
+    csum = np.cumsum(np.insert(arr.astype(np.float64), 0, 0.0))
+    half = win // 2
+    idx = np.arange(len(arr))
+    lo = np.clip(idx - half, 0, len(arr))
+    hi = np.clip(idx - half + win, 1, len(arr))
+    return ((csum[hi] - csum[lo]) / np.maximum(1, hi - lo)).astype(np.float32)
+
+
+def synthesize_episode_audio(
+    spec: Dict[str, Any],
+    out_wav: Path,
+    vo_clips: Optional[Dict[int, np.ndarray]] = None,
+) -> Path:
+    """Synthesize shot-synced stereo 44.1kHz BGM + UI pop chimes + ducked Cantonese voiceover."""
     sr = 44100
     fps = float(spec["fps"])
     duration_sec = spec["total_frames"] / fps
@@ -744,8 +988,38 @@ def synthesize_episode_audio(spec: Dict[str, Any], out_wav: Path) -> Path:
     left *= fade
     right *= fade
     peak = max(1e-5, float(max(np.max(np.abs(left)), np.max(np.abs(right)))))
-    scale = min(1.8, 0.72 / peak)
-    stereo = np.stack([left * scale, right * scale], axis=1)
+    has_vo = bool(vo_clips)
+    bgm_target = 0.46 if has_vo else 0.72
+    bgm_scale = min(1.8, bgm_target / peak)
+    left *= bgm_scale
+    right *= bgm_scale
+
+    if vo_clips:
+        vo_track = np.zeros(n, dtype=np.float32)
+        speech_mask = np.zeros(n, dtype=np.float32)
+        for sh in spec["shots"]:
+            clip = vo_clips.get(sh["index"])
+            if clip is None or len(clip) == 0:
+                continue
+            st0 = sh["start_frame"] / fps
+            i0 = max(0, int(round((st0 + 0.14) * sr)))
+            i1 = min(n, i0 + len(clip))
+            if i1 <= i0:
+                continue
+            vo_track[i0:i1] += clip[: i1 - i0]
+            m0 = max(0, i0 - int(0.08 * sr))
+            m1 = min(n, i1 + int(0.16 * sr))
+            speech_mask[m0:m1] = 1.0
+
+        smooth_mask = _smooth_boxcar_1d(speech_mask, int(0.16 * sr))
+        duck_gain = 1.0 - 0.66 * smooth_mask
+        left = left * duck_gain + vo_track * 0.92
+        right = right * duck_gain + vo_track * 0.92
+
+    stereo = np.stack([left, right], axis=1)
+    max_abs = float(np.max(np.abs(stereo)))
+    if max_abs > 0.96:
+        stereo *= 0.96 / max_abs
     pcm16 = np.clip(stereo * 32767.0, -32767, 32767).astype(np.int16)
 
     out_wav.parent.mkdir(parents=True, exist_ok=True)
@@ -755,6 +1029,23 @@ def synthesize_episode_audio(spec: Dict[str, Any], out_wav: Path) -> Path:
         wf.setframerate(sr)
         wf.writeframes(pcm16.tobytes())
     return out_wav
+
+
+def _compute_audio_hash(spec: Dict[str, Any], plate_hash: str, active_vo_shots: Sequence[int]) -> str:
+    h = hashlib.sha256()
+    audio_spec = {
+        "plate_hash": plate_hash,
+        "bgm_mood": spec.get("bgm_mood"),
+        "voice": spec.get("voice"),
+        "voice_rate": spec.get("voice_rate"),
+        "active_vo_shots": list(active_vo_shots),
+        "shots": [
+            {"index": s["index"], "num_frames": s["num_frames"], "narration": s.get("narration", "")}
+            for s in spec["shots"]
+        ],
+    }
+    h.update(json.dumps(audio_spec, sort_keys=True, ensure_ascii=False).encode("utf-8"))
+    return h.hexdigest()[:16]
 
 
 def _compute_clean_plate_hash(spec: Dict[str, Any]) -> str:
@@ -893,6 +1184,7 @@ def run_episode_dict(
     """Render an episode dict end-to-end and return the path to the generated MP4."""
     t_all = time.time()
     spec = normalize_episode_spec(raw_spec, subtitle_override=subtitle_override)
+    vo_clips = prepare_episode_voiceovers(spec, force=force)
     ep_id = spec["episode_id"]
     total = spec["total_frames"]
 
@@ -929,9 +1221,10 @@ def run_episode_dict(
 
     final_frames = [overlay_episode_ui_and_subtitles(im, spec, idx) for idx, im in enumerate(clean_frames)]
 
-    wav_path = REPO_ROOT / ".cache" / "audio" / f"{ep_id}_{plate_hash}.wav"
+    audio_hash = _compute_audio_hash(spec, plate_hash, sorted(vo_clips.keys()))
+    wav_path = REPO_ROOT / ".cache" / "audio" / f"{ep_id}_{audio_hash}.wav"
     if force or not wav_path.exists():
-        synthesize_episode_audio(spec, wav_path)
+        synthesize_episode_audio(spec, wav_path, vo_clips=vo_clips)
 
     output_dir = REPO_ROOT / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -952,15 +1245,33 @@ def cli_run_from_episode_script(raw_spec: Dict[str, Any], subtitle_lines: Dict[i
     parser = argparse.ArgumentParser(description=f"SCOUT 3D Episode: {raw_spec.get('episode_id', 'episode')}")
     parser.add_argument("--force", action="store_true", help="Force full 3D re-render ignoring clean-plate cache.")
     parser.add_argument("--fast-sub-only", action="store_true", help="Fast subtitle swap (skip contact sheet).")
+    parser.add_argument("--voice", type=str, default="", help="Cantonese TTS voice override (e.g. zh-HK-HiuMaanNeural, zh-HK-WanLungNeural, none).")
+    parser.add_argument("--no-voice", action="store_true", help="Disable Cantonese voiceover and render BGM only.")
     parser.add_argument("--out", type=str, default="", help="Optional custom output .mp4 path.")
     args = parser.parse_args()
+    spec_in = dict(raw_spec)
+    if args.no_voice:
+        spec_in["voice"] = "none"
+    elif args.voice:
+        spec_in["voice"] = args.voice
     out_p = Path(args.out) if args.out else None
-    run_episode_dict(raw_spec, subtitle_override=subtitle_lines, force=args.force, fast_sub_only=args.fast_sub_only, out_mp4_override=out_p)
+    run_episode_dict(spec_in, subtitle_override=subtitle_lines, force=args.force, fast_sub_only=args.fast_sub_only, out_mp4_override=out_p)
 
 
 def decode_b64_spec(b64_str: str) -> Dict[str, Any]:
-    pad = "=" * ((4 - len(b64_str.strip()) % 4) % 4)
-    raw_bytes = base64.urlsafe_b64decode((b64_str.strip() + pad).encode("ascii"))
+    s = b64_str.strip()
+    is_zlib = False
+    if s.startswith("z_"):
+        is_zlib = True
+        s = s[2:]
+    s = s.replace("+", "-").replace("/", "_")
+    pad = "=" * ((4 - len(s) % 4) % 4)
+    raw_bytes = base64.urlsafe_b64decode((s + pad).encode("ascii"))
+    if is_zlib:
+        try:
+            raw_bytes = zlib.decompress(raw_bytes)
+        except zlib.error:
+            raw_bytes = zlib.decompress(raw_bytes, -zlib.MAX_WBITS)
     return json.loads(raw_bytes.decode("utf-8"))
 
 
@@ -973,6 +1284,8 @@ def main() -> None:
     )
     parser.add_argument("--b64", type=str, default="", help="URL-safe or standard Base64 UTF-8 JSON episode payload (zero-file CMD execution!).")
     parser.add_argument("--spec", type=str, default="", help="Path to an episode .json spec file.")
+    parser.add_argument("--voice", type=str, default="", help="Cantonese TTS voice override (zh-HK-HiuMaanNeural, zh-HK-HiuGaaiNeural, zh-HK-WanLungNeural, none).")
+    parser.add_argument("--no-voice", action="store_true", help="Disable Cantonese voiceover and render BGM only.")
     parser.add_argument("--write-py", action="store_true", help="Also save a Git-ready `episodes/<episode_id>.py` file locally.")
     parser.add_argument("--only-write-py", action="store_true", help="Only write `episodes/<episode_id>.py` without rendering video.")
     parser.add_argument("--force", action="store_true", help="Force full 3D clean-plate re-render.")
@@ -987,14 +1300,17 @@ def main() -> None:
         return
 
     if args.b64:
-        # Accept both standard Base64 (+/) and URL-safe Base64 (-_)
-        normalized_b64 = args.b64.strip().replace("+", "-").replace("/", "_")
-        raw_spec = decode_b64_spec(normalized_b64)
+        raw_spec = decode_b64_spec(args.b64)
     elif args.spec:
         raw_spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
     else:
         parser.error("Provide either `--b64 <BASE64_JSON>` (paste directly in CMD) or `--spec <episode.json>`.")
         return
+
+    if args.no_voice:
+        raw_spec["voice"] = "none"
+    elif args.voice:
+        raw_spec["voice"] = args.voice
 
     if args.write_py or args.only_write_py:
         norm = normalize_episode_spec(raw_spec)
