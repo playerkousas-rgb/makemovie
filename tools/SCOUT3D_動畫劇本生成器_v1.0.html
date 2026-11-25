@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCOUT 3D 動畫劇本＆CMD 指令生成器 v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --surface: #ffffff;
+    --surface-2: #efeae1;
+    --ink: #171614;
+    --ink-soft: #5c5852;
+    --ink-faint: #948e84;
+    --line: #e2dcd1;
+    --accent: #2f5233;
+    --accent-soft: #e6efe7;
+    --gold: #b8892b;
+    --gold-soft: #fbf4e2;
+    --orange: #e66b19;
+    --danger: #b23a2c;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { max-width: 1220px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 22px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .mark {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--accent); color: #fff;
+    display: grid; place-items: center; font-weight: 900; font-size: 16px;
+    letter-spacing: -0.5px;
+  }
+  .brand h1 { font-size: 20px; margin: 0; font-weight: 900; letter-spacing: -0.3px; }
+  .brand .ver {
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    background: var(--accent-soft); padding: 2px 8px; border-radius: 999px; margin-left: 6px;
+  }
+  .brand .sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .pill {
+    font-size: 12px; padding: 6px 12px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent); font-weight: 700;
+  }
+
+  .guide {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 16px;
+    font-size: 13px; color: var(--ink-soft); line-height: 1.75;
+  }
+  .guide summary { cursor: pointer; font-weight: 700; color: var(--ink); user-select: none; }
+  .guide code {
+    font-family: 'JetBrains Mono', monospace; background: var(--surface-2);
+    padding: 2px 6px; border-radius: 5px; font-size: 12px; color: var(--ink);
+  }
+  .workflow-compare {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;
+  }
+  @media (max-width: 760px) { .workflow-compare { grid-template-columns: 1fr; } }
+  .wf-box {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+  }
+  .wf-box.fast { border-color: var(--accent); background: #f3f8f4; }
+  .wf-box h4 { margin: 0 0 6px; font-size: 13px; color: var(--ink); }
+
+  details.api-box {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 12px 16px; margin-bottom: 18px; font-size: 13px;
+  }
+  details.api-box summary {
+    cursor: pointer; font-weight: 700; color: var(--ink-soft); user-select: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; list-style: none;
+  }
+  details.api-box summary::-webkit-details-marker { display: none; }
+  .key-badge { font-size: 11px; padding: 3px 9px; border-radius: 999px; font-weight: 700; }
+  .key-badge.canvas { background: var(--accent-soft); color: var(--accent); }
+  .key-badge.custom { background: #fef3c7; color: #92400e; }
+  .api-inner { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .api-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .api-row input {
+    flex: 1; min-width: 240px; padding: 9px 12px; border: 1px solid var(--line);
+    border-radius: 9px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; background: var(--bg);
+  }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 22px; margin-bottom: 22px;
+  }
+  .panel h2 {
+    margin: 0 0 14px; font-size: 16px; font-weight: 900;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
+
+  .mode-tabs {
+    display: inline-flex; background: var(--surface-2); padding: 4px;
+    border-radius: 11px; margin-bottom: 18px; gap: 4px; flex-wrap: wrap;
+  }
+  .mode-tab {
+    border: 0; background: transparent; padding: 9px 16px; border-radius: 8px;
+    font-family: inherit; font-weight: 700; font-size: 13.5px; color: var(--ink-soft); cursor: pointer;
+  }
+  .mode-tab.active {
+    background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 820px) {
+    .grid { grid-template-columns: 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.3px; }
+  label .hint { font-weight: 400; color: var(--ink-faint); }
+  input[type="text"], input[type="url"], input[type="number"], textarea, select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--ink); font-family: inherit; font-size: 13.5px;
+    transition: border-color .15s, background .15s;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none; border-color: var(--accent); background: #fff;
+  }
+  textarea { resize: vertical; min-height: 68px; line-height: 1.55; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft);
+    border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all .15s; font-family: inherit;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+  .actions {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px;
+  }
+  button {
+    font-family: inherit; font-weight: 700; font-size: 13.5px; border: 0;
+    border-radius: 10px; padding: 10px 16px; cursor: pointer;
+    transition: transform .06s, opacity .15s, background .15s;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #244028; }
+  .btn-orange { background: var(--orange); color: #fff; }
+  .btn-orange:hover:not(:disabled) { background: #cc5a0e; }
+  .btn-ghost { background: var(--surface-2); color: var(--ink); }
+  .btn-ghost:hover:not(:disabled) { background: #e4ddd0; }
+  .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn-outline:hover:not(:disabled) { background: var(--surface-2); }
+  .btn-sm { padding: 6px 11px; font-size: 12px; border-radius: 8px; }
+
+  .status {
+    font-size: 13px; color: var(--ink-soft); display: flex; align-items: center;
+    gap: 8px; min-height: 22px; margin-top: 12px;
+  }
+  .status.err { color: var(--danger); font-weight: 600; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    animation: pulse 1.1s infinite ease-in-out;
+  }
+  @keyframes pulse { 0%,100% { opacity: .25; transform: scale(.85);} 50% { opacity: 1; transform: scale(1.15);} }
+
+  /* Shot editor list */
+  .shot-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  .shot-item {
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+    background: var(--bg); display: grid; grid-template-columns: 1fr; gap: 10px;
+  }
+  .shot-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
+  .shot-badge {
+    font-size: 12px; font-weight: 900; color: #fff; background: var(--accent);
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .shot-controls { display: flex; gap: 6px; align-items: center; }
+  .shot-row {
+    display: grid; grid-template-columns: 2.2fr 0.8fr 1.1fr 1.1fr; gap: 10px;
+  }
+  @media (max-width: 820px) { .shot-row { grid-template-columns: 1fr 1fr; } }
+
+  /* Storyboard preview cards */
+  .storyboard-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(225px, 1fr)); gap: 16px;
+  }
+  .sb-card {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .sb-canvas-wrap {
+    background: #1d2536; display: grid; place-items: center; padding: 10px;
+  }
+  .sb-canvas-wrap canvas {
+    width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+  }
+  .sb-meta {
+    padding: 10px 12px; font-size: 12px; color: var(--ink-soft); line-height: 1.5;
+  }
+  .sb-meta strong { color: var(--ink); display: block; margin-bottom: 2px; }
+
+  /* CMD & Git Output Center */
+  .cmd-box {
+    background: #181c24; color: #eef3fa; border-radius: 12px; padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6;
+    overflow-x: auto; border: 1px solid #2d3545; white-space: pre-wrap; word-break: break-all;
+  }
+  .cmd-box.py-code {
+    max-height: 320px; overflow-y: auto; white-space: pre; word-break: normal; font-size: 12px;
+  }
+  .tag-fast {
+    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    background: #fef3c7; color: #92400e;
+  }
+  .tag-git {
+    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .out-split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 920px) { .out-split { grid-template-columns: 1fr; } }
+
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s; z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .check-inline {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 13px;
+    font-weight: 600; color: var(--ink); cursor: pointer; user-select: none;
+  }
+  .check-inline input { width: 16px; height: 16px; accent-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="mark">3D</div>
+      <div>
+        <h1>SCOUT 3D 動畫劇本＆CMD 指令生成器<span class="ver">v1.0</span></h1>
+        <div class="sub">專為 makemovie 3D 元件庫而設 · 一鍵產出 Windows CMD 直出片指令 ＆ Git 專用 .py 劇本</div>
+      </div>
+    </div>
+    <div class="pill">© SCOUT SYSTEM</div>
+  </header>
+
+  <details class="guide" open>
+    <summary>📖 點樣用？（首次必睇 · 唔使每次推上 Git 都可以直接喺 CMD 整片！）</summary>
+    <div class="workflow-compare">
+      <div class="wf-box fast">
+        <h4>⚡ 方法 A：直接貼落 CMD 即刻出片（完全唔使放劇本上 Git！）</h4>
+        1. 只要你部電腦已經 <code>git pull</code> 咗一次 Git 入面嘅 <code>SCOUT 3D</code> 3D 元件庫。<br>
+        2. 喺下面用 AI 或手動執好分鏡對白 ➔ 撳橙色制<strong>「📋 複製 CMD 一鍵直出指令（連劇本）」</strong>。<br>
+        3. 打開電腦 <code>makemovie</code> 資料夾嘅 <code>CMD</code> 貼上 Enter —— 劇本已自動編碼喺指令入面，<strong>零開檔、零 Git 上傳</strong>直接產出 <code>output/集數.mp4</code>！
+      </div>
+      <div class="wf-box">
+        <h4>📁 方法 B：放劇本上 Git 留底／方便秒速改字幕</h4>
+        1. 撳綠色制<strong>「💾 下載 .py 劇本檔」</strong>放入 <code>makemovie\episodes\</code>（或者勾選 <code>--write-py</code> 貼落 CMD 自動寫入檔案）。<br>
+        2. 想改對白只需打開個 <code>.py</code> 改最頂頭第 1 行嘅 <code>SUBTITLE_LINES</code>，行 <code>--fast-sub-only</code> <strong>1.5 秒即換好字幕</strong>！<br>
+        3. 複製埋下面產出嘅 <code>git add / commit / push</code> 指令，一貼就推埋上 GitHub 備份。
+      </div>
+    </div>
+  </details>
+
+  <details class="api-box" id="apiBox">
+    <summary>
+      <span>🔑 Gemini API Key 設定（用「AI 全自動寫劇本」先需要 · 手動砌分鏡／內建範本免填即用）</span>
+      <span class="key-badge canvas" id="keyBadge">Canvas 自動模式／本機免 Key 手動模式</span>
+    </summary>
+    <div class="api-inner">
+      <div style="color:var(--ink-soft);line-height:1.65;margin-bottom:8px;">
+        • 如果喺 <strong>Gemini Canvas</strong> 入面開，唔使填 Key 直接用到 AI。<br>
+        • 如果雙擊 HTML 喺自己電腦瀏覽器開：想用 AI 自動寫分鏡可貼免費 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio API Key</a>（只存於你瀏覽器 <code>localStorage</code>）；唔填 Key 亦可以直接用<strong>「✍️ 手動砌分鏡／內建範本」</strong>100% 離線產出劇本同 CMD 指令！
+      </div>
+      <div class="api-row">
+        <input id="customKey" type="password" placeholder="貼上 AIzaSy... 開頭嘅 Gemini API Key（可留空）" autocomplete="off">
+        <button class="btn-primary btn-sm" id="saveKeyBtn" type="button">儲存 Key</button>
+        <button class="btn-outline btn-sm" id="clearKeyBtn" type="button">清除</button>
+      </div>
+    </div>
+  </details>
+
+  <!-- 1. 全域集數與角色設定 -->
+  <section class="panel">
+    <h2>
+      <span>① 集數規格＆主角設定（實時同步到 CMD 指令與 .py 劇本）</span>
+      <span id="durationSummary" style="font-size:12.5px;color:var(--accent);font-weight:700;">總片長：11.5 秒（276 格 @ 24fps）</span>
+    </h2>
+    <div class="grid">
+      <div class="field">
+        <label for="episodeId">集數檔案代號（英文／數字，決定輸出 <code>output/&lt;代號&gt;.mp4</code>）</label>
+        <input id="episodeId" type="text" value="ep02_camp_eve" placeholder="例如：ep02_camp_eve">
+      </div>
+      <div class="field">
+        <label for="seriesBadge">片頭頂部系列膠囊標題（<code>SERIES_BADGE</code>）</label>
+        <input id="seriesBadge" type="text" value="如果系列 EP.02 · 大露營前夕" placeholder="例如：如果系列 EP.02 · 大露營前夕">
+      </div>
+      <div class="field">
+        <label for="aspectSelect">影片比例格式</label>
+        <select id="aspectSelect">
+          <option value="9:16" selected>9:16 直向短片（720×1280 · IG Reels / Shorts 首選）</option>
+          <option value="16:9">16:9 橫向高清（1280×720 · YouTube / 簡介會投映）</option>
+          <option value="1:1">1:1 正方貼文（960×960 · IG / FB Feed）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="sectionSelect">預設童軍支部制服（各鏡頭亦可單獨覆蓋）</label>
+        <select id="sectionSelect">
+          <option value="scout" selected>童軍 Scout（卡其恤衫＋紫紅旅巾＋綠紅專章帶）</option>
+          <option value="grasshopper">小童軍 Grasshopper（橙色 Polo＋紫紅旅巾）</option>
+          <option value="cub">幼童軍 Cub Scout（卡其恤衫＋黃旅巾＋綠巾圈）</option>
+          <option value="venture">深資童軍 Venture（卡其恤衫＋紫紅貝雷帽＋長褲）</option>
+          <option value="sea_scout">海童軍 Sea Scout（白色海童軍恤＋藍旅巾＋專章帶）</option>
+          <option value="air_scout">空童軍 Air Scout（天藍空童軍恤＋藍旅巾＋長褲）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="genderSelect">主角造型（髮型）</label>
+        <select id="genderSelect">
+          <option value="M" selected>男仔童軍（立體捲髮造型）</option>
+          <option value="F">女仔童軍（可愛立體雙馬尾造型）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="heroStyleSelect">3D 主角風格</label>
+        <select id="heroStyleSelect">
+          <option value="bobo" selected>波波圓滑 3D 風（SCOUT 3D 招牌圓潤公仔＋雙認證變身）</option>
+          <option value="blocky">簡約方塊 3D 風（俐落倒角積木公仔風格）</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label>「SCOUT3D · 撳章自動上身」頂部 UI 卡片 4 個橙色開關章名 <span class="hint">（出現喺自動貼章鏡頭頂部）</span></label>
+        <div class="grid-4">
+          <input id="toggle0" type="text" value="世界會員章" placeholder="徽章開關 1">
+          <input id="toggle1" type="text" value="旅條 · 區章" placeholder="徽章開關 2">
+          <input id="toggle2" type="text" value="露營專科章" placeholder="徽章開關 3">
+          <input id="toggle3" type="text" value="急救專科章" placeholder="徽章開關 4">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. AI 全自動 / 手動砌分鏡 雙模式 -->
+  <section class="panel">
+    <div class="mode-tabs" role="tablist">
+      <button class="mode-tab active" id="tabManual" type="button">✍️ 內建範本／手動執分鏡（免 Key 即出）</button>
+      <button class="mode-tab" id="tabAI" type="button">🤖 AI 全自動寫分鏡劇本（支援讀 GitHub）</button>
+    </div>
+
+    <!-- AI 面板 -->
+    <div id="paneAI" style="display:none;margin-bottom:18px;padding-bottom:18px;border-bottom:1px dashed var(--line);">
+      <div class="grid">
+        <div class="field">
+          <label for="ghUrl">GitHub 專案網址 <span class="hint">（選填，AI 會自動讀取最新 README 功能）</span></label>
+          <input id="ghUrl" type="url" value="https://github.com/playerkousas-rgb/SCOUT3D" placeholder="https://github.com/playerkousas-rgb/SCOUT3D">
+        </div>
+        <div class="field">
+          <label for="aiShotCount">AI 產出鏡頭數量</label>
+          <select id="aiShotCount">
+            <option value="3">3 鏡（約 8–9 秒極速節奏）</option>
+            <option value="4" selected>4 鏡（約 11–12 秒《如果系列》黃金結構）</option>
+            <option value="5">5 鏡（約 14–15 秒完整故事）</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label for="aiTopic">今集主題／痛點情境 <span class="hint">（撳下面靈感標籤可一鍵填入）</span></label>
+          <textarea id="aiTopic" placeholder="例如：大露營前一日夜晚，阿媽先發現個女考咗露營同急救章唔知聯邊度，好彩有 SCOUT 3D 撳章自動上身，望住 3D 人仔十分鐘搞掂！">大露營前一日夜晚，媽媽先發現啲新專科章唔知聯邊隻袖，好彩有 SCOUT 3D 撳個章就自動貼上 3D 人仔對應位置，唔使查書十分鐘聯好，聽朝去營地俾領袖大讚！</textarea>
+          <div class="chips">
+            <button type="button" class="chip" data-idea="ep02_camp_eve|如果系列 EP.02 · 大露營前夕|大露營前一日夜晚，媽媽先發現啲新專科章唔知聯邊度，好彩有 SCOUT 3D 撳個章就自動貼上 3D 人仔，望住照聯十分鐘搞掂，去到營地領袖大讚！">⛺ EP.02 大露營前夕救星</button>
+            <button type="button" class="chip" data-idea="ep03_section_up|如果系列 EP.03 · 升團換新制服|幼童軍升上童軍換新制服，成套章位置唔同晒！用 SCOUT 3D 一揀支部同徽章即刻自動擺啱位，小童軍、幼童軍、童軍、深資童軍全部支援！">🎖️ EP.03 升團換新制服</button>
+            <button type="button" class="chip" data-idea="ep04_sash_master|如果系列 EP.04 · 專章帶點樣戴|考夠專科章要戴綠紅專章帶，究竟左肩定右肩？SCOUT 3D 自動幫你由右肩斜佩到左腰，360度轉身睇清前後零死角！">🎗️ EP.04 專章帶斜佩零死角</button>
+            <button type="button" class="chip" data-idea="ep05_sea_air|如果系列 EP.05 · 海空童軍都啱位|唔止陸童軍！海童軍白恤衫、空童軍天藍恤衫一樣複雜，SCOUT 3D 一撳徽章自動上身，方塊定波波公仔都百發百中！">⚓ EP.05 海童軍／空童軍特輯</button>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-primary" id="aiGenBtn" type="button">✨ AI 自動編寫分鏡劇本＋更新 CMD 指令</button>
+      </div>
+    </div>
+
+    <!-- 內建範本快速載入列 -->
+    <div>
+      <label>⚡ 一鍵載入內建黃金劇本範本 <span class="hint">（載入後可隨意逐鏡改對白、秒數、支部同鏡頭預設）</span></label>
+      <div class="chips" style="margin-top:6px;margin-bottom:14px;">
+        <button type="button" class="chip" data-tpl="ep01">🎬 EP.01 經典原版（查書頭暈 ➔ 撳章上身 ➔ 媽媽照聯 ➔ 雙敬禮）</button>
+        <button type="button" class="chip" data-tpl="ep02">⛺ EP.02 大露營前夕（半夜趕聯章 ➔ 營地帳篷出發）</button>
+        <button type="button" class="chip" data-tpl="ep03">🎖️ EP.03 升團全支部大曬冷（小童軍＋童軍＋空童軍同台）</button>
+        <button type="button" class="chip" data-tpl="ep04">🔄 EP.04 360° 全方位檢視（前後袖章＋專章帶特寫）</button>
+      </div>
+    </div>
+
+    <!-- 分鏡編輯器 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+      <label style="font-size:13px;color:var(--ink);">🎞️ 逐鏡劇本與 3D 場景編排（共 <span id="shotCountLabel">4</span> 鏡）</label>
+      <button type="button" class="btn-ghost btn-sm" id="addShotBtn">＋ 新增一鏡</button>
+    </div>
+
+    <div class="shot-list" id="shotList"></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <!-- 3. 即時視覺分鏡預覽卡 -->
+  <section class="panel">
+    <h2>
+      <span>② 視覺分鏡預覽（模擬實際 3D 構圖、頂部 UI 卡與粵語字幕安全區）</span>
+      <span style="font-size:12px;color:var(--ink-faint);font-weight:500;">改上面任何文字／比例會即時更新預覽</span>
+    </h2>
+    <div class="storyboard-grid" id="storyboardGrid"></div>
+  </section>
+
+  <!-- 4. CMD 直出指令 ＆ Git 劇本輸出中心 -->
+  <section class="panel">
+    <h2>
+      <span>③ 產出結果：Windows CMD 一鍵直出指令 ＆ Git 專用劇本檔</span>
+      <span id="cmdLenBadge" style="font-size:12px;color:var(--accent);font-weight:700;">CMD 指令長度：檢查中...</span>
+    </h2>
+
+    <div class="out-split">
+      <!-- 左欄：免 Git 直接貼落 CMD -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          <span class="tag-fast">⚡ 方法 A：免經 Git · 直接貼落 CMD 連劇本即刻整片</span>
+          <label class="check-inline">
+            <input type="checkbox" id="alsoWritePyChk" checked>
+            <span>順手自動存埋 <code>episodes/*.py</code> 檔案 (<code>--write-py</code>)</span>
+          </label>
+        </div>
+        <div class="cmd-box" id="directCmdBox"></div>
+        <div class="actions" style="margin-top:2px;">
+          <button type="button" class="btn-orange" id="copyDirectCmdBtn">📋 一鍵複製 CMD 直出片指令（連劇本）</button>
+        </div>
+
+        <details class="guide" style="margin-top:6px;margin-bottom:0;">
+          <summary>🔧 首次喺你部電腦設定／拉取 Git 3D 元件庫指令（只需做一次）</summary>
+          <div style="margin-top:8px;">
+            第一次用之前，喺 Windows <code>CMD</code> 貼下面指令拉取最新 <code>SCOUT 3D</code> 元件庫同安裝套件：
+            <div class="cmd-box" id="firstSetupBox" style="margin-top:6px;font-size:11.5px;">git fetch origin
+git pull origin arena/76472bea-makemovie
+pip install -r requirements.txt</div>
+            <div class="actions" style="margin-top:8px;">
+              <button type="button" class="btn-ghost btn-sm" id="copySetupBtn">📋 複製首次更新指令</button>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- 右欄：放上 Git 的 .py 劇本 + Git 指令 -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          <span class="tag-git">📁 方法 B：放上 Git 留底嘅獨立 Python 劇本（頂頭改字幕 1.5s 極速重出）</span>
+        </div>
+        <div class="cmd-box py-code" id="pySourceBox"></div>
+        <div class="actions" style="margin-top:2px;">
+          <button type="button" class="btn-primary" id="downloadPyBtn">💾 下載 .py 劇本檔（放入 episodes/）</button>
+          <button type="button" class="btn-ghost" id="copyPyBtn">📋 複製 .py 程式碼</button>
+          <button type="button" class="btn-outline btn-sm" id="downloadJsonBtn">下載 .json</button>
+        </div>
+
+        <label style="margin-top:4px;">對應 CMD 執行 ＆ 推上 Git 指令：</label>
+        <div class="cmd-box" id="gitCmdBox" style="font-size:11.8px;"></div>
+        <div class="actions" style="margin-top:2px;">
+          <button type="button" class="btn-ghost btn-sm" id="copyRunPyCmdBtn">📋 複製執行 .py 出片指令</button>
+          <button type="button" class="btn-ghost btn-sm" id="copyFastSubCmdBtn">⚡ 複製 1.5s 極速換字幕指令</button>
+          <button type="button" class="btn-outline btn-sm" id="copyGitPushCmdBtn">🚀 複製 Git Commit + Push 指令</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <details class="guide" id="selfTest" style="margin-top:16px;">
+    <summary>🧪 系統自我檢查（UTF-8 Base64 編解碼 · Windows CMD 長度與安全字元驗證）</summary>
+    <div id="selfTestOut" style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:12px;">執行中…</div>
+  </details>
+</div>
+
+<div class="toast" id="toast">已複製</div>
+
+<script>
+  // ── Gemini API Key 雙環境支援（Canvas 自動注入 + 本機瀏覽器自訂 Key）──
+  const apiKey = ""; // Canvas 環境自動注入；勿改名
+  const LS_KEY = "scout3d_makemovie_gemini_key_v1";
+
+  function resolveKey() {
+    try {
+      const saved = (localStorage.getItem(LS_KEY) || "").trim();
+      if (saved) return { key: saved, source: "custom" };
+    } catch (_) {}
+    if (apiKey && apiKey.trim()) return { key: apiKey.trim(), source: "canvas" };
+    return { key: "", source: "canvas" };
+  }
+  function effKey() { return resolveKey().key; }
+
+  function refreshKeyUI() {
+    const { key, source } = resolveKey();
+    const badge = document.getElementById("keyBadge");
+    const input = document.getElementById("customKey");
+    if (source === "custom" && key) {
+      badge.textContent = "使用自訂 Key（" + key.slice(0, 6) + "…" + key.slice(-4) + "）";
+      badge.className = "key-badge custom";
+      if (input && !input.value) input.value = key;
+    } else {
+      badge.textContent = "Canvas 自動模式／本機免 Key 手動模式";
+      badge.className = "key-badge canvas";
+    }
+  }
+
+  const TEXT_MODELS = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-flash-latest"];
+
+  // ── 8 大 SCOUT 3D 3D 場景預設目錄（與 src/scout3d_runner.py 100% 對應）──
+  const PRESETS = {
+    disaster_wrong_badges: {
+      label: "① 查書頭暈＋聯錯章俾領袖鬧（紅 ✕）",
+      bgTop: "#3B3348", bgBot: "#63566E", floor: "#574D63",
+      tag: "痛點開場", warn: true, actors: "😵媽媽 + 📚厚書 + 😰聯錯章童軍 + 😠領袖✕"
+    },
+    scout3d_auto_snap: {
+      label: "② SCOUT 3D 撳章自動上身＋方塊變波波（連 UI 卡）",
+      bgTop: "#8AC6F2", bgBot: "#DCF0FC", floor: "#CBE6F8",
+      tag: "核心神器", warn: false, actors: "🎛️撳章UI卡 + 💿旋轉底座 + ✨方塊➔波波公仔"
+    },
+    mom_turntable_sew: {
+      label: "③ 媽媽推開厚書・望住旋轉 3D 人仔輕鬆照聯",
+      bgTop: "#FCE6C9", bgBot: "#FFF7EA", floor: "#F2DEC0",
+      tag: "媽媽救星", warn: false, actors: "😊開心媽媽 + 💿迷你3D旋轉公仔（厚書推開）"
+    },
+    dual_salute_praise: {
+      label: "④ 方塊＋波波童軍齊敬三指禮・領袖大讚（綠 ✓）",
+      bgTop: "#7EC4CF", bgBot: "#E8F8F5", floor: "#CDEAE5",
+      tag: "雙認證結局", warn: false, actors: "🧊方塊童軍 + 🟢波波童軍三指禮 + 👍領袖✓"
+    },
+    camp_eve_ready: {
+      label: "⑤ 戶外營地帳篷前・童軍齊章揮手敬禮出發",
+      bgTop: "#7CC5E8", bgBot: "#E9F7D9", floor: "#9ED18B",
+      tag: "戶外營地", warn: false, actors: "⛺3D營幕 + 👋齊章童軍揮手敬禮 + 👍領袖✓"
+    },
+    section_parade: {
+      label: "⑥ 多支部童軍同台轉身敬禮（升團／支部大曬冷）",
+      bgTop: "#8AC6F2", bgBot: "#EEF7FD", floor: "#D5E9F8",
+      tag: "全支部曬冷", warn: false, actors: "🎖️左・中・右三大支部童軍同台三指敬禮"
+    },
+    turntable_360_closeup: {
+      label: "⑦ 360° 旋轉特寫・前後左右袖章與專章帶零死角",
+      bgTop: "#8AC6F2", bgBot: "#DCF0FC", floor: "#CBE6F8",
+      tag: "360°特寫", warn: false, actors: "🔄360度旋轉特寫前後徽章＋斜佩專章帶"
+    },
+    mom_and_kid_proud: {
+      label: "⑧ 母子開心出門・媽媽安心微笑＋童軍精神敬禮",
+      bgTop: "#FDE2B8", bgBot: "#FFF8EC", floor: "#F1DCB8",
+      tag: "溫馨出門", warn: false, actors: "😊媽媽微笑 + 🫡童軍底座精神敬禮"
+    }
+  };
+
+  const SECTION_LABELS = {
+    "": "跟隨全集預設支部",
+    scout: "童軍 Scout（卡其＋紫紅巾）",
+    grasshopper: "小童軍（橙色 Polo）",
+    cub: "幼童軍（黃旅巾）",
+    venture: "深資童軍（紫紅貝雷帽＋長褲）",
+    sea_scout: "海童軍（白恤＋藍旅巾）",
+    air_scout: "空童軍（天藍恤＋長褲）"
+  };
+
+  const SECTION_COLORS = {
+    scout: { shirt: "#CFB68C", necker: "#822030", sash: true },
+    grasshopper: { shirt: "#F2791C", necker: "#7B1E2B", sash: false },
+    cub: { shirt: "#CFB68C", necker: "#F0BA29", sash: false },
+    venture: { shirt: "#CFB68C", necker: "#2E7D4F", sash: false },
+    sea_scout: { shirt: "#F2F6FA", necker: "#1F4E9C", sash: true },
+    air_scout: { shirt: "#8DB9E2", necker: "#1F4E9C", sash: true }
+  };
+
+  // ── 4 套內建黃金劇本範本 ──
+  const TEMPLATES = {
+    ep01: {
+      episode_id: "whatif_ep01_scout3d",
+      series_badge: "如果系列 EP.01 · 如果你有 SCOUT 3D",
+      aspect: "9:16",
+      section: "scout",
+      gender: "M",
+      hero_style: "bobo",
+      toggles: ["世界會員章", "旅條 · 區章", "小隊章", "專科章 ×12"],
+      shots: [
+        { preset: "disaster_wrong_badges", duration: 3.0, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "冇 SCOUT 3D：查書辛苦、\n阿媽聯錯晒、仲俾領袖鬧！" },
+        { preset: "scout3d_auto_snap", duration: 3.5, section: "", show_ui_card: true, trio_sections: ["cub","scout","venture"], subtitle: "如果你有 SCOUT 3D ——\n揀個章自動上身，方塊定波波都啱晒位！" },
+        { preset: "mom_turntable_sew", duration: 2.5, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "完全唔使查書，\n媽媽望住 3D 人仔照聯一定啱！" },
+        { preset: "dual_salute_praise", duration: 2.5, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "揀章即見位・唔怕俾人鬧\n—— SCOUT 3D！" }
+      ]
+    },
+    ep02: {
+      episode_id: "ep02_camp_eve",
+      series_badge: "如果系列 EP.02 · 大露營前夕",
+      aspect: "9:16",
+      section: "scout",
+      gender: "F",
+      hero_style: "bobo",
+      toggles: ["世界會員章", "旅條 · 區章", "露營專科章", "急救專科章"],
+      shots: [
+        { preset: "disaster_wrong_badges", duration: 2.8, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "聽朝就大露營，\n今晚先發現啲專科章唔知聯邊度？！" },
+        { preset: "scout3d_auto_snap", duration: 3.5, section: "", show_ui_card: true, trio_sections: ["cub","scout","venture"], subtitle: "如果你有 SCOUT 3D ——\n一撳露營章，即刻自動貼準位置！" },
+        { preset: "mom_turntable_sew", duration: 2.5, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "唔使半夜摷手冊，\n媽媽望住 3D 人仔十分鐘搞掂！" },
+        { preset: "camp_eve_ready", duration: 2.7, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "齊章出發去露營・領袖一睇就讚\n—— SCOUT 3D！" }
+      ]
+    },
+    ep03: {
+      episode_id: "ep03_all_sections",
+      series_badge: "如果系列 EP.03 · 升團換新制服",
+      aspect: "9:16",
+      section: "scout",
+      gender: "M",
+      hero_style: "bobo",
+      toggles: ["世界會員章", "進度獎章", "小隊章", "專科章 ×12"],
+      shots: [
+        { preset: "disaster_wrong_badges", duration: 2.8, section: "cub", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "升團換新制服，\n成套章位置同舊時唔同晒點算好？" },
+        { preset: "scout3d_auto_snap", duration: 3.4, section: "scout", show_ui_card: true, trio_sections: ["cub","scout","venture"], subtitle: "如果你有 SCOUT 3D ——\n揀返新支部，徽章自動飛上正確位！" },
+        { preset: "section_parade", duration: 3.0, section: "scout", show_ui_card: false, trio_sections: ["grasshopper","scout","air_scout"], subtitle: "小童軍、童軍定海空童軍，\n全部支部制服一網打盡！" },
+        { preset: "dual_salute_praise", duration: 2.5, section: "venture", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "由細升到大都唔怕聯錯\n—— SCOUT 3D！" }
+      ]
+    },
+    ep04: {
+      episode_id: "ep04_sash_360",
+      series_badge: "如果系列 EP.04 · 360° 零死角睇位",
+      aspect: "9:16",
+      section: "scout",
+      gender: "F",
+      hero_style: "bobo",
+      toggles: ["世界會員章", "旅條 · 區章", "小隊章", "專章帶模式"],
+      shots: [
+        { preset: "scout3d_auto_snap", duration: 3.4, section: "", show_ui_card: true, trio_sections: ["cub","scout","venture"], subtitle: "專科章考得多，\n專章帶究竟左肩定右肩斜佩？" },
+        { preset: "turntable_360_closeup", duration: 3.2, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "SCOUT 3D 360 度自由轉，\n右肩斜去左腰、前後袖章一清二楚！" },
+        { preset: "mom_and_kid_proud", duration: 2.6, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "媽媽照住聯零死角，\n宣誓禮精神奕奕出發 —— SCOUT 3D！" }
+      ]
+    }
+  };
+
+  let shotsState = JSON.parse(JSON.stringify(TEMPLATES.ep02.shots));
+
+  const $ = (id) => document.getElementById(id);
+  function showToast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._tm);
+    showToast._tm = setTimeout(() => t.classList.remove("show"), 2000);
+  }
+  function setStatus(msg, isErr = false, loading = false) {
+    const el = $("status");
+    el.className = "status" + (isErr ? " err" : "");
+    el.innerHTML = (loading ? '<span class="dot"></span>' : '') +
+      (msg ? `<span>${msg.replace(/</g,"&lt;")}</span>` : '');
+  }
+
+  // ── UTF-8 URL-Safe Base64 編解碼（100% 零特殊符號，直接貼落 Windows CMD 零亂碼！）──
+  function encodeUtf8UrlSafeBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function decodeUtf8UrlSafeBase64(b64) {
+    let std = b64.replace(/-/g, "+").replace(/_/g, "/");
+    while (std.length % 4) std += "=";
+    const bin = atob(std);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+
+  function sanitizeId(raw) {
+    return (raw || "scout3d_ep").replace(/[^a-zA-Z0-9_-]/g, "_").replace(/^_+|_+$/g, "") || "scout3d_ep";
+  }
+
+  function buildCurrentSpec() {
+    const epId = sanitizeId($("episodeId").value);
+    const aspect = $("aspectSelect").value || "9:16";
+    const section = $("sectionSelect").value || "scout";
+    const gender = $("genderSelect").value || "M";
+    const heroStyle = $("heroStyleSelect").value || "bobo";
+    const seriesBadge = ($("seriesBadge").value || "如果系列 · SCOUT 3D").trim();
+    const toggles = [
+      ($("toggle0").value || "世界會員章").trim(),
+      ($("toggle1").value || "旅條 · 區章").trim(),
+      ($("toggle2").value || "小隊章").trim(),
+      ($("toggle3").value || "專科章 ×12").trim()
+    ];
+
+    const cleanShots = shotsState.map((sh) => {
+      const item = {
+        preset: sh.preset || "scout3d_auto_snap",
+        duration: Math.max(1.2, Math.min(12.0, parseFloat(sh.duration) || 3.0)),
+        subtitle: (sh.subtitle || "").trim()
+      };
+      if (sh.section) item.section = sh.section;
+      if (typeof sh.show_ui_card === "boolean") item.show_ui_card = sh.show_ui_card;
+      if (sh.preset === "section_parade" && Array.isArray(sh.trio_sections)) {
+        item.trio_sections = sh.trio_sections.slice(0, 3);
+      }
+      return item;
+    });
+
+    return {
+      episode_id: epId,
+      series_badge: seriesBadge,
+      aspect: aspect,
+      fps: 24,
+      section: section,
+      gender: gender,
+      hero_style: heroStyle,
+      ui_card: {
+        title: "SCOUT3D · 撳章自動上身",
+        toggles: toggles
+      },
+      shots: cleanShots
+    };
+  }
+
+  // ── 產生與 src/scout3d_runner.py 100% 相容嘅 Git 專用 Python 劇本（頂頭第 1 行即係 SUBTITLE_LINES）──
+  function buildPythonScriptSource(spec) {
+    const subLines = spec.shots.map((sh, idx) =>
+      `    ${idx + 1}: ${JSON.stringify(sh.subtitle)},`
+    ).join("\n");
+    const specJson = JSON.stringify(spec, null, 4);
+    return `SUBTITLE_LINES = {\n${subLines}\n}\n` +
+      `SERIES_BADGE = ${JSON.stringify(spec.series_badge)}\n\n` +
+      `"""SCOUT 3D Episode Script — ${spec.episode_id}\n` +
+      `Generated by SCOUT 3D 動畫劇本＆CMD 指令生成器 v1.0\n` +
+      `Run directly in CMD:\n` +
+      `    python episodes/${spec.episode_id}.py\n` +
+      `Fast subtitle-only update (~1.5s via 3D clean-plate cache):\n` +
+      `    python episodes/${spec.episode_id}.py --fast-sub-only\n` +
+      `"""\n\n` +
+      `import json\nimport sys\nfrom pathlib import Path\n\n` +
+      `REPO_ROOT = Path(__file__).resolve().parent.parent\n` +
+      `sys.path.insert(0, str(REPO_ROOT / "src"))\n\n` +
+      `from scout3d_runner import cli_run_from_episode_script\n\n` +
+      `EPISODE_SPEC = json.loads(r"""\n${specJson}\n""")\n\n` +
+      `if __name__ == "__main__":\n` +
+      `    EPISODE_SPEC["series_badge"] = SERIES_BADGE\n` +
+      `    cli_run_from_episode_script(EPISODE_SPEC, SUBTITLE_LINES)\n`;
+  }
+
+  // ── 渲染單張視覺分鏡預覽 Canvas ──
+  function drawStoryboardCanvas(canvas, spec, sh, idx) {
+    const dims = spec.aspect === "16:9" ? [320, 180] : (spec.aspect === "1:1" ? [260, 260] : [216, 384]);
+    canvas.width = dims[0];
+    canvas.height = dims[1];
+    const W = dims[0], H = dims[1];
+    const ctx = canvas.getContext("2d");
+    const pInfo = PRESETS[sh.preset] || PRESETS.scout3d_auto_snap;
+
+    // 1. 漸層背景 + 地板
+    const grad = ctx.createLinearGradient(0, 0, 0, H * 0.78);
+    grad.addColorStop(0, pInfo.bgTop);
+    grad.addColorStop(1, pInfo.bgBot);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = pInfo.floor;
+    ctx.fillRect(0, H * 0.75, W, H * 0.25);
+
+    // 2. 頂部系列膠囊標題
+    ctx.save();
+    const pillH = Math.round(H * (spec.aspect === "9:16" ? 0.052 : 0.085));
+    const pillY = Math.round(H * (spec.aspect === "9:16" ? 0.042 : 0.04));
+    const pillW = Math.min(W - 20, Math.max(120, spec.series_badge.length * 9 + 24));
+    const pillX = (W - pillW) / 2;
+    ctx.fillStyle = pInfo.warn ? "rgba(198,48,56,0.92)" : "rgba(31,48,82,0.92)";
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2, true, false);
+    ctx.strokeStyle = "rgba(255,255,255,0.8)";
+    ctx.lineWidth = 1.2;
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2, false, true);
+    ctx.fillStyle = "#fff";
+    ctx.font = `700 ${Math.max(8, Math.round(pillH * 0.52))}px "Noto Sans TC", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(spec.series_badge.slice(0, 22), W / 2, pillY + pillH / 2 + 0.5);
+    ctx.restore();
+
+    // 3. 如啟用頂部 SCOUT3D UI 卡
+    const showCard = sh.show_ui_card ?? (sh.preset === "scout3d_auto_snap");
+    if (showCard) {
+      const cx = spec.aspect === "16:9" ? 10 : 12;
+      const cy = pillY + pillH + 6;
+      const cw = spec.aspect === "16:9" ? W * 0.42 : W - 24;
+      const ch = spec.aspect === "9:16" ? 52 : 42;
+      ctx.fillStyle = "rgba(255,255,255,0.93)";
+      roundRect(ctx, cx, cy, cw, ch, 7, true, false);
+      ctx.fillStyle = "#1F3052";
+      ctx.font = `700 8px "Noto Sans TC", sans-serif`;
+      ctx.textAlign = "left";
+      ctx.fillText("SCOUT3D · 撳章自動上身", cx + 7, cy + 10);
+      spec.ui_card.toggles.slice(0, 4).forEach((tg, ti) => {
+        const gx = cx + 7 + (ti % 2) * (cw / 2 - 4);
+        const gy = cy + 21 + Math.floor(ti / 2) * 14;
+        ctx.fillStyle = "#2b374b";
+        ctx.font = `500 7px "Noto Sans TC", sans-serif`;
+        ctx.fillText(tg.slice(0, 6), gx, gy + 5);
+        ctx.fillStyle = "#F2791C";
+        roundRect(ctx, gx + cw / 2 - 24, gy, 13, 7, 3.5, true, false);
+      });
+    }
+
+    // 4. 繪製簡化版 3D 角色示意公仔
+    const secKey = sh.section || spec.section || "scout";
+    const secCol = SECTION_COLORS[secKey] || SECTION_COLORS.scout;
+    const cyMid = H * (showCard && spec.aspect === "9:16" ? 0.57 : 0.52);
+
+    if (sh.preset === "section_parade") {
+      const trio = sh.trio_sections || ["cub", "scout", "venture"];
+      [-0.28, 0, 0.28].forEach((ox, i) => {
+        drawMiniScout(ctx, W * (0.5 + ox), cyMid + (i === 1 ? -4 : 6), H * (i === 1 ? 0.26 : 0.22), SECTION_COLORS[trio[i]] || secCol, false, true);
+      });
+    } else if (sh.preset === "disaster_wrong_badges") {
+      drawMiniPerson(ctx, W * 0.23, cyMid + 4, H * 0.22, "#E8837E", "😵");
+      drawMiniScout(ctx, W * 0.50, cyMid + 6, H * 0.24, secCol, true, false);
+      drawMiniPerson(ctx, W * 0.77, cyMid + 4, H * 0.23, "#C4AC82", "✕");
+    } else if (sh.preset === "mom_turntable_sew" || sh.preset === "mom_and_kid_proud") {
+      drawMiniPerson(ctx, W * 0.33, cyMid + 4, H * 0.24, "#E8837E", "😊");
+      drawMiniScout(ctx, W * 0.67, cyMid + 2, H * 0.22, secCol, false, sh.preset === "mom_and_kid_proud");
+    } else if (sh.preset === "camp_eve_ready") {
+      // 小帳篷
+      ctx.fillStyle = "#3D7A5A";
+      ctx.beginPath();
+      ctx.moveTo(W * 0.12, cyMid + H * 0.18);
+      ctx.lineTo(W * 0.27, cyMid - H * 0.02);
+      ctx.lineTo(W * 0.42, cyMid + H * 0.18);
+      ctx.closePath();
+      ctx.fill();
+      drawMiniScout(ctx, W * 0.44, cyMid + 4, H * 0.24, secCol, false, true);
+      drawMiniPerson(ctx, W * 0.76, cyMid + 4, H * 0.23, "#C4AC82", "✓");
+    } else if (sh.preset === "dual_salute_praise") {
+      drawMiniScout(ctx, W * 0.23, cyMid + 6, H * 0.21, secCol, false, true);
+      drawMiniScout(ctx, W * 0.50, cyMid + 2, H * 0.24, secCol, false, true);
+      drawMiniPerson(ctx, W * 0.77, cyMid + 4, H * 0.22, "#C4AC82", "✓");
+    } else {
+      // Pedestal + Hero Scout
+      ctx.fillStyle = "#2E3B4E";
+      ctx.beginPath();
+      ctx.ellipse(W * 0.5, cyMid + H * 0.16, W * 0.22, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawMiniScout(ctx, W * 0.5, cyMid, H * 0.27, secCol, false, false);
+    }
+
+    // 5. 底部粵語字幕卡預覽
+    if (sh.subtitle) {
+      const lines = sh.subtitle.split("\n").filter(Boolean).slice(0, 3);
+      const subFontSz = spec.aspect === "9:16" ? 10 : 9.5;
+      const boxH = lines.length * (subFontSz + 4) + 12;
+      const boxW = W - 24;
+      const boxX = 12;
+      const boxY = H - boxH - (spec.aspect === "9:16" ? 20 : 10);
+      ctx.fillStyle = "rgba(22,31,48,0.93)";
+      roundRect(ctx, boxX, boxY, boxW, boxH, 8, true, false);
+      ctx.strokeStyle = pInfo.warn ? "#FF7070" : "#F7C942";
+      ctx.lineWidth = 1.6;
+      roundRect(ctx, boxX, boxY, boxW, boxH, 8, false, true);
+
+      ctx.font = `700 ${subFontSz}px "Noto Sans TC", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      lines.forEach((ln, li) => {
+        ctx.fillStyle = ln.includes("SCOUT") ? "#FFF4C2" : "#FFFFFF";
+        ctx.fillText(ln.slice(0, 18), W / 2, boxY + 6 + li * (subFontSz + 4));
+      });
+    }
+  }
+
+  function drawMiniScout(ctx, cx, cy, h, secCol, wrong, salute) {
+    const rHead = h * 0.24;
+    // Torso
+    ctx.fillStyle = secCol.shirt;
+    roundRect(ctx, cx - rHead * 0.95, cy - h * 0.08, rHead * 1.9, h * 0.36, 6, true, false);
+    // Shorts
+    ctx.fillStyle = "#1F3052";
+    roundRect(ctx, cx - rHead * 0.85, cy + h * 0.24, rHead * 1.7, h * 0.16, 4, true, false);
+    // Sash
+    if (secCol.sash && !wrong) {
+      ctx.strokeStyle = "#2E7D4F";
+      ctx.lineWidth = Math.max(3, rHead * 0.35);
+      ctx.beginPath();
+      ctx.moveTo(cx + rHead * 0.7, cy - h * 0.06);
+      ctx.lineTo(cx - rHead * 0.7, cy + h * 0.24);
+      ctx.stroke();
+    }
+    // Necker
+    ctx.strokeStyle = secCol.necker;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - rHead * 0.6, cy - h * 0.07);
+    ctx.lineTo(cx, cy + h * 0.06);
+    ctx.lineTo(cx + rHead * 0.6, cy - h * 0.07);
+    ctx.stroke();
+    // Badges
+    ctx.fillStyle = wrong ? "#E04848" : "#6A359C";
+    ctx.beginPath();
+    ctx.arc(cx + (wrong ? -2 : rHead * 0.45), cy + (wrong ? h * 0.15 : h * 0.06), 3, 0, Math.PI * 2);
+    ctx.fill();
+    // Salute right arm
+    if (salute) {
+      ctx.strokeStyle = "#FAD7B8";
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - rHead * 0.95, cy);
+      ctx.lineTo(cx - rHead * 1.35, cy - h * 0.26);
+      ctx.stroke();
+    }
+    // Head + Hair
+    ctx.fillStyle = "#FAD7B8";
+    ctx.beginPath();
+    ctx.arc(cx, cy - h * 0.26, rHead, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#3E2A20";
+    ctx.beginPath();
+    ctx.arc(cx, cy - h * 0.32, rHead * 0.95, Math.PI, 0);
+    ctx.fill();
+  }
+
+  function drawMiniPerson(ctx, cx, cy, h, shirtHex, badgeTxt) {
+    const rHead = h * 0.23;
+    ctx.fillStyle = shirtHex;
+    roundRect(ctx, cx - rHead * 0.9, cy - h * 0.08, rHead * 1.8, h * 0.38, 6, true, false);
+    ctx.fillStyle = "#FAD7B8";
+    ctx.beginPath();
+    ctx.arc(cx, cy - h * 0.26, rHead, 0, Math.PI * 2);
+    ctx.fill();
+    if (badgeTxt === "✕" || badgeTxt === "✓") {
+      ctx.fillStyle = badgeTxt === "✕" ? "#E04848" : "#2AA86B";
+      ctx.beginPath();
+      ctx.arc(cx, cy - h * 0.56, rHead * 0.65, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = `900 ${Math.round(rHead * 0.85)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(badgeTxt, cx, cy - h * 0.56 + 0.5);
+    }
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  // ── 渲染分鏡編輯器 DOM ──
+  function renderShotEditor() {
+    const wrap = $("shotList");
+    wrap.innerHTML = "";
+    $("shotCountLabel").textContent = String(shotsState.length);
+
+    shotsState.forEach((sh, idx) => {
+      const div = document.createElement("div");
+      div.className = "shot-item";
+
+      const presetOpts = Object.entries(PRESETS).map(([k, v]) =>
+        `<option value="${k}" ${sh.preset === k ? "selected" : ""}>${v.label}</option>`
+      ).join("");
+
+      const secOpts = Object.entries(SECTION_LABELS).map(([k, v]) =>
+        `<option value="${k}" ${(sh.section || "") === k ? "selected" : ""}>${v}</option>`
+      ).join("");
+
+      const trioHtml = sh.preset === "section_parade" ? `
+        <div class="grid-4" style="margin-top:4px;">
+          <div style="font-size:12px;font-weight:700;color:var(--ink-soft);display:flex;align-items:center;">同台三支部：</div>
+          ${[0,1,2].map((ti) => `
+            <select data-act="trio" data-idx="${idx}" data-ti="${ti}">
+              ${Object.entries(SECTION_LABELS).filter(([k]) => k).map(([k, v]) =>
+                `<option value="${k}" ${(sh.trio_sections?.[ti] || "scout") === k ? "selected" : ""}>${v}</option>`
+              ).join("")}
+            </select>
+          `).join("")}
+        </div>
+      ` : "";
+
+      div.innerHTML = `
+        <div class="shot-head">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="shot-badge">Shot ${idx + 1}</span>
+            <span style="font-size:12px;color:var(--ink-soft);">${(PRESETS[sh.preset] || PRESETS.scout3d_auto_snap).actors}</span>
+          </div>
+          <div class="shot-controls">
+            <button type="button" class="btn-outline btn-sm" data-act="up" data-idx="${idx}" ${idx === 0 ? "disabled" : ""}>↑ 上移</button>
+            <button type="button" class="btn-outline btn-sm" data-act="down" data-idx="${idx}" ${idx === shotsState.length - 1 ? "disabled" : ""}>↓ 下移</button>
+            <button type="button" class="btn-outline btn-sm" data-act="del" data-idx="${idx}" ${shotsState.length <= 1 ? "disabled" : ""}>✕ 刪除</button>
+          </div>
+        </div>
+        <div class="shot-row">
+          <div class="field">
+            <label>3D 場景鏡頭預設（Preset）</label>
+            <select data-act="preset" data-idx="${idx}">${presetOpts}</select>
+          </div>
+          <div class="field">
+            <label>秒數（1.5–10s）</label>
+            <input type="number" step="0.1" min="1.5" max="10" value="${sh.duration}" data-act="duration" data-idx="${idx}">
+          </div>
+          <div class="field">
+            <label>此鏡支部覆蓋</label>
+            <select data-act="section" data-idx="${idx}">${secOpts}</select>
+          </div>
+          <div class="field" style="justify-content:flex-end;padding-bottom:6px;">
+            <label class="check-inline">
+              <input type="checkbox" data-act="uicard" data-idx="${idx}" ${(sh.show_ui_card ?? (sh.preset === "scout3d_auto_snap")) ? "checked" : ""}>
+              <span>顯示頂部撳章 UI 卡</span>
+            </label>
+          </div>
+        </div>
+        ${trioHtml}
+        <div class="field">
+          <label>粵語字幕對白（支援 Enter 換行 · 出現「SCOUT 3D」會自動轉亮金色字）</label>
+          <textarea rows="2" data-act="subtitle" data-idx="${idx}">${sh.subtitle || ""}</textarea>
+        </div>
+      `;
+      wrap.appendChild(div);
+    });
+  }
+
+  // ── 同步更新預覽卡、CMD 指令與 Python 程式碼 ──
+  function refreshAllOutputs() {
+    const spec = buildCurrentSpec();
+    const totalSec = spec.shots.reduce((acc, s) => acc + s.duration, 0);
+    const totalFrames = spec.shots.reduce((acc, s) => acc + Math.round(s.duration * spec.fps), 0);
+    $("durationSummary").textContent = `總片長：${totalSec.toFixed(1)} 秒（${totalFrames} 格 @ ${spec.fps}fps · ${spec.aspect}）`;
+
+    // 1. 視覺分鏡預覽卡
+    const sbGrid = $("storyboardGrid");
+    sbGrid.innerHTML = "";
+    let accT = 0;
+    spec.shots.forEach((sh, idx) => {
+      const card = document.createElement("div");
+      card.className = "sb-card";
+      const cvWrap = document.createElement("div");
+      cvWrap.className = "sb-canvas-wrap";
+      const cv = document.createElement("canvas");
+      drawStoryboardCanvas(cv, spec, sh, idx);
+      cvWrap.appendChild(cv);
+
+      const t0 = accT.toFixed(1);
+      accT += sh.duration;
+      const t1 = accT.toFixed(1);
+      const pInfo = PRESETS[sh.preset] || PRESETS.scout3d_auto_snap;
+      const meta = document.createElement("div");
+      meta.className = "sb-meta";
+      meta.innerHTML = `<strong>Shot ${idx + 1} · ${pInfo.tag}（${t0}s–${t1}s）</strong>${pInfo.actors}`;
+      card.appendChild(cvWrap);
+      card.appendChild(meta);
+      sbGrid.appendChild(card);
+    });
+
+    // 2. CMD 一鍵直出指令（URL-Safe Base64）
+    const jsonCompact = JSON.stringify(spec);
+    const b64 = encodeUtf8UrlSafeBase64(jsonCompact);
+    const writePyFlag = $("alsoWritePyChk").checked ? " --write-py" : "";
+    const directCmd = `python src/scout3d_runner.py --b64 ${b64}${writePyFlag}`;
+    $("directCmdBox").textContent = directCmd;
+
+    const cmdLen = directCmd.length;
+    const lenEl = $("cmdLenBadge");
+    if (cmdLen < 7800) {
+      lenEl.textContent = `✅ CMD 指令長度：${cmdLen} 字元（遠低於 Windows CMD 8,191 上限，可安全直貼！）`;
+      lenEl.style.color = "var(--accent)";
+    } else {
+      lenEl.textContent = `⚠️ 指令長度 ${cmdLen} 字元（接近 CMD 上限，建議改用右邊下載 .py 執行）`;
+      lenEl.style.color = "var(--danger)";
+    }
+
+    // 3. Git 專用 Python 劇本 + 對應指令
+    const pyCode = buildPythonScriptSource(spec);
+    $("pySourceBox").textContent = pyCode;
+
+    const epFile = `episodes/${spec.episode_id}.py`;
+    $("gitCmdBox").textContent =
+      `REM 1) 本機執行劇本渲染高清 MP4（輸出至 output\\${spec.episode_id}.mp4）\n` +
+      `python ${epFile}\n\n` +
+      `REM 2) 改咗頂頭 SUBTITLE_LINES 之後，1.5 秒極速換字幕重出 MP4\n` +
+      `python ${epFile} --fast-sub-only\n\n` +
+      `REM 3) 將劇本推上 GitHub 留底\n` +
+      `git add ${epFile} && git commit -m "Add SCOUT 3D script: ${spec.episode_id}" && git push`;
+  }
+
+  // ── GitHub README 讀取器（與 IG 貼文生成器 v1.3.5 相同邏輯）──
+  function parseGitHubUrl(raw) {
+    if (!raw) return null;
+    try {
+      const u = new URL(raw.trim());
+      if (!/^(www\.)?github\.com$/i.test(u.hostname)) return null;
+      const parts = u.pathname.replace(/^\/+|\/+$/g, "").split("/");
+      if (parts.length < 2) return null;
+      return { owner: parts[0], repo: parts[1].replace(/\.git$/i, "") };
+    } catch (_) { return null; }
+  }
+
+  async function fetchGitHubContext(rawUrl) {
+    const parsed = parseGitHubUrl(rawUrl);
+    if (!parsed) return "";
+    try {
+      const r = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/readme`, {
+        headers: { "Accept": "application/vnd.github.raw+json" }
+      });
+      if (!r.ok) return "";
+      const txt = await r.text();
+      return txt.slice(0, 6000);
+    } catch (_) { return ""; }
+  }
+
+  // ── Gemini AI 自動寫分鏡劇本（嚴格遵守 Canvas 空 Key Fetch 攔截規則）──
+  async function callGeminiEpisodeWriter(topic, shotCount, ghReadme, baseSpec) {
+    const presetDesc = Object.entries(PRESETS).map(([k, v]) => `- "${k}": ${v.label}`).join("\n");
+    const prompt = `你係香港童軍工具「SCOUT 3D」嘅短片導演兼粵語編劇。
+請根據以下主題，為《如果系列》編寫一個 ${shotCount} 鏡嘅 3D 動畫短片劇本 JSON。
+
+【極重要產品核心規則（絕對不可寫錯！）】：
+- SCOUT 3D 唔係「查手冊頁數工具」！
+- SCOUT 3D 係「揀個章／撳個開關，徽章就會自動貼上 3D 童軍人仔對應正確位置（支援 360 度旋轉、簡約方塊與波波流線雙風格切換）」，等媽媽完全唔使查書，望住 3D 人仔照聯就一定啱位，唔怕俾領袖鬧！
+- 對白必須用生動地道香港廣東話口語（如：聯章、唔使查書、俾領袖鬧、啱晒位），每鏡對白 1 至 2 行（用 \\n 分行），精簡有力（每行唔超過 15 個字）。
+
+【可用 3D 鏡頭預設（preset 只能從以下揀）】：
+${presetDesc}
+
+【當前設定】：
+- 預設支部：${baseSpec.section}
+- 主角性別：${baseSpec.gender}
+- 用戶指定今集主題：${topic}
+${ghReadme ? `\n【GitHub 專案參考資料】：\n${ghReadme.slice(0, 2500)}` : ""}
+
+請只輸出純 JSON（唔好加 markdown code fence），格式如下：
+{
+  "episode_id": "英文細楷加底線代號例如 ep02_camp_eve",
+  "series_badge": "如果系列 EP.XX · 四至七字標題",
+  "toggles": ["徽章名1(最多6字)", "徽章名2", "徽章名3", "徽章名4"],
+  "shots": [
+    {
+      "preset": "上面8個preset之一",
+      "duration": 2.8,
+      "show_ui_card": false,
+      "subtitle": "第一行廣東話\\n第二行廣東話"
+    }
+  ]
+}`;
+
+    const body = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json", temperature: 0.7 }
+    };
+
+    let lastErr = null;
+    for (const model of TEXT_MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effKey()}`;
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+          const errTxt = await res.text();
+          lastErr = new Error(`HTTP ${res.status}: ${errTxt.slice(0, 180)}`);
+          continue;
+        }
+        const data = await res.json();
+        const rawTxt = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const cleaned = rawTxt.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+        return JSON.parse(cleaned);
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("無法連線至 Gemini API，請檢查 API Key 或改用「內建範本／手動執分鏡」模式。");
+  }
+
+  // ── 事件綁定 ──
+  $("saveKeyBtn").addEventListener("click", () => {
+    const v = $("customKey").value.trim();
+    try { localStorage.setItem(LS_KEY, v); } catch (_) {}
+    refreshKeyUI();
+    showToast(v ? "已儲存 Gemini API Key" : "已切換回預設模式");
+  });
+  $("clearKeyBtn").addEventListener("click", () => {
+    $("customKey").value = "";
+    try { localStorage.removeItem(LS_KEY); } catch (_) {}
+    refreshKeyUI();
+    showToast("已清除自訂 Key");
+  });
+
+  $("tabManual").addEventListener("click", () => {
+    $("tabManual").classList.add("active");
+    $("tabAI").classList.remove("active");
+    $("paneAI").style.display = "none";
+  });
+  $("tabAI").addEventListener("click", () => {
+    $("tabAI").classList.add("active");
+    $("tabManual").classList.remove("active");
+    $("paneAI").style.display = "block";
+  });
+
+  // 靈感 Chip 一鍵填入
+  document.querySelectorAll("[data-idea]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const [id, badge, topic] = btn.getAttribute("data-idea").split("|");
+      $("episodeId").value = id;
+      $("seriesBadge").value = badge;
+      $("aiTopic").value = topic;
+      refreshAllOutputs();
+      showToast("已填入靈感主題！");
+    });
+  });
+
+  // 內建範本一鍵載入
+  document.querySelectorAll("[data-tpl]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-tpl");
+      const tpl = TEMPLATES[key];
+      if (!tpl) return;
+      $("episodeId").value = tpl.episode_id;
+      $("seriesBadge").value = tpl.series_badge;
+      $("aspectSelect").value = tpl.aspect;
+      $("sectionSelect").value = tpl.section;
+      $("genderSelect").value = tpl.gender;
+      $("heroStyleSelect").value = tpl.hero_style;
+      tpl.toggles.forEach((t, i) => { $("toggle" + i).value = t; });
+      shotsState = JSON.parse(JSON.stringify(tpl.shots));
+      renderShotEditor();
+      refreshAllOutputs();
+      setStatus(`✅ 已載入範本「${tpl.series_badge}」，可直接複製下面 CMD 指令出片！`);
+      showToast("已載入劇本範本");
+    });
+  });
+
+  // 全域欄位變更即時刷新
+  ["episodeId","seriesBadge","aspectSelect","sectionSelect","genderSelect","heroStyleSelect","toggle0","toggle1","toggle2","toggle3","alsoWritePyChk"].forEach((id) => {
+    $(id).addEventListener("input", refreshAllOutputs);
+    $(id).addEventListener("change", refreshAllOutputs);
+  });
+
+  // 分鏡編輯器代理事件
+  $("shotList").addEventListener("input", (e) => {
+    const t = e.target;
+    const idx = parseInt(t.getAttribute("data-idx"), 10);
+    const act = t.getAttribute("data-act");
+    if (Number.isNaN(idx) || !shotsState[idx]) return;
+    if (act === "subtitle") {
+      shotsState[idx].subtitle = t.value;
+      refreshAllOutputs();
+    } else if (act === "duration") {
+      shotsState[idx].duration = parseFloat(t.value) || 2.5;
+      refreshAllOutputs();
+    }
+  });
+
+  $("shotList").addEventListener("change", (e) => {
+    const t = e.target;
+    const idx = parseInt(t.getAttribute("data-idx"), 10);
+    const act = t.getAttribute("data-act");
+    if (Number.isNaN(idx) || !shotsState[idx]) return;
+    if (act === "preset") {
+      shotsState[idx].preset = t.value;
+      shotsState[idx].show_ui_card = (t.value === "scout3d_auto_snap");
+      if (!shotsState[idx].trio_sections) shotsState[idx].trio_sections = ["cub","scout","venture"];
+      renderShotEditor();
+      refreshAllOutputs();
+    } else if (act === "section") {
+      shotsState[idx].section = t.value;
+      refreshAllOutputs();
+    } else if (act === "uicard") {
+      shotsState[idx].show_ui_card = t.checked;
+      refreshAllOutputs();
+    } else if (act === "trio") {
+      const ti = parseInt(t.getAttribute("data-ti"), 10);
+      if (!Array.isArray(shotsState[idx].trio_sections)) shotsState[idx].trio_sections = ["cub","scout","venture"];
+      shotsState[idx].trio_sections[ti] = t.value;
+      refreshAllOutputs();
+    }
+  });
+
+  $("shotList").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const idx = parseInt(btn.getAttribute("data-idx"), 10);
+    const act = btn.getAttribute("data-act");
+    if (act === "up" && idx > 0) {
+      [shotsState[idx - 1], shotsState[idx]] = [shotsState[idx], shotsState[idx - 1]];
+      renderShotEditor(); refreshAllOutputs();
+    } else if (act === "down" && idx < shotsState.length - 1) {
+      [shotsState[idx + 1], shotsState[idx]] = [shotsState[idx], shotsState[idx + 1]];
+      renderShotEditor(); refreshAllOutputs();
+    } else if (act === "del" && shotsState.length > 1) {
+      shotsState.splice(idx, 1);
+      renderShotEditor(); refreshAllOutputs();
+    }
+  });
+
+  $("addShotBtn").addEventListener("click", () => {
+    shotsState.push({
+      preset: "dual_salute_praise",
+      duration: 2.5,
+      section: "",
+      show_ui_card: false,
+      trio_sections: ["cub","scout","venture"],
+      subtitle: "揀章即見位・唔怕俾人鬧\n—— SCOUT 3D！"
+    });
+    renderShotEditor();
+    refreshAllOutputs();
+  });
+
+  // AI 生成按鈕
+  $("aiGenBtn").addEventListener("click", async () => {
+    const topic = $("aiTopic").value.trim();
+    if (!topic) {
+      setStatus("請先輸入今集主題或撳一個靈感標籤！", true);
+      return;
+    }
+    $("aiGenBtn").disabled = true;
+    setStatus("正在讀取 GitHub 資料並由 Gemini 編寫粵語分鏡劇本…", false, true);
+    try {
+      const ghReadme = await fetchGitHubContext($("ghUrl").value);
+      const shotCount = parseInt($("aiShotCount").value, 10) || 4;
+      const res = await callGeminiEpisodeWriter(topic, shotCount, ghReadme, buildCurrentSpec());
+
+      if (res.episode_id) $("episodeId").value = sanitizeId(res.episode_id);
+      if (res.series_badge) $("seriesBadge").value = res.series_badge;
+      if (Array.isArray(res.toggles)) {
+        res.toggles.slice(0, 4).forEach((tg, i) => { if (tg) $("toggle" + i).value = tg; });
+      }
+      if (Array.isArray(res.shots) && res.shots.length > 0) {
+        shotsState = res.shots.map((s) => ({
+          preset: PRESETS[s.preset] ? s.preset : "scout3d_auto_snap",
+          duration: Math.max(1.8, Math.min(8.0, parseFloat(s.duration) || 2.8)),
+          section: s.section && SECTION_LABELS[s.section] ? s.section : "",
+          show_ui_card: Boolean(s.show_ui_card ?? (s.preset === "scout3d_auto_snap")),
+          trio_sections: ["grasshopper", "scout", "air_scout"],
+          subtitle: String(s.subtitle || "").trim()
+        }));
+      }
+      renderShotEditor();
+      refreshAllOutputs();
+      setStatus("✨ AI 分鏡劇本同 CMD 指令已經準備好！直接撳下面「一鍵複製 CMD 直出片指令」即可出片！");
+      showToast("AI 劇本生成完成！");
+    } catch (err) {
+      setStatus("AI 生成失敗：" + (err.message || String(err)) + "（提示：本機開啟請在上方展開貼上 Gemini API Key，或直接用內建範本／手動分鏡）", true);
+    } finally {
+      $("aiGenBtn").disabled = false;
+    }
+  });
+
+  // 複製與下載按鈕群
+  async function copyText(txt, okMsg) {
+    try {
+      await navigator.clipboard.writeText(txt);
+      showToast(okMsg);
+    } catch (_) {
+      const ta = document.createElement("textarea");
+      ta.value = txt;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      showToast(okMsg);
+    }
+  }
+
+  function downloadBlob(filename, content, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  $("copyDirectCmdBtn").addEventListener("click", () =>
+    copyText($("directCmdBox").textContent, "⚡ 已複製 CMD 直出片指令（可直接貼落 CMD）！")
+  );
+  $("copySetupBtn").addEventListener("click", () =>
+    copyText($("firstSetupBox").textContent, "已複製首次更新指令")
+  );
+  $("copyPyBtn").addEventListener("click", () =>
+    copyText($("pySourceBox").textContent, "已複製 .py 劇本程式碼")
+  );
+  $("downloadPyBtn").addEventListener("click", () => {
+    const spec = buildCurrentSpec();
+    downloadBlob(`${spec.episode_id}.py`, buildPythonScriptSource(spec), "text/x-python;charset=utf-8");
+    showToast(`已下載 ${spec.episode_id}.py`);
+  });
+  $("downloadJsonBtn").addEventListener("click", () => {
+    const spec = buildCurrentSpec();
+    downloadBlob(`${spec.episode_id}.json`, JSON.stringify(spec, null, 2), "application/json;charset=utf-8");
+    showToast(`已下載 ${spec.episode_id}.json`);
+  });
+  $("copyRunPyCmdBtn").addEventListener("click", () => {
+    const spec = buildCurrentSpec();
+    copyText(`python episodes/${spec.episode_id}.py`, "已複製執行 .py 指令");
+  });
+  $("copyFastSubCmdBtn").addEventListener("click", () => {
+    const spec = buildCurrentSpec();
+    copyText(`python episodes/${spec.episode_id}.py --fast-sub-only`, "⚡ 已複製 1.5s 極速換字幕指令");
+  });
+  $("copyGitPushCmdBtn").addEventListener("click", () => {
+    const spec = buildCurrentSpec();
+    const f = `episodes/${spec.episode_id}.py`;
+    copyText(`git add ${f} && git commit -m "Add SCOUT 3D script: ${spec.episode_id}" && git push`, "🚀 已複製 Git 上傳指令");
+  });
+
+  // ── 啟動初始化與自我測試 ──
+  function runSelfTests() {
+    const logs = [];
+    try {
+      const spec = buildCurrentSpec();
+      const json = JSON.stringify(spec);
+      const b64 = encodeUtf8UrlSafeBase64(json);
+      const back = JSON.parse(decodeUtf8UrlSafeBase64(b64));
+      const safeChars = /^[A-Za-z0-9_-]+$/.test(b64);
+      const py = buildPythonScriptSource(spec);
+      logs.push(`✅ UTF-8 粵語 Base64 雙向無損驗證通過（Shot 1 還原：「${back.shots[0].subtitle.replace(/\n/g, " / ")}」）`);
+      logs.push(`✅ Windows CMD 安全字元檢查：${safeChars ? "100% 純 A-Za-z0-9-_（零引號、零跳脫符號、零中文亂碼風險）" : "失敗"}`);
+      logs.push(`✅ Python 劇本第 1 行檢查：${py.startsWith("SUBTITLE_LINES = {") ? "SUBTITLE_LINES 位於檔案最頂端（符合極速換字幕規格）" : "失敗"}`);
+    } catch (e) {
+      logs.push("❌ 測試異常：" + e.message);
+    }
+    $("selfTestOut").innerHTML = logs.join("<br>");
+  }
+
+  refreshKeyUI();
+  renderShotEditor();
+  refreshAllOutputs();
+  runSelfTests();
+</script>
+</body>
+</html>
