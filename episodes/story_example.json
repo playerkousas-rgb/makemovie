@@ -1,0 +1,55 @@
+{
+  "episode_id": "scout_story_ai_joins_grasshopper",
+  "series_badge": "AI 加入小童軍 · 童軍動畫小劇場",
+  "aspect": "9:16",
+  "fps": 24,
+  "story_section": "grasshopper",
+  "actor_skin": "ai_robot",
+  "voice": "zh-HK-HiuMaanNeural",
+  "voice_rate": "+6%",
+  "bgm_mood": "comedy_to_hero",
+  "shots": [
+    {
+      "preset": "story_arrival_meet",
+      "duration": 5.3,
+      "narration": "今日小童軍集會，突然有個AI機械人著住橙色制服行到營地，同大家打招呼！",
+      "subtitle": "如果有個 AI 加入小童軍\n佢第一次嚟集會…"
+    },
+    {
+      "preset": "story_group_chat",
+      "duration": 4.3,
+      "narration": "一班小童軍圍住佢，齊齊自我介紹，仲教機械人講廣東話口令。",
+      "subtitle": "小隊圍圈自我介紹\n教 AI 講廣東話口令"
+    },
+    {
+      "preset": "story_leader_briefing",
+      "duration": 4.2,
+      "narration": "領袖笑笑口話，歡迎你加入小童軍，今日任務係一齊搭帳篷。",
+      "subtitle": "領袖：歡迎加入小童軍！\n今日任務係搭帳篷"
+    },
+    {
+      "preset": "story_camp_outdoors",
+      "duration": 3.9,
+      "narration": "機械人第一次踩上草地搬營具，鬆軟泥土令佢不停打滑。",
+      "subtitle": "第一次搬營具\n草地上不停打滑"
+    },
+    {
+      "preset": "story_team_task",
+      "duration": 4.2,
+      "narration": "一人一手合作，帳篷好快起好，機械人明白童軍嘅團隊精神。",
+      "subtitle": "一人一手・帳篷起好\n學識團隊精神"
+    },
+    {
+      "preset": "story_campfire_night",
+      "duration": 4.3,
+      "narration": "夜晚營火會，火光映住大家笑臉，機械人第一次感受童軍溫暖。",
+      "subtitle": "夜晚營火會\n第一次感受童軍溫暖"
+    },
+    {
+      "preset": "story_happy_salute_end",
+      "duration": 3.9,
+      "narration": "小童軍齊齊敬三指禮，歡迎AI正式成為我哋嘅新同伴！",
+      "subtitle": "齊齊敬三指禮\n歡迎 AI 新同伴！"
+    }
+  ]
+}

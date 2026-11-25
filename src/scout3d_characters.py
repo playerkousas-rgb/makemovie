@@ -633,6 +633,7 @@ def draw_scout_figure(
     preset: Union[str, Dict[str, Any], Path, None] = None,
     highlight_slots: Optional[Sequence[str]] = None,
     s3d_custom: Optional[Dict[str, Any]] = None,
+    actor_skin: str = "human",       # "human" | "ai_robot"
 ) -> None:
     """Draw an authentic 3D Hong Kong Scout character using exact SCOUT3D rules & RGBA badges."""
     if preset is not None:
@@ -707,8 +708,10 @@ def draw_scout_figure(
     sash_cfg = gen_entry.get("sash")
 
     is_blocky = style_mode == "blocky"
+    is_robot = str(actor_skin or "human").lower() in ("ai_robot", "robot", "ai")
     is_girl = str(gender).upper().startswith(("F", "G"))
-    wear_hat = bool(hat) if hat is not None else (sec in ("venture", "leader"))
+    wear_hat = False if is_robot else (bool(hat) if hat is not None else (sec in ("venture", "leader")))
+    c_limb = hex_rgb01("#DCE6F2") if is_robot else COL["skin"]
 
     R = rot_y(yaw_deg)
     k = CM_SCALE * scale
@@ -802,13 +805,13 @@ def draw_scout_figure(
                     W(lx, 0.5 * (sock_top + shorts_bot), 0.0),
                     (S_cm(leg_hw * 0.88), S_cm(0.5 * (shorts_bot - sock_top)), S_cm(leg_hd * 0.88)),
                     S_cm(0.4),
-                    COL["skin"],
+                    c_limb,
                     rot=R,
                     roughness=0.50,
                 )
             else:
                 sc.add_capsule(W(lx, leg["y"] + 0.8, 0.0), W(lx, sock_top, 0.0), S_cm(leg_hw * 0.86), c_sock, roughness=0.58)
-                sc.add_capsule(W(lx, sock_top - 0.4, 0.0), W(lx, shorts_bot + 1.2, 0.0), S_cm(leg_hw * 0.84), COL["skin"], roughness=0.50)
+                sc.add_capsule(W(lx, sock_top - 0.4, 0.0), W(lx, shorts_bot + 1.2, 0.0), S_cm(leg_hw * 0.84), c_limb, roughness=0.50)
 
             if not has_skirt:
                 sc.add_rounded_box(
@@ -1045,13 +1048,15 @@ def draw_scout_figure(
     l_pivot = v3(+float(L["armX"]), float(L["shoulderY"]), 0.0)
     wave_u = float(max(0.0, min(1.0, wave)))
     wave_osc = math.sin(t_sec * 10.0) * 14.0 * wave_u
-    R_upper_l = rot_z(-132.0 * wave_u - wave_osc * 0.4) @ rot_x(-18.0 * wave_u)
+    R_upper_l = rot_z(112.0 * wave_u + wave_osc * 0.4) @ rot_x(-10.0 * wave_u)
     l_elbow = l_pivot + (R_upper_l @ v3(0.0, -float(u_arm["h"]), 0.0))
     l_sleeve_mid = l_pivot + (R_upper_l @ v3(0.0, -sleeve_len * 0.5 + 1.0, 0.0))
 
     slv_hd = slv["d"] * 0.50
     slv_bevel = 0.45 if is_blocky else 1.35
 
+    # 上臂本體（皮膚／機械外殼），短袖再疊喺上面 → 舉手／揮手時手臂唔會斷開
+    sc.add_capsule(WV(l_pivot), WV(l_elbow), S_cm(u_arm["w"] * 0.44), c_limb, roughness=0.50)
     sc.add_rounded_box(
         WV(l_sleeve_mid),
         (S_cm(slv["w"] * 0.5), S_cm(sleeve_len * 0.5), S_cm(slv_hd)),
@@ -1060,14 +1065,14 @@ def draw_scout_figure(
         rot=R @ R_upper_l,
         roughness=0.52,
     )
-    R_fore_l = R_upper_l @ rot_z(-18.0 * wave_u - wave_osc)
+    R_fore_l = R_upper_l @ rot_z(72.0 * wave_u + wave_osc)
     l_wrist = l_elbow + (R_fore_l @ v3(0.0, -forearm_len, 0.0))
     if is_blocky:
         sc.add_rounded_box(
             WV(0.5 * (l_elbow + l_wrist)),
             (S_cm(l_arm["w"] * 0.5), S_cm(forearm_len * 0.52), S_cm(l_arm["d"] * 0.5)),
             S_cm(0.4),
-            COL["skin"],
+            c_limb,
             rot=R @ R_fore_l,
             roughness=0.50,
         )
@@ -1075,13 +1080,13 @@ def draw_scout_figure(
             WV(l_wrist + (R_fore_l @ v3(0.0, -hand["h"] * 0.38, 0.0))),
             (S_cm(hand["w"] * 0.5), S_cm(hand["h"] * 0.45), S_cm(hand["d"] * 0.5)),
             S_cm(0.4),
-            COL["skin"],
+            c_limb,
             rot=R @ R_fore_l,
             roughness=0.48,
         )
     else:
-        sc.add_capsule(WV(l_elbow), WV(l_wrist), S_cm(l_arm["w"] * 0.48), COL["skin"], roughness=0.50)
-        sc.add_sphere(WV(l_wrist + (R_fore_l @ v3(0.0, -hand["h"] * 0.30, 0.0))), S_cm(hand["w"] * 0.56), COL["skin"], roughness=0.48)
+        sc.add_capsule(WV(l_elbow), WV(l_wrist), S_cm(l_arm["w"] * 0.48), c_limb, roughness=0.50)
+        sc.add_sphere(WV(l_wrist + (R_fore_l @ v3(0.0, -hand["h"] * 0.30, 0.0))), S_cm(hand["w"] * 0.56), c_limb, roughness=0.48)
 
     # --- Wearer's RIGHT Arm (-X): relaxed at 0.0 -> crisp 3-finger HK Scout Salute at 1.0 ---
     r_pivot = v3(-float(L["armX"]), float(L["shoulderY"]), 0.0)
@@ -1091,6 +1096,8 @@ def draw_scout_figure(
     r_elbow = r_pivot + (R_upper_r @ v3(0.0, -float(u_arm["h"]), 0.0))
     r_sleeve_mid = r_pivot + (R_upper_r @ v3(0.0, -sleeve_len * 0.5 + 1.0, 0.0))
 
+    # 右上臂本體（皮膚／機械外殼），短袖疊面
+    sc.add_capsule(WV(r_pivot), WV(r_elbow), S_cm(u_arm["w"] * 0.44), c_limb, roughness=0.50)
     sc.add_rounded_box(
         WV(r_sleeve_mid),
         (S_cm(slv["w"] * 0.5), S_cm(sleeve_len * 0.5), S_cm(slv_hd)),
@@ -1109,7 +1116,7 @@ def draw_scout_figure(
             WV(0.5 * (r_elbow + r_wrist)),
             (S_cm(l_arm["w"] * 0.5), S_cm(forearm_len * 0.52), S_cm(l_arm["d"] * 0.5)),
             S_cm(0.4),
-            COL["skin"],
+            c_limb,
             rot=R,
             roughness=0.50,
         )
@@ -1117,13 +1124,13 @@ def draw_scout_figure(
             WV(r_wrist + v3(0.0, -hand["h"] * 0.38, 0.0)),
             (S_cm(hand["w"] * 0.5), S_cm(hand["h"] * 0.45), S_cm(hand["d"] * 0.5)),
             S_cm(0.4),
-            COL["skin"],
+            c_limb,
             rot=R,
             roughness=0.48,
         )
     else:
-        sc.add_capsule(WV(r_elbow), WV(r_wrist), S_cm(l_arm["w"] * 0.48), COL["skin"], roughness=0.50)
-        sc.add_sphere(WV(r_wrist), S_cm(hand["w"] * 0.52), COL["skin"], roughness=0.48)
+        sc.add_capsule(WV(r_elbow), WV(r_wrist), S_cm(l_arm["w"] * 0.48), c_limb, roughness=0.50)
+        sc.add_sphere(WV(r_wrist), S_cm(hand["w"] * 0.52), c_limb, roughness=0.48)
 
     if sal_u > 0.5:
         for fx_cm in (-1.30, 0.0, 1.30):
@@ -1131,16 +1138,16 @@ def draw_scout_figure(
                 WV(r_wrist + v3(fx_cm, 1.2, 0.2)),
                 WV(r_wrist + v3(fx_cm * 0.88 + 0.8, 6.2, 0.2)),
                 S_cm(0.70),
-                COL["skin"],
+                c_limb,
                 roughness=0.46,
             )
-        sc.add_capsule(WV(r_wrist + v3(1.6, 0.4, 1.5)), WV(r_wrist + v3(-0.8, 1.5, 1.7)), S_cm(0.70), COL["skin"], roughness=0.46)
+        sc.add_capsule(WV(r_wrist + v3(1.6, 0.4, 1.5)), WV(r_wrist + v3(-0.8, 1.5, 1.7)), S_cm(0.70), c_limb, roughness=0.46)
 
     # =========================================================================
     # 6. NECK, HEAD, HAIR, OPTIONAL SECTION HEADWEAR & EXPRESSIVE FACE
     # =========================================================================
     neck = B["neck"]
-    sc.add_capsule(W(0.0, neck["y"] - 0.5, 0.0), W(0.0, head["y"] + 2.0, head["z"] * 0.5), S_cm(neck["w"] * 0.42), COL["skin"], roughness=0.50)
+    sc.add_capsule(W(0.0, neck["y"] - 0.5, 0.0), W(0.0, head["y"] + 2.0, head["z"] * 0.5), S_cm(neck["w"] * 0.42), c_limb, roughness=0.50)
 
     head_cy = head["y"] + head["h"] * 0.5
     head_hw = head["w"] * 0.5
@@ -1148,105 +1155,166 @@ def draw_scout_figure(
     head_hd = head["d"] * 0.5
     hz = head["z"]
 
-    if is_blocky:
+    if is_robot:
+        c_shell = hex_rgb01("#EEF3FA")
+        c_visor = hex_rgb01("#142236")
+        c_led = hex_rgb01("#38EEFF")
+        c_ear = hex_rgb01("#4FA8E8")
         sc.add_rounded_box(
             W(0.0, head_cy, hz),
-            (S_cm(head_hw), S_cm(head_hh), S_cm(head_hd)),
-            S_cm(0.90),
-            COL["skin"],
+            (S_cm(head_hw * 1.06), S_cm(head_hh * 0.96), S_cm(head_hd * 1.02)),
+            S_cm(2.8 if not is_blocky else 1.1),
+            c_shell,
             rot=R,
-            roughness=0.48,
+            roughness=0.26,
         )
+        visor_z = hz + head_hd * 0.86
         sc.add_rounded_box(
-            W(0.0, head_cy + head_hh * 0.78, hz - 0.4),
-            (S_cm(head_hw + 0.65), S_cm(head_hh * 0.28), S_cm(head_hd + 0.55)),
-            S_cm(0.75),
-            COL["hair_dark"],
+            W(0.0, head_cy - 0.2, visor_z),
+            (S_cm(head_hw * 0.84), S_cm(head_hh * 0.58), S_cm(1.6)),
+            S_cm(1.5),
+            c_visor,
             rot=R,
-            roughness=0.45,
+            roughness=0.14,
         )
-        sc.add_rounded_box(
-            W(0.0, head_cy + 0.5, hz - head_hd * 0.72),
-            (S_cm(head_hw + 0.45), S_cm(head_hh * 0.74), S_cm(head_hd * 0.35)),
-            S_cm(0.75),
-            COL["hair_dark"],
-            rot=R,
-            roughness=0.45,
+        for side in (-1.0, 1.0):
+            sc.add_cylinder(
+                W(side * (head_hw * 1.02), head_cy - 0.3, hz),
+                W(side * (head_hw * 1.18), head_cy - 0.3, hz),
+                S_cm(2.5),
+                c_ear,
+                roughness=0.25,
+            )
+        ant_sway = math.sin(t_sec * 7.0) * 1.4
+        sc.add_capsule(
+            W(0.0, head_cy + head_hh * 0.92, hz),
+            W(ant_sway, head_cy + head_hh * 1.42, hz),
+            S_cm(0.65),
+            hex_rgb01("#9AA9BC"),
+            roughness=0.30,
         )
-        face_z = hz + head_hd + 0.25
-        ear_x = head_hw + 0.45
+        sc.add_sphere(
+            W(ant_sway, head_cy + head_hh * 1.50, hz),
+            S_cm(1.85),
+            c_led,
+            roughness=0.10,
+            emissive=(0.22, 0.72, 0.85),
+        )
+        led_z = visor_z + 1.55
+        eye_x = head_hw * 0.36
+        for side in (-1.0, 1.0):
+            ex = side * eye_x
+            if expression == "nervous":
+                sc.add_capsule(W(ex - 1.2, head_cy + 1.2, led_z), W(ex + 1.2, head_cy - 1.0, led_z), S_cm(0.50), hex_rgb01("#FF857A"), emissive=(0.75, 0.22, 0.18))
+                sc.add_capsule(W(ex - 1.2, head_cy - 1.0, led_z), W(ex + 1.2, head_cy + 1.2, led_z), S_cm(0.50), hex_rgb01("#FF857A"), emissive=(0.75, 0.22, 0.18))
+            else:
+                sc.add_capsule(W(ex - 1.3, head_cy + 0.1, led_z), W(ex, head_cy + 1.4, led_z), S_cm(0.58), c_led, emissive=(0.20, 0.75, 0.88))
+                sc.add_capsule(W(ex, head_cy + 1.4, led_z), W(ex + 1.3, head_cy + 0.1, led_z), S_cm(0.58), c_led, emissive=(0.20, 0.75, 0.88))
+        if expression == "nervous":
+            sc.add_capsule(W(-2.0, head_cy - 3.6, led_z), W(2.0, head_cy - 3.6, led_z), S_cm(0.45), hex_rgb01("#FF857A"), emissive=(0.7, 0.2, 0.2))
+        else:
+            sc.add_capsule(W(-2.1, head_cy - 3.0, led_z), W(0.0, head_cy - 4.0, led_z), S_cm(0.48), c_led, emissive=(0.20, 0.75, 0.88))
+            sc.add_capsule(W(0.0, head_cy - 4.0, led_z), W(2.1, head_cy - 3.0, led_z), S_cm(0.48), c_led, emissive=(0.20, 0.75, 0.88))
     else:
-        sc.add_ellipsoid(
-            W(0.0, head_cy, hz),
-            (S_cm(head_hw * 1.08), S_cm(head_hh * 1.04), S_cm(head_hd * 1.06)),
-            COL["skin"],
-            rot=R,
-            roughness=0.46,
-        )
-        sc.add_ellipsoid(
-            W(0.0, head_cy + head_hh * (0.12 if wear_hat else 0.22), hz - 1.5),
-            (S_cm(head_hw * 1.12), S_cm(head_hh * (0.88 if wear_hat else 1.02)), S_cm(head_hd * 1.04)),
-            COL["hair_dark"],
-            rot=R,
-            roughness=0.44,
-        )
-        if not wear_hat:
-            for bx_f, by_f, bz_f, br_f in [
-                (-0.48, 0.78, 0.56, 0.36),
-                (0.0, 0.84, 0.62, 0.39),
-                (0.48, 0.78, 0.56, 0.36),
-                (-0.80, 0.58, 0.32, 0.30),
-                (0.80, 0.58, 0.32, 0.30),
-            ]:
-                sc.add_sphere(
-                    W(bx_f * head_hw, head_cy + by_f * head_hh, hz + bz_f * head_hd),
-                    S_cm(br_f * head_hw),
+        if is_blocky:
+            sc.add_rounded_box(
+                W(0.0, head_cy, hz),
+                (S_cm(head_hw), S_cm(head_hh), S_cm(head_hd)),
+                S_cm(0.90),
+                COL["skin"],
+                rot=R,
+                roughness=0.48,
+            )
+            sc.add_rounded_box(
+                W(0.0, head_cy + head_hh * 0.78, hz - 0.4),
+                (S_cm(head_hw + 0.65), S_cm(head_hh * 0.28), S_cm(head_hd + 0.55)),
+                S_cm(0.75),
+                COL["hair_dark"],
+                rot=R,
+                roughness=0.45,
+            )
+            sc.add_rounded_box(
+                W(0.0, head_cy + 0.5, hz - head_hd * 0.72),
+                (S_cm(head_hw + 0.45), S_cm(head_hh * 0.74), S_cm(head_hd * 0.35)),
+                S_cm(0.75),
+                COL["hair_dark"],
+                rot=R,
+                roughness=0.45,
+            )
+            face_z = hz + head_hd + 0.25
+            ear_x = head_hw + 0.45
+        else:
+            sc.add_ellipsoid(
+                W(0.0, head_cy, hz),
+                (S_cm(head_hw * 1.08), S_cm(head_hh * 1.04), S_cm(head_hd * 1.06)),
+                COL["skin"],
+                rot=R,
+                roughness=0.46,
+            )
+            sc.add_ellipsoid(
+                W(0.0, head_cy + head_hh * (0.12 if wear_hat else 0.22), hz - 1.5),
+                (S_cm(head_hw * 1.12), S_cm(head_hh * (0.88 if wear_hat else 1.02)), S_cm(head_hd * 1.04)),
+                COL["hair_dark"],
+                rot=R,
+                roughness=0.44,
+            )
+            if not wear_hat:
+                for bx_f, by_f, bz_f, br_f in [
+                    (-0.48, 0.78, 0.56, 0.36),
+                    (0.0, 0.84, 0.62, 0.39),
+                    (0.48, 0.78, 0.56, 0.36),
+                    (-0.80, 0.58, 0.32, 0.30),
+                    (0.80, 0.58, 0.32, 0.30),
+                ]:
+                    sc.add_sphere(
+                        W(bx_f * head_hw, head_cy + by_f * head_hh, hz + bz_f * head_hd),
+                        S_cm(br_f * head_hw),
+                        COL["hair_dark"],
+                        roughness=0.42,
+                    )
+            face_z = hz + head_hd * 1.06
+            ear_x = head_hw * 1.08
+
+        for side in (-1.0, 1.0):
+            sc.add_ellipsoid(W(side * ear_x, head_cy - 0.6, hz + 0.3), (S_cm(1.8), S_cm(2.6), S_cm(1.7)), COL["skin"], rot=R)
+            if is_girl:
+                sc.add_sphere(W(side * (ear_x + 1.4), head_cy + 0.8, hz - 2.2), S_cm(2.7), COL["hair_dark"], roughness=0.42)
+                sc.add_capsule(
+                    W(side * (ear_x + 1.7), head_cy + 0.3, hz - 2.4),
+                    W(side * (ear_x + 3.2), head_cy - 6.6, hz - 1.9),
+                    S_cm(2.2),
                     COL["hair_dark"],
                     roughness=0.42,
                 )
-        face_z = hz + head_hd * 1.06
-        ear_x = head_hw * 1.08
 
-    for side in (-1.0, 1.0):
-        sc.add_ellipsoid(W(side * ear_x, head_cy - 0.6, hz + 0.3), (S_cm(1.8), S_cm(2.6), S_cm(1.7)), COL["skin"], rot=R)
-        if is_girl:
-            sc.add_sphere(W(side * (ear_x + 1.4), head_cy + 0.8, hz - 2.2), S_cm(2.7), COL["hair_dark"], roughness=0.42)
-            sc.add_capsule(
-                W(side * (ear_x + 1.7), head_cy + 0.3, hz - 2.4),
-                W(side * (ear_x + 3.2), head_cy - 6.6, hz - 1.9),
-                S_cm(2.2),
-                COL["hair_dark"],
-                roughness=0.42,
-            )
+        if wear_hat:
+            _draw_headwear(sc, W, WV, WN, R, S_cm, head, variant, is_blocky)
 
-    if wear_hat:
-        _draw_headwear(sc, W, WV, WN, R, S_cm, head, variant, is_blocky)
+        eye_x = head_hw * 0.38
+        eye_y = head_cy + 0.2
+        for side in (-1.0, 1.0):
+            ex = side * eye_x
+            sc.add_sphere(W(ex, eye_y, face_z - 0.3), S_cm(1.30), COL["eye_dark"], roughness=0.12)
+            sc.add_sphere(W(ex - 0.38, eye_y + 0.45, face_z + 0.78), S_cm(0.44), COL["white"], roughness=0.05, emissive=(0.4, 0.4, 0.4))
+            if expression == "nervous":
+                sc.add_capsule(W(ex - side * 1.3, head_cy + 3.2, face_z - 0.5), W(ex + side * 1.3, head_cy + 2.2, face_z - 0.5), S_cm(0.46), COL["hair_dark"])
+            else:
+                sc.add_capsule(W(ex - 1.3, head_cy + 3.0, face_z - 0.5), W(ex + 1.3, head_cy + 3.2, face_z - 0.5), S_cm(0.46), COL["hair_dark"])
 
-    eye_x = head_hw * 0.38
-    eye_y = head_cy + 0.2
-    for side in (-1.0, 1.0):
-        ex = side * eye_x
-        sc.add_sphere(W(ex, eye_y, face_z - 0.3), S_cm(1.30), COL["eye_dark"], roughness=0.12)
-        sc.add_sphere(W(ex - 0.38, eye_y + 0.45, face_z + 0.78), S_cm(0.44), COL["white"], roughness=0.05, emissive=(0.4, 0.4, 0.4))
+        sc.add_sphere(W(0.0, head_cy - 1.35, face_z + 0.65), S_cm(1.0), COL["skin"], roughness=0.42)
+        for side in (-1.0, 1.0):
+            sc.add_ellipsoid(W(side * (head_hw * 0.58), head_cy - 1.9, face_z - 1.25), (S_cm(1.55), S_cm(0.95), S_cm(0.8)), COL["blush"], rot=R)
+
         if expression == "nervous":
-            sc.add_capsule(W(ex - side * 1.3, head_cy + 3.2, face_z - 0.5), W(ex + side * 1.3, head_cy + 2.2, face_z - 0.5), S_cm(0.46), COL["hair_dark"])
+            sc.add_capsule(W(-2.0, head_cy - 4.1, face_z - 0.3), W(0.0, head_cy - 3.5, face_z), S_cm(0.46), COL["maroon"])
+            sc.add_capsule(W(0.0, head_cy - 3.5, face_z), W(2.0, head_cy - 4.1, face_z - 0.3), S_cm(0.46), COL["maroon"])
+            sc.add_ellipsoid(W(head_hw * 0.78, head_cy + 2.3, face_z - 1.4), (S_cm(0.82), S_cm(1.40), S_cm(0.82)), hex_rgb01("#5EC8F8"), rot=R, roughness=0.15)
+        elif expression == "surprised":
+            sc.add_sphere(W(0.0, head_cy - 3.9, face_z), S_cm(1.15), COL["maroon"])
         else:
-            sc.add_capsule(W(ex - 1.3, head_cy + 3.0, face_z - 0.5), W(ex + 1.3, head_cy + 3.2, face_z - 0.5), S_cm(0.46), COL["hair_dark"])
-
-    sc.add_sphere(W(0.0, head_cy - 1.35, face_z + 0.65), S_cm(1.0), COL["skin"], roughness=0.42)
-    for side in (-1.0, 1.0):
-        sc.add_ellipsoid(W(side * (head_hw * 0.58), head_cy - 1.9, face_z - 1.25), (S_cm(1.55), S_cm(0.95), S_cm(0.8)), COL["blush"], rot=R)
-
-    if expression == "nervous":
-        sc.add_capsule(W(-2.0, head_cy - 4.1, face_z - 0.3), W(0.0, head_cy - 3.5, face_z), S_cm(0.46), COL["maroon"])
-        sc.add_capsule(W(0.0, head_cy - 3.5, face_z), W(2.0, head_cy - 4.1, face_z - 0.3), S_cm(0.46), COL["maroon"])
-        sc.add_ellipsoid(W(head_hw * 0.78, head_cy + 2.3, face_z - 1.4), (S_cm(0.82), S_cm(1.40), S_cm(0.82)), hex_rgb01("#5EC8F8"), rot=R, roughness=0.15)
-    elif expression == "surprised":
-        sc.add_sphere(W(0.0, head_cy - 3.9, face_z), S_cm(1.15), COL["maroon"])
-    else:
-        sc.add_capsule(W(-2.4, head_cy - 3.3, face_z - 0.4), W(-0.85, head_cy - 4.2, face_z), S_cm(0.50), COL["maroon"])
-        sc.add_capsule(W(-0.85, head_cy - 4.2, face_z), W(0.85, head_cy - 4.2, face_z), S_cm(0.50), COL["maroon"])
-        sc.add_capsule(W(0.85, head_cy - 4.2, face_z), W(2.4, head_cy - 3.3, face_z - 0.4), S_cm(0.50), COL["maroon"])
+            sc.add_capsule(W(-2.4, head_cy - 3.3, face_z - 0.4), W(-0.85, head_cy - 4.2, face_z), S_cm(0.50), COL["maroon"])
+            sc.add_capsule(W(-0.85, head_cy - 4.2, face_z), W(0.85, head_cy - 4.2, face_z), S_cm(0.50), COL["maroon"])
+            sc.add_capsule(W(0.85, head_cy - 4.2, face_z), W(2.4, head_cy - 3.3, face_z - 0.4), S_cm(0.50), COL["maroon"])
 
     # =========================================================================
     # 7. AUTHORITATIVE SCOUT3D PROGRAMMATIC BADGE RENDERING (RGBA PNG PATCHES!)
@@ -1457,6 +1525,7 @@ def draw_leader_figure(
     scale: float = 1.0,
     mood: str = "scold",  # "scold" | "praise"
     t_sec: float = 0.0,
+    show_sign: bool = True,  # False = plain story-scene leader (no floating X / check sign)
 ) -> None:
     """Adult HK Scout Leader wearing the exact SCOUT3D `leader` uniform & RGBA badges,
     plus 3D Red-X warning sign (`mood='scold'`) or Salute + Green Check (`mood='praise'`).
@@ -1477,6 +1546,9 @@ def draw_leader_figure(
         hat=True,
         t_sec=t_sec,
     )
+
+    if not show_sign:
+        return
 
     R = rot_y(yaw_deg)
     W = lambda lx, ly, lz: base_pos + (R @ v3(lx * scale, ly * scale, lz * scale))
@@ -1526,14 +1598,117 @@ def draw_handbook_stack(sc: Scene3D, base_pos: np.ndarray, yaw_deg: float = 0.0,
 
 
 def draw_camp_tent(sc: Scene3D, base_pos: np.ndarray, yaw_deg: float = 0.0, scale: float = 1.0) -> None:
-    """3D Scout A-Frame Camp Tent prop for outdoor camp episodes."""
+    """3D Scout A-Frame Camp Tent prop (two pitched panels + ridge pole + door flap)."""
     R = rot_y(yaw_deg)
     W = lambda lx, ly, lz: base_pos + (R @ v3(lx * scale, ly * scale, lz * scale))
     S = lambda d: d * scale
-    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(1.05), strength=0.22)
-    sc.add_rounded_box(W(-0.36, 0.54, 0.0), (S(0.50), S(0.045), S(0.62)), S(0.02), COL["tent_green"], rot=R @ rot_z(48), roughness=0.65)
-    sc.add_rounded_box(W(0.36, 0.54, 0.0), (S(0.50), S(0.045), S(0.62)), S(0.02), COL["tent_green"], rot=R @ rot_z(-48), roughness=0.65)
-    sc.add_capsule(W(0.0, 0.96, -0.66), W(0.0, 0.96, 0.66), S(0.038), COL["khaki_dark"], roughness=0.55)
-    sc.add_capsule(W(0.0, 0.0, 0.64), W(0.0, 1.04, 0.64), S(0.036), COL["khaki_dark"], roughness=0.55)
-    sc.add_capsule(W(0.0, 0.0, -0.64), W(0.0, 1.04, -0.64), S(0.036), COL["khaki_dark"], roughness=0.55)
-    sc.add_rounded_box(W(0.0, 0.04, 0.0), (S(0.56), S(0.035), S(0.58)), S(0.02), COL["tent_tan"], rot=R, roughness=0.70)
+    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(1.00), strength=0.24)
+
+    # Ground sheet
+    sc.add_rounded_box(W(0.0, 0.02, 0.0), (S(0.62), S(0.025), S(0.66)), S(0.02), COL["tent_tan"], rot=R, roughness=0.72)
+
+    # Two pitched roof panels meeting at the ridge (y ~ 0.94)
+    for side in (-1.0, 1.0):
+        sc.add_rounded_box(
+            W(side * 0.37, 0.50, 0.0),
+            (S(0.58), S(0.048), S(0.66)),
+            S(0.022),
+            COL["tent_green"],
+            rot=R @ rot_z(-50.0 * side),
+            roughness=0.66,
+        )
+    # Ridge pole
+    sc.add_capsule(W(0.0, 0.955, -0.68), W(0.0, 0.955, 0.68), S(0.034), COL["khaki_dark"], roughness=0.55)
+
+    # Door flap on the front panel (slightly ajar) + two door poles
+    sc.add_rounded_box(W(-0.10, 0.44, 0.60), (S(0.19), S(0.40), S(0.020)), S(0.018), COL["tent_tan"], rot=R @ rot_z(9.0), roughness=0.72)
+    for side in (-1.0, 1.0):
+        sc.add_capsule(W(side * 0.34, 0.0, 0.62), W(side * 0.34, 0.70, 0.62), S(0.028), COL["khaki_dark"], roughness=0.55)
+
+    # Guy lines
+    for side in (-1.0, 1.0):
+        sc.add_capsule(W(side * 0.74, 0.06, 0.40), W(side * 0.96, 0.0, 0.78), S(0.012), hex_rgb01("#E8E2D2"), roughness=0.80)
+
+
+def draw_campfire(
+    sc: Scene3D,
+    base_pos: np.ndarray,
+    scale: float = 1.0,
+    t_sec: float = 0.0,
+) -> None:
+    """3D Scout campfire prop: stone ring, crossed logs, live flickering flames (no baked text)."""
+    base = base_pos
+    S = lambda d: d * scale
+    W = lambda lx, ly, lz: base + v3(lx * scale, ly * scale, lz * scale)
+    sc.add_floor_shadow(float(base[0]), float(base[2]), S(1.05), strength=0.30)
+
+    # Stone ring
+    for k in range(9):
+        ang = (2.0 * math.pi / 9.0) * k
+        sc.add_sphere(
+            W(math.cos(ang) * 0.72, S(0.07), math.sin(ang) * 0.72),
+            S(0.115),
+            hex_rgb01("#8C8F96"),
+            roughness=0.72,
+        )
+
+    # Crossed logs
+    for ang_deg in (18.0, -34.0, 62.0):
+        ra = rot_y(ang_deg)
+        pa = W(0.0, 0.10, 0.0) + (ra @ v3(-0.34 * scale, 0.0, 0.0))
+        pb = W(0.0, 0.10, 0.0) + (ra @ v3(0.34 * scale, 0.0, 0.0))
+        sc.add_capsule(pa, pb, S(0.072), hex_rgb01("#6B4A2F"), roughness=0.78)
+
+    # Ember bed
+    sc.add_ellipsoid(W(0.0, 0.115, 0.0), (S(0.27), S(0.055), S(0.27)), hex_rgb01("#C4501B"), roughness=0.45, emissive=(0.62, 0.18, 0.02))
+
+    # Flickering tapered flame tongues (stacked spheres, narrow at the tip)
+    flick = 0.90 + 0.10 * math.sin(t_sec * 9.0) + 0.05 * math.sin(t_sec * 21.0 + 1.3)
+    flame_layers = [
+        ("#FF5A22", 0.150, 4, 0.20, 0.115, (0.95, 0.34, 0.03)),
+        ("#FF9A2E", 0.105, 4, 0.27, 0.120, (1.00, 0.58, 0.10)),
+        ("#FFD166", 0.062, 3, 0.33, 0.110, (1.00, 0.86, 0.36)),
+    ]
+    for col, r0, n_ball, y0, step, emi in flame_layers:
+        for bi in range(n_ball):
+            frac = bi / float(max(1, n_ball - 1))
+            rad = r0 * (1.0 - 0.55 * frac)
+            yy = (y0 + step * bi) * flick
+            sway = math.sin(t_sec * 7.5 + bi * 0.9) * 0.020 * (1.0 + frac)
+            sc.add_sphere(W(sway, S(yy), 0.0), S(rad), hex_rgb01(col), roughness=0.28, emissive=emi)
+
+    # Sparks rising
+    for k in range(5):
+        ph = (t_sec * 0.55 + k * 0.21) % 1.0
+        sx = math.sin(k * 2.1 + t_sec * 1.7) * 0.24
+        sz = math.cos(k * 1.7 + t_sec * 1.3) * 0.24
+        sc.add_sphere(
+            W(sx, S(0.62 + 0.72 * ph), sz),
+            S(0.030 * (1.0 - 0.45 * ph)),
+            hex_rgb01("#FFCF6B"),
+            roughness=0.15,
+            emissive=(1.0, 0.72, 0.20),
+        )
+
+
+def draw_pine_tree(
+    sc: Scene3D,
+    base_pos: np.ndarray,
+    scale: float = 1.0,
+) -> None:
+    """3D stylised conifer (5 slim flared tiers) for outdoor camp / forest scenes."""
+    base = base_pos
+    S = lambda d: d * scale
+    W = lambda lx, ly, lz: base + v3(lx * scale, ly * scale, lz * scale)
+    sc.add_floor_shadow(float(base[0]), float(base[2]), S(0.55), strength=0.20)
+    sc.add_cylinder(W(0.0, 0.0, 0.0), W(0.0, 0.62, 0.0), S(0.080), hex_rgb01("#6A4A32"), roughness=0.80)
+    tiers = [
+        (0.58, 0.50, 0.30, "#1B5E37"),
+        (0.84, 0.43, 0.28, "#20693E"),
+        (1.08, 0.36, 0.25, "#257445"),
+        (1.30, 0.28, 0.22, "#2B814C"),
+        (1.50, 0.20, 0.19, "#339057"),
+    ]
+    for cy, rad, hh, col in tiers:
+        sc.add_ellipsoid(W(0.0, cy, 0.0), (S(rad), S(hh), S(rad)), hex_rgb01(col), roughness=0.68)
+    sc.add_sphere(W(0.0, 1.64, 0.0), S(0.115), hex_rgb01("#3AA063"), roughness=0.62)
