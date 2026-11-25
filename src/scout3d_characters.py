@@ -12,13 +12,16 @@ Coordinate Convention (identical to SCOUT3D):
 
 from __future__ import annotations
 
+import base64
 import json
 import math
+import urllib.request
+import zlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 from engine3d import RGBf, Scene3D, hex_rgb01, normalize, rot_x, rot_y, rot_z, v3
 
@@ -165,7 +168,129 @@ def _get_rig_data() -> Dict[str, Any]:
     return _RIG_CACHE
 
 
-def _get_badge_rgba(rel_file: str) -> Optional[np.ndarray]:
+def _ordinal_en(n: int) -> str:
+    if 10 <= (n % 100) <= 20:
+        suf = "TH"
+    else:
+        suf = {1: "ST", 2: "ND", 3: "RD"}.get(n % 10, "TH")
+    return f"{n}{suf}"
+
+
+def _load_badge_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    try:
+        from spec_loader import ensure_font_path
+        fp = ensure_font_path()
+        if fp:
+            return ImageFont.truetype(fp, size)
+    except Exception:
+        pass
+    return ImageFont.load_default()
+
+
+def decode_s3d_code(raw_val: Union[str, Dict[str, Any], None]) -> Optional[Dict[str, Any]]:
+    """Decode a SCOUT 3D outfit/badge code (`S3D1_<zlib_b64>`, `S3D_<b64>`, JSON string, or dict)."""
+    if raw_val is None:
+        return None
+    if isinstance(raw_val, dict):
+        return raw_val if raw_val else None
+    s = str(raw_val).strip()
+    if not s:
+        return None
+    if s.startswith("{"):
+        try:
+            obj = json.loads(s)
+            return obj if isinstance(obj, dict) else None
+        except Exception:
+            return None
+
+    is_zlib = False
+    if s.startswith("S3D1_"):
+        is_zlib = True
+        s = s[5:]
+    elif s.startswith("S3D_"):
+        s = s[4:]
+    else:
+        return None
+
+    s = s.replace("+", "-").replace("/", "_")
+    pad = "=" * ((4 - len(s) % 4) % 4)
+    raw_bytes = base64.urlsafe_b64decode((s + pad).encode("ascii"))
+    if is_zlib:
+        try:
+            raw_bytes = zlib.decompress(raw_bytes)
+        except zlib.error:
+            raw_bytes = zlib.decompress(raw_bytes, -zlib.MAX_WBITS)
+    obj = json.loads(raw_bytes.decode("utf-8"))
+    return obj if isinstance(obj, dict) else None
+
+
+def _render_dynamic_badge_image(dyn: Dict[str, Any], shape: str = "rect") -> Image.Image:
+    kind = str(dyn.get("kind") or "")
+    if kind == "troopTape":
+        no_raw = str(dyn.get("no") or "1").strip()
+        try:
+            no_int = max(1, int("".join(ch for ch in no_raw if ch.isdigit()) or "1"))
+        except ValueError:
+            no_int = 1
+        im = Image.new("RGBA", (320, 96), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+        d.rounded_rectangle((2, 2, 317, 93), radius=18, fill=(182, 28, 36, 255), outline=(238, 196, 68, 255), width=5)
+        f_zh = _load_badge_font(32)
+        f_en = _load_badge_font(22)
+        zh_txt = dyn.get("zhText") or f"香港第 {no_int} 旅"
+        en_txt = dyn.get("enText") or f"{_ordinal_en(no_int)} HONG KONG"
+        d.text((160, 30), str(zh_txt), font=f_zh, fill=(250, 218, 92, 255), anchor="mm")
+        d.text((160, 68), str(en_txt), font=f_en, fill=(250, 218, 92, 255), anchor="mm")
+        return im
+
+    if kind == "merit":
+        year = str(dyn.get("year") or "2025")
+        base_p = BADGE_DIR / "meritorious_base_blue.png"
+        if base_p.is_file():
+            im = Image.open(base_p).convert("RGBA").resize((220, 220), Image.Resampling.LANCZOS)
+        else:
+            im = Image.new("RGBA", (220, 220), (0, 0, 0, 0))
+            ImageDraw.Draw(im).ellipse((8, 8, 212, 212), fill=(26, 68, 148, 255), outline=(238, 196, 68, 255), width=8)
+        d = ImageDraw.Draw(im)
+        f_yr = _load_badge_font(38)
+        d.text((110, 156), year, font=f_yr, fill=(252, 216, 86, 255), anchor="mm")
+        return im
+
+    if kind == "nameTag":
+        im = Image.new("RGBA", (280, 76), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+        d.rounded_rectangle((2, 2, 277, 73), radius=10, fill=(24, 42, 84, 255), outline=(245, 245, 248, 255), width=4)
+        txt = str(dyn.get("zh") or dyn.get("en") or "SCOUT")[:10]
+        d.text((140, 38), txt, font=_load_badge_font(30), fill=(255, 255, 255, 255), anchor="mm")
+        return im
+
+    # Clean embroidered fallback emblem when offline and PNG not yet cached
+    im = Image.new("RGBA", (180, 180), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    if shape == "circle":
+        d.ellipse((6, 6, 174, 174), fill=(31, 107, 74, 255), outline=(232, 196, 78, 255), width=10)
+    else:
+        d.rounded_rectangle((6, 6, 174, 174), radius=24, fill=(31, 107, 74, 255), outline=(232, 196, 78, 255), width=10)
+    lbl = str(dyn.get("label") or "章")[:3]
+    d.text((90, 92), lbl, font=_load_badge_font(44), fill=(255, 248, 220, 255), anchor="mm")
+    return im
+
+
+def _get_badge_rgba(
+    rel_file: str,
+    dyn: Optional[Dict[str, Any]] = None,
+    shape: str = "rect",
+    label_zh: str = "",
+) -> Optional[np.ndarray]:
+    if dyn and isinstance(dyn, dict) and dyn.get("kind") in ("troopTape", "merit", "nameTag"):
+        dyn_key = "__dyn__:" + json.dumps(dyn, sort_keys=True, ensure_ascii=False)
+        if dyn_key in _TEX_CACHE:
+            return _TEX_CACHE[dyn_key]
+        im = _render_dynamic_badge_image(dyn, shape=shape)
+        arr = np.asarray(im, dtype=np.float32) / 255.0
+        _TEX_CACHE[dyn_key] = arr
+        return arr
+
     if not rel_file:
         return None
     clean = rel_file.lstrip("/")
@@ -174,8 +299,25 @@ def _get_badge_rgba(rel_file: str) -> Optional[np.ndarray]:
     if clean in _TEX_CACHE:
         return _TEX_CACHE[clean]
     full = BADGE_DIR / clean
+    if not full.is_file() and ".." not in clean and not clean.startswith("__"):
+        # Auto-fetch official badge PNG from playerkousas-rgb/SCOUT3D on first local Windows run!
+        url = f"https://raw.githubusercontent.com/playerkousas-rgb/SCOUT3D/main/public/badges/{clean}"
+        try:
+            full.parent.mkdir(parents=True, exist_ok=True)
+            with urllib.request.urlopen(url, timeout=6) as resp:
+                data = resp.read()
+            if data and len(data) > 64:
+                full.write_bytes(data)
+        except Exception:
+            pass
     if not full.is_file():
-        return None
+        fb_key = f"__fb__:{shape}:{label_zh or clean}"
+        if fb_key in _TEX_CACHE:
+            return _TEX_CACHE[fb_key]
+        im = _render_dynamic_badge_image({"kind": "fallback", "label": label_zh or "徽章"}, shape=shape)
+        arr = np.asarray(im, dtype=np.float32) / 255.0
+        _TEX_CACHE[fb_key] = arr
+        return arr
     img = Image.open(full).convert("RGBA")
     arr = np.asarray(img, dtype=np.float32) / 255.0
     _TEX_CACHE[clean] = arr
@@ -490,6 +632,7 @@ def draw_scout_figure(
     hat: Optional[bool] = None,
     preset: Union[str, Dict[str, Any], Path, None] = None,
     highlight_slots: Optional[Sequence[str]] = None,
+    s3d_custom: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Draw an authentic 3D Hong Kong Scout character using exact SCOUT3D rules & RGBA badges."""
     if preset is not None:
@@ -500,13 +643,64 @@ def draw_scout_figure(
         show_sash = float(cfg.get("show_sash", show_sash))
         if hat is None and "hat" in cfg:
             hat = bool(cfg["hat"])
+        if s3d_custom is None and cfg.get("s3d_custom"):
+            s3d_custom = decode_s3d_code(cfg.get("s3d_custom"))
+
+    custom_cfg = decode_s3d_code(s3d_custom) if s3d_custom is not None else None
+    if custom_cfg:
+        raw_sec = str(custom_cfg.get("rigSection") or custom_cfg.get("section") or section).lower().strip()
+        raw_var = str(custom_cfg.get("variant") or "").lower().strip()
+        if raw_sec == "scout" and raw_var == "sea":
+            section = "sea_scout"
+        elif raw_sec == "scout" and raw_var == "air":
+            section = "air_scout"
+        elif raw_sec == "rover":
+            section = "venture"
+        elif raw_sec in SECTION_STYLES:
+            section = raw_sec
+        if custom_cfg.get("gender"):
+            g_str = str(custom_cfg["gender"]).upper()
+            gender = "F" if g_str.startswith(("F", "G")) else "M"
+        if "hat" in custom_cfg and custom_cfg["hat"] is not None:
+            hat = bool(custom_cfg["hat"])
+        if "sash" in custom_cfg and custom_cfg["sash"] is not None:
+            show_sash = 1.0 if bool(custom_cfg["sash"]) else 0.0
 
     sec = section.lower().strip()
     sash_supported = sec in ("scout", "sea_scout", "air_scout")
     sash_amt = float(max(0.0, min(1.0, show_sash))) if sash_supported else 0.0
     use_sash_layout = sash_supported and (sash_amt > 0.05)
 
-    variant, gen_entry, badges = _select_rig_bundle(sec, gender, use_sash_layout)
+    base_variant, gen_entry, default_badges = _select_rig_bundle(sec, gender, use_sash_layout)
+    variant = dict(base_variant)
+    badges = default_badges
+
+    custom_neck_border: Optional[str] = None
+    if custom_cfg:
+        cols = custom_cfg.get("colors") or {}
+        for src_k, dst_k in (
+            ("shirt", "shirt"),
+            ("leg", "leg"),
+            ("sock", "sock"),
+            ("shoe", "shoe"),
+            ("belt", "belt"),
+            ("buckle", "buckle"),
+            ("hatColor", "hatColor"),
+            ("hatType", "hat"),
+            ("neckerMain", "necker"),
+            ("woggle", "woggle"),
+        ):
+            val = cols.get(src_k)
+            if isinstance(val, str) and val.strip():
+                variant[dst_k] = val.strip()
+        if "longPants" in cols and cols["longPants"] is not None:
+            variant["longPants"] = bool(cols["longPants"])
+        nb = cols.get("neckerBorder")
+        if isinstance(nb, str) and nb.startswith("#"):
+            custom_neck_border = nb.strip()
+        if isinstance(custom_cfg.get("badges"), list) and len(custom_cfg["badges"]) > 0:
+            badges = custom_cfg["badges"]
+
     L = gen_entry["layout"]
     B = L["B"]
     strap = gen_entry.get("strap")
@@ -538,7 +732,14 @@ def draw_scout_figure(
     c_belt = hex_rgb01(variant["belt"]) if variant.get("belt") else None
     c_buckle = hex_rgb01(variant.get("buckle") or "#C9CCD1")
     c_necker = hex_rgb01(variant["necker"])
-    c_neck_trim = hex_rgb01("#1F7A3F") if sec == "cub" else (hex_rgb01("#F5C518") if sec == "grasshopper" else None)
+    if custom_neck_border:
+        c_neck_trim = (
+            hex_rgb01(custom_neck_border)
+            if custom_neck_border.lower() != str(variant["necker"]).lower()
+            else None
+        )
+    else:
+        c_neck_trim = hex_rgb01("#1F7A3F") if sec == "cub" else (hex_rgb01("#F5C518") if sec == "grasshopper" else None)
     c_woggle = hex_rgb01(variant["woggle"])
 
     sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S_cm(B["torso"]["w"] * 1.15), strength=0.26)
@@ -1074,10 +1275,11 @@ def draw_scout_figure(
     hi_set = set(highlight_slots or ())
 
     for p in badges:
-        s_key = p["key"]
-        s_id = p["id"]
-        rel_file = p.get("art")
-        if not rel_file:
+        s_key = str(p.get("key") or p.get("id") or "badge")
+        s_id = str(p.get("id") or s_key)
+        rel_file = str(p.get("art") or "")
+        dyn_meta = p.get("dyn") if isinstance(p.get("dyn"), dict) else None
+        if not rel_file and not dyn_meta:
             continue
 
         is_sash_badge = bool(p.get("onSash"))
@@ -1088,7 +1290,8 @@ def draw_scout_figure(
         if prog <= 0.01:
             continue
 
-        tex = _get_badge_rgba(rel_file)
+        patch_shape = "circle" if p.get("shape") == "circle" else "rect"
+        tex = _get_badge_rgba(rel_file, dyn=dyn_meta, shape=patch_shape, label_zh=str(p.get("zh") or ""))
         if tex is None:
             continue
 
@@ -1135,6 +1338,12 @@ def draw_scout_figure(
                 else:
                     v_loc = v3(-1.0, 0.0, 0.0)
                     u_loc = v3(0.0, 0.0, -1.0)
+        elif facing == "back":
+            target_cm = v3(float(p["x"]), float(p["y"]), -tor_hd - 0.68)
+            n_loc = v3(0.0, 0.0, -1.0)
+            cs, sn = math.cos(rot_z_rad), math.sin(rot_z_rad)
+            u_loc = v3(-cs, sn, 0.0)
+            v_loc = v3(sn, cs, 0.0)
         else:
             z_cm = (tor_hd + 0.54) if is_sash_badge else (tor_hd + 0.24)
             target_cm = v3(float(p["x"]), float(p["y"]), z_cm)

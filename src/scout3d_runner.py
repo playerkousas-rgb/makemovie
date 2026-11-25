@@ -43,6 +43,7 @@ from scout3d_characters import (
     CHARACTER_PRESETS,
     COL,
     SECTION_STYLES,
+    decode_s3d_code,
     draw_camp_tent,
     draw_handbook_stack,
     draw_leader_figure,
@@ -62,12 +63,16 @@ ASPECT_PRESETS: Dict[str, Tuple[int, int]] = {
 PRESET_CATALOG: Dict[str, str] = {
     "disaster_wrong_badges": "查書頭暈＋聯錯章俾領袖鬧（紅 ✕ 警告）",
     "scout3d_auto_snap": "SCOUT 3D 撳章自動上身＋方塊變波波流線（連頂部 UI 卡）",
+    "closeup_chest_badges": "胸前與領巾近鏡特寫・清楚睇見胸袋徽章與旅巾配色",
+    "closeup_right_sleeve": "右袖徽章大特寫・清楚睇見旅號條／地域章／區章／小隊章",
+    "closeup_left_sleeve": "左袖與專章帶特寫・清楚睇見進度章與專科章排列",
+    "leader_guide_explain": "領袖同台親切講解・指點制服徽章正確佩戴重點",
     "mom_turntable_sew": "媽媽推開厚書・望住旋轉 3D 人仔輕鬆照聯",
-    "dual_salute_praise": "方塊＋波波童軍齊敬三指禮・領袖豎拇指大讚（綠 ✓）",
-    "section_parade": "多支部童軍同台轉身敬禮（升團／支部大曬冷）",
-    "camp_eve_ready": "戶外營地帳篷前・童軍齊章揮手敬禮出發",
     "turntable_360_closeup": "360° 旋轉特寫・前後左右袖章與專章帶零死角",
+    "camp_eve_ready": "戶外營地帳篷前・童軍齊章揮手敬禮出發",
     "mom_and_kid_proud": "母子開心出門・媽媽安心微笑＋童軍精神敬禮",
+    "section_parade": "多支部童軍同台轉身敬禮（升團／支部大曬冷）",
+    "dual_salute_praise": "方塊＋波波童軍齊敬三指禮・領袖豎拇指大讚（綠 ✓）",
 }
 
 CANTONESE_VOICES: Dict[str, str] = {
@@ -186,14 +191,41 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
     width, height = ASPECT_PRESETS[aspect]
 
     fps = int(clamp(int(raw.get("fps") or 24), 12, 60))
+    s3d_custom = decode_s3d_code(raw.get("s3d_code") or raw.get("s3d_custom"))
     ep_char_cfg = resolve_character_preset(raw.get("char_preset"))
-    default_section = str(raw.get("section") or ep_char_cfg.get("section") or "scout")
+
+    s3d_sec = None
+    s3d_gen = None
+    s3d_style = None
+    if s3d_custom:
+        rsec = str(s3d_custom.get("rigSection") or s3d_custom.get("section") or "").lower().strip()
+        rvar = str(s3d_custom.get("variant") or "").lower().strip()
+        if rsec == "scout" and rvar == "sea":
+            s3d_sec = "sea_scout"
+        elif rsec == "scout" and rvar == "air":
+            s3d_sec = "air_scout"
+        elif rsec == "rover":
+            s3d_sec = "venture"
+        elif rsec in SECTION_STYLES:
+            s3d_sec = rsec
+        if s3d_custom.get("gender"):
+            s3d_gen = "F" if str(s3d_custom["gender"]).upper().startswith(("F", "G")) else "M"
+        lk = str(s3d_custom.get("look") or "").lower()
+        if lk in ("simple", "blocky"):
+            s3d_style = "blocky"
+        elif lk in ("smooth", "detailed", "bobo"):
+            s3d_style = "bobo"
+
+    default_section = str(raw.get("section") or s3d_sec or ep_char_cfg.get("section") or "scout")
     if default_section not in SECTION_STYLES:
         default_section = "scout"
-    default_gender = "F" if str(raw.get("gender") or ep_char_cfg.get("gender") or "M").upper() == "F" else "M"
-    hero_style = "blocky" if str(raw.get("hero_style") or ep_char_cfg.get("style_mode") or "bobo") == "blocky" else "bobo"
-    default_hat = raw.get("hat", ep_char_cfg.get("hat", None))
-    default_sash = raw.get("show_sash", ep_char_cfg.get("show_sash", None))
+    default_gender = "F" if str(raw.get("gender") or s3d_gen or ep_char_cfg.get("gender") or "M").upper() == "F" else "M"
+    hero_style = "blocky" if str(raw.get("hero_style") or s3d_style or ep_char_cfg.get("style_mode") or "bobo") == "blocky" else "bobo"
+    default_hat = raw.get("hat", s3d_custom.get("hat") if (s3d_custom and "hat" in s3d_custom) else ep_char_cfg.get("hat", None))
+    default_sash = raw.get(
+        "show_sash",
+        (1.0 if s3d_custom.get("sash") else 0.0) if (s3d_custom and "sash" in s3d_custom) else ep_char_cfg.get("show_sash", None),
+    )
     bgm_mood = str(raw.get("bgm_mood") or "comedy_to_hero")
     voice_raw = str(raw.get("voice") if raw.get("voice") is not None else "zh-HK-HiuMaanNeural").strip()
     if voice_raw.lower() in ("", "none", "off", "false", "mute"):
@@ -208,10 +240,15 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
     series_badge = _sanitize_text_for_font(str(raw.get("series_badge") or "如果系列 · 如果你有 SCOUT 3D"))
 
     ui_raw = raw.get("ui_card") or {}
-    toggles_raw = ui_raw.get("toggles") or ["世界會員章", "旅條 · 區章", "小隊章", "專科章 ×12"]
+    fallback_toggles = (
+        list(s3d_custom.get("badgeNamesZh") or [])[:4]
+        if (s3d_custom and s3d_custom.get("badgeNamesZh"))
+        else ["世界會員章", "旅條 · 區章", "小隊章", "專科章 ×12"]
+    )
+    toggles_raw = ui_raw.get("toggles") or fallback_toggles
     toggles = [_sanitize_text_for_font(str(x))[:14] for x in list(toggles_raw)[:4]]
     while len(toggles) < 4:
-        toggles.append(["世界會員章", "旅條 · 區章", "小隊章", "專科章 ×12"][len(toggles)])
+        toggles.append(["世界會員章", "旅條 · 區章", "小隊章", "專科章"][len(toggles)])
 
     ui_card = {
         "title": _sanitize_text_for_font(str(ui_raw.get("title") or "SCOUT3D · 撳章自動上身")),
@@ -228,7 +265,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         preset = str(sh.get("preset") or "scout3d_auto_snap")
         if preset not in PRESET_CATALOG:
             preset = "scout3d_auto_snap"
-        dur = float(clamp(float(sh.get("duration") or 3.0), 1.2, 16.0))
+        dur = float(clamp(float(sh.get("duration") or 3.0), 1.2, 28.0))
         n_frames = max(12, int(round(dur * fps)))
         sh_char = resolve_character_preset(sh.get("char_preset"))
         sec = str(sh.get("section") or sh_char.get("section") or default_section)
@@ -285,6 +322,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "section": default_section,
         "gender": default_gender,
         "hero_style": hero_style,
+        "s3d_custom": s3d_custom,
         "bgm_mood": bgm_mood,
         "voice": voice,
         "voice_rate": voice_rate,
@@ -322,6 +360,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
     sec = sh["section"]
     gen = sh["gender"]
     sh_hat = sh.get("hat")
+    s3d_custom = spec.get("s3d_custom")
     hero_style = "blocky" if sh["style_mode"] == "blocky" else "bobo"
     if sh.get("show_sash") is not None:
         sec_has_sash = float(sh["show_sash"]) if sec in ("scout", "sea_scout", "air_scout") else 0.0
@@ -356,6 +395,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             style_mode=hero_style, expression="nervous",
             salute=0.0, badge_mode="wrong", show_sash=0.0,
             section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            s3d_custom=s3d_custom,
         )
         draw_leader_figure(sc, v3(0.86, 0.0, -0.15), yaw_deg=-24.0, scale=0.92, mood="scold", t_sec=t)
         return sc.render()
@@ -406,6 +446,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             salute=0.0, badge_mode="animated",
             badge_progress=prog_map, show_sash=sash_vis,
             section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            s3d_custom=s3d_custom,
         )
         if do_morph and (morph_u - 0.06) <= u <= (morph_u + 0.08):
             ru = (u - (morph_u - 0.06)) / 0.14
@@ -416,6 +457,103 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                     v3(ped_x + 0.72 * math.cos(ang), ring_y, 0.72 * math.sin(ang)),
                     0.052, COL["gold"], roughness=0.1, emissive=(0.55, 0.42, 0.08),
                 )
+        return sc.render()
+
+    if preset == "closeup_chest_badges":
+        cam = Camera3D(
+            pos=v3(lerp(-0.08, 0.08, e), lerp(1.78, 1.72, e), lerp(4.35, 3.92, e) * z_s),
+            target=v3(0.0, 1.62, 0.0),
+            fov_deg=33.0 * fov_s,
+        )
+        sc = Scene3D(
+            W_px, H_px, cam,
+            bg_top=hex_rgb01("#8AC6F2"), bg_bot=hex_rgb01("#EAF6FE"),
+            floor_y=0.0, floor_color=hex_rgb01("#CFE8FA"),
+            key_dir=(-0.42, 0.72, 0.68), rim_color=hex_rgb01("#FFFFFF"),
+        )
+        draw_turntable_pedestal(sc, (0.0, 0.0), y_top=0.14, radius=1.04)
+        draw_scout_figure(
+            sc, v3(0.0, 0.14, 0.0),
+            yaw_deg=lerp(-16.0, 16.0, e), scale=1.02,
+            style_mode=hero_style, expression="happy",
+            salute=0.0, badge_mode="correct", show_sash=sec_has_sash,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            highlight_slots=("membership", "hongKong", "progressAward", "ventureAward", "award", "serviceStars", "nameTag"),
+            s3d_custom=s3d_custom,
+        )
+        return sc.render()
+
+    if preset == "closeup_right_sleeve":
+        # rot_y(+72 deg) turns wearer's RIGHT sleeve (-X) directly toward camera (+Z)!
+        cam = Camera3D(
+            pos=v3(lerp(-0.06, 0.05, e), lerp(1.80, 1.74, e), lerp(4.20, 3.80, e) * z_s),
+            target=v3(0.0, 1.66, 0.0),
+            fov_deg=32.5 * fov_s,
+        )
+        sc = Scene3D(
+            W_px, H_px, cam,
+            bg_top=hex_rgb01("#88C8EE"), bg_bot=hex_rgb01("#EEF8FD"),
+            floor_y=0.0, floor_color=hex_rgb01("#D2EAF9"),
+            key_dir=(-0.38, 0.74, 0.68), rim_color=hex_rgb01("#FFFBE6"),
+        )
+        draw_turntable_pedestal(sc, (0.0, 0.0), y_top=0.14, radius=1.04)
+        draw_scout_figure(
+            sc, v3(0.0, 0.14, 0.0),
+            yaw_deg=lerp(56.0, 82.0, e), scale=1.02,
+            style_mode=hero_style, expression="happy",
+            salute=0.0, badge_mode="correct", show_sash=sec_has_sash,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            highlight_slots=("troop", "region", "district", "patrol", "meritorious"),
+            s3d_custom=s3d_custom,
+        )
+        return sc.render()
+
+    if preset == "closeup_left_sleeve":
+        # rot_y(-70 deg) turns wearer's LEFT sleeve (+X) & upper sash directly toward camera (+Z)!
+        cam = Camera3D(
+            pos=v3(lerp(0.06, -0.05, e), lerp(1.78, 1.72, e), lerp(4.25, 3.85, e) * z_s),
+            target=v3(0.0, 1.64, 0.0),
+            fov_deg=33.0 * fov_s,
+        )
+        sc = Scene3D(
+            W_px, H_px, cam,
+            bg_top=hex_rgb01("#8AC6F2"), bg_bot=hex_rgb01("#EDF8FE"),
+            floor_y=0.0, floor_color=hex_rgb01("#D1EAF9"),
+            key_dir=(0.38, 0.74, 0.68), rim_color=hex_rgb01("#FFFBE6"),
+        )
+        draw_turntable_pedestal(sc, (0.0, 0.0), y_top=0.14, radius=1.04)
+        draw_scout_figure(
+            sc, v3(0.0, 0.14, 0.0),
+            yaw_deg=lerp(-54.0, -80.0, e), scale=1.02,
+            style_mode=hero_style, expression="happy",
+            salute=0.0, badge_mode="correct", show_sash=sec_has_sash,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            s3d_custom=s3d_custom,
+        )
+        return sc.render()
+
+    if preset == "leader_guide_explain":
+        cam = Camera3D(
+            pos=v3(lerp(-0.08, 0.06, e), lerp(2.00, 1.94, e), lerp(7.65, 7.05, e) * z_s),
+            target=v3(0.0, 1.46, 0.0),
+            fov_deg=37.0 * fov_s,
+        )
+        sc = Scene3D(
+            W_px, H_px, cam,
+            bg_top=hex_rgb01("#84C5DC"), bg_bot=hex_rgb01("#EEF9F6"),
+            floor_y=0.0, floor_color=hex_rgb01("#D2ECE6"),
+            key_dir=(-0.45, 0.76, 0.62), rim_color=hex_rgb01("#FFF8DC"),
+        )
+        draw_turntable_pedestal(sc, (-0.42, 0.18), y_top=0.13, radius=0.72)
+        draw_scout_figure(
+            sc, v3(-0.42, 0.13, 0.18),
+            yaw_deg=lerp(-8.0, 26.0, e), scale=0.90,
+            style_mode=hero_style, expression="happy",
+            salute=0.0, badge_mode="correct", show_sash=sec_has_sash,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            s3d_custom=s3d_custom,
+        )
+        draw_leader_figure(sc, v3(0.66, 0.0, 0.02), yaw_deg=-24.0, scale=0.92, mood="praise", t_sec=t)
         return sc.render()
 
     if preset == "mom_turntable_sew":
@@ -439,7 +577,8 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             yaw_deg=-25.0 + lt * 54.0, scale=0.56,
             style_mode=hero_style, expression="happy",
             salute=0.0, badge_mode="correct", show_sash=sec_has_sash,
-            section=sec, gender=gen, t_sec=t,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            s3d_custom=s3d_custom,
         )
         for sp_i in range(4):
             ang = lt * 3.2 + sp_i * (math.pi * 0.5)
@@ -474,9 +613,11 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 yaw_deg=pyaw, scale=psc,
                 style_mode=hero_style, expression="happy",
                 salute=sal_u, badge_mode="correct",
-                show_sash=1.0 if s_name == "scout" else 0.0,
+                show_sash=sec_has_sash if idx_p == 1 else (1.0 if s_name == "scout" else 0.0),
                 section=s_name, gender="F" if idx_p == 2 and gen == "F" else gen,
+                hat=sh_hat if idx_p == 1 else None,
                 t_sec=t,
+                s3d_custom=s3d_custom if idx_p == 1 else None,
             )
         return sc.render()
 
@@ -500,8 +641,9 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             yaw_deg=10.0, scale=0.88,
             style_mode=hero_style, expression="happy",
             salute=sal_u, wave=wave_u,
-            badge_mode="correct", show_sash=1.0 if sec == "scout" else 0.0,
-            section=sec, gender=gen, t_sec=t,
+            badge_mode="correct", show_sash=sec_has_sash,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            s3d_custom=s3d_custom,
         )
         draw_leader_figure(sc, v3(0.88, 0.0, -0.05), yaw_deg=-22.0, scale=0.88, mood="praise", t_sec=t)
         return sc.render()
@@ -524,7 +666,8 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             yaw_deg=lerp(-20.0, 340.0, e), scale=0.98,
             style_mode=hero_style, expression="happy",
             salute=0.0, badge_mode="correct", show_sash=sec_has_sash,
-            section=sec, gender=gen, t_sec=t,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            s3d_custom=s3d_custom,
         )
         return sc.render()
 
@@ -548,7 +691,8 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             yaw_deg=-12.0, scale=0.88,
             style_mode=hero_style, expression="happy",
             salute=sal_u, badge_mode="correct", show_sash=sec_has_sash,
-            section=sec, gender=gen, t_sec=t,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
+            s3d_custom=s3d_custom,
         )
         return sc.render()
 
@@ -570,7 +714,8 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
         yaw_deg=15.0, scale=0.82,
         style_mode="blocky", expression="happy",
         salute=salute_u, badge_mode="correct", show_sash=sec_has_sash,
-        section=sec, gender=gen, t_sec=t,
+        section=sec, gender=gen, hat=sh_hat, t_sec=t,
+        s3d_custom=s3d_custom,
     )
     draw_turntable_pedestal(sc, (-0.02, 0.28), y_top=0.13, radius=0.70)
     draw_scout_figure(
@@ -578,7 +723,8 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
         yaw_deg=8.0, scale=0.88,
         style_mode="bobo", expression="happy",
         salute=salute_u, badge_mode="correct", show_sash=sec_has_sash,
-        section=sec, gender=gen, t_sec=t,
+        section=sec, gender=gen, hat=sh_hat, t_sec=t,
+        s3d_custom=s3d_custom,
     )
     draw_leader_figure(sc, v3(0.90, 0.0, -0.06), yaw_deg=-20.0, scale=0.88, mood="praise", t_sec=t)
     return sc.render()
@@ -1058,12 +1204,15 @@ def _compute_clean_plate_hash(spec: Dict[str, Any]) -> str:
         "width": spec["width"],
         "height": spec["height"],
         "fps": spec["fps"],
+        "s3d_custom": spec.get("s3d_custom"),
         "shots": [
             {
                 "preset": s["preset"],
                 "num_frames": s["num_frames"],
                 "section": s["section"],
                 "gender": s["gender"],
+                "hat": s.get("hat"),
+                "show_sash": s.get("show_sash"),
                 "style_mode": s["style_mode"],
                 "show_ui_card": s["show_ui_card"],
                 "trio_sections": s["trio_sections"],

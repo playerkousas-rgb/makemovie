@@ -23,7 +23,7 @@
 - `scripts/compile_scout3d_rig.mjs`：如需同步最新 `SCOUT3D` 規則，可一鍵由 `SCOUT3D` 源碼重新編譯 `assets/scout3d/`（一般本機 `CMD` 出片完全唔需要裝 Node.js）。
 - `src/scout3d_whatif.py`：《如果系列 EP.01：如果你有 SCOUT 3D》完整渲染管線。
 - `src/scout3d_runner.py`：通用劇本＋香港廣東話配音執行引擎（支援 `--b64 z_...` 短碼免開檔直接貼落 Windows `CMD` 一鍵出片；內置 `edge-tts` 香港廣東話自然語音合成、按每鏡語音長度自動延長 3D 動作、以及 BGM 自動壓聲 Ducking）。
-- `tools/SCOUT3D_動畫劇本生成器_v2.0.html`：對齊 `© SCOUT SYSTEM` 介面設計嘅純前端單檔工具（支援 Gemini Canvas 免填 Key 直連、自動讀 GitHub `README` 原文寫地道廣東話旁白＋分鏡，並簡化為單一 **「一鍵複製 CMD 出片指令」**）。
+- `tools/SCOUT3D_動畫劇本生成器_v2.1.html`：對齊 `© SCOUT SYSTEM` 介面設計嘅純前端單檔工具（支援先設定 **15s / 30s / 45s / 60s / 90s 彈性片長範圍** 與 **貼入 `SCOUT 3D` 角色穿搭碼 `S3D1_...`**，再由 AI 結合真實佩戴徽章與 GitHub `README` 編排遠近特寫分鏡與廣東話旁白；簡化為單一 **「一鍵複製 CMD 出片指令」**）。
 
 ### 2. 本機更新與安裝（Windows CMD）
 ```bat
@@ -33,9 +33,9 @@ pip install -r requirements.txt
 ```
 > 💡 即使忘記手動安裝新套件，`scout3d_runner.py` 首次啟用廣東話配音時亦會自動幫你安裝 `edge-tts`。
 
-### 3. 本機極速出片流程（免經 Git · 直接貼落 CMD 即刻整片）
-1. 用瀏覽器或放入 Gemini Canvas 打開 `tools/SCOUT3D_動畫劇本生成器_v2.0.html`
-2. 揀 **「🤖 AI 全自動」**（貼 GitHub 連結讀 README）或 **「✍️ 我作大綱」**，揀埋制服與廣東話聲線（曉曼／曉佳／雲龍／純音樂）
-3. 撳右邊 **「📋 一鍵複製 CMD 出片指令（連廣東話配音）」**
-4. 打開 Windows `CMD`，**Right-click 貼上 → 按 Enter**，十幾秒即喺 `output\<檔名>.mp4` 生成連廣東話配音＋BGM＋字幕嘅高清 3D 短片！
+### 3. 本機極速出片流程（支援 `SCOUT 3D` 穿搭碼 · 免經 Git · 直接貼落 CMD 即刻整片）
+1. 用瀏覽器或放入 Gemini Canvas 打開 `tools/SCOUT3D_動畫劇本生成器_v2.1.html`
+2. 第 1 步先揀 **目標片長**（15 秒～90 秒，自動配對合理分鏡範圍），並可選填貼入由 `SCOUT 3D` 複製過嚟嘅 **`S3D1_...` 角色穿搭碼**
+3. 第 2 步撳 **「🤖 AI 全自動」** 或 **「✍️ 我作大綱」** 生成廣東話旁白與遠近特寫 3D 分鏡
+4. 撳右邊 **「📋 一鍵複製 CMD 出片指令」** ➔ 貼落 Windows `CMD` 按 **Enter**，即喺 `output\<檔名>.mp4` 生成 1:1 還原徽章穿搭＋廣東話配音＋BGM 嘅 3D 影片！
 

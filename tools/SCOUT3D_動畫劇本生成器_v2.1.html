@@ -4,19 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="copyright" content="© SCOUT SYSTEM">
-<meta name="app-version" content="v2.0.0">
+<meta name="app-version" content="v2.1.0">
 <meta name="robots" content="noindex">
-<title>SCOUT 3D 動畫劇本生成器 v2.0.0 — © SCOUT SYSTEM</title>
+<title>SCOUT 3D 動畫劇本生成器 v2.1.0 — © SCOUT SYSTEM</title>
 <!--
-  SCOUT 3D 動畫劇本生成器 v2.0.0 · © SCOUT SYSTEM
+  SCOUT 3D 動畫劇本生成器 v2.1.0 · © SCOUT SYSTEM
   純前端 · 直呼 Gemini API（支援 Gemini Canvas 自動攔截） · 唔經任何後端
 
-  極簡本機出片流程（只保留最順手嘅方法 A）：
-    1. 左邊揀「🤖 AI 全自動」（貼 GitHub 連結讀 README）或「✍️ 我作大綱」
-       → AI 自動寫好廣東話旁白配音稿 + 片底大字字幕 + 3D 分鏡場面
-    2. 揀 3D 畫風、主角童軍制服、香港廣東話配音聲線（曉曼／曉佳／雲龍／純音樂）
-    3. 右邊一鍵複製 CMD 指令 → 貼落 Windows CMD 按 Enter
-       → 本機 Python 自動合成廣東話配音 + BGM 自動壓聲 + 3D 動畫，直接出 MP4！
+  v2.1 升級重點：
+    1. 先揀「目標片長（15s / 30s / 45s / 60s / 90s）」＋貼入「SCOUT 3D 穿搭碼（S3D1_...）」
+       → AI 寫故事前已經 100% 知道片長節奏範圍（唔寫死鏡數，自動拉開合理鏡位範圍，絕唔一鏡到底）
+       → 亦完全知道你隻角色戴緊邊幾粒章、邊個區、第幾旅、咩色旅巾！
+    2. 新增胸前／右袖／左袖徽章大特寫＋領袖同台講解共 12 個 3D 鏡位，長片一樣生動豐富
+    3. 只保留最順手嘅方法 A：一鍵複製 CMD 短碼指令 → 貼落 Windows CMD 直接出連廣東話配音 MP4！
 -->
 <style>
 :root{
@@ -55,7 +55,7 @@ header{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-
 .ver{font-size:12px;color:var(--muted);font-family:var(--mono);
      background:var(--brand-soft);border:1px solid #cbe3d6;border-radius:var(--r-pill);padding:5px 11px;font-weight:700}
 
-/* ---------- 選填 Key（預設收埋，唔會阻你） ---------- */
+/* ---------- 選填 Key ---------- */
 details.keyD{position:relative}
 details.keyD>summary{list-style:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);
   background:#f6f2e7;border:1px solid var(--line);border-radius:var(--r-pill);padding:5px 11px;
@@ -127,31 +127,45 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
        color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
 .dlbtn:hover{background:var(--brand-deep)}
 
-/* ---------- 選項卡（畫風 / 比例 / 制服 / 聲線） ---------- */
-.styles{display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:10px}
-.styles.cols4{grid-template-columns:repeat(auto-fill,minmax(138px,1fr))}
+/* ---------- 選項卡 ---------- */
+.styles{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:10px}
+.styles.cols5{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+.styles.cols4{grid-template-columns:repeat(auto-fill,minmax(136px,1fr))}
 .stylecard{position:relative;border:2px solid var(--line);border-radius:var(--r-md);
-           background:#fff;padding:12px 10px;cursor:pointer;text-align:center;transition:.15s;user-select:none}
+           background:#fff;padding:11px 9px;cursor:pointer;text-align:center;transition:.15s;user-select:none}
 .stylecard:hover{border-color:#cfc7b3;box-shadow:var(--sh-sm)}
 .stylecard.on{border-color:var(--brand);box-shadow:0 0 0 3px rgba(31,107,74,.14);background:var(--brand-soft)}
-.stylecard .se{font-size:22px;line-height:1.2}
+.stylecard .se{font-size:21px;line-height:1.2}
 .stylecard .sn{font-size:13px;font-weight:800;color:var(--ink);margin-top:4px}
-.stylecard .sd{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.stylecard .sd{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.38}
 .stylecard .tick{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;
                  background:var(--brand);color:#fff;font-size:11px;font-weight:800;
                  display:none;place-items:center}
 .stylecard.on .tick{display:grid}
 
-/* ---------- 制服卡（帶色標小圖示） ---------- */
+/* ---------- SCOUT 3D 穿搭碼資訊卡 ---------- */
+.s3d-box{border:1.5px solid #b9dfd2;background:var(--ok-soft);border-radius:var(--r-md);padding:12px 14px;margin-top:10px}
+.s3d-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;font-weight:800;color:var(--brand-deep)}
+.s3d-swatches{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
+.s3d-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(0,0,0,.18);display:inline-block}
+.s3d-unit{font-size:12.5px;color:var(--body);margin-top:4px;font-weight:600}
+.s3d-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.s3d-chip{font-size:11.5px;font-weight:700;background:#fff;border:1px solid #b9dfd2;color:var(--brand-deep);
+          padding:2px 8px;border-radius:var(--r-pill)}
+.dur-banner{margin-top:8px;padding:9px 12px;border-radius:var(--r-sm);background:#f8f4ea;border:1px solid var(--line);
+            font-size:12.5px;color:var(--ink)}
+
+/* ---------- 制服卡 ---------- */
 .unis{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.unis.dimmed{opacity:.48}
 .unicard{position:relative;border:2px solid var(--line);border-radius:var(--r-md);
-         background:#fff;padding:11px 10px;cursor:pointer;transition:.15s;user-select:none;
+         background:#fff;padding:10px 9px;cursor:pointer;transition:.15s;user-select:none;
          display:flex;align-items:center;gap:9px}
 .unicard:hover{border-color:#cfc7b3;box-shadow:var(--sh-sm)}
 .unicard.on{border-color:var(--brand);box-shadow:0 0 0 3px rgba(31,107,74,.14);background:var(--brand-soft)}
-.uniswatch{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none;
-           border:1px solid rgba(0,0,0,.1);font-size:18px;position:relative;overflow:hidden}
-.uniswatch i{position:absolute;left:-4px;right:-4px;bottom:0;height:9px;display:block}
+.uniswatch{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;
+           border:1px solid rgba(0,0,0,.1);font-size:17px;position:relative;overflow:hidden}
+.uniswatch i{position:absolute;left:-4px;right:-4px;bottom:0;height:8px;display:block}
 .uniinfo{min-width:0;flex:1}
 .uniinfo .nm{font-size:12.5px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .uniinfo .nt{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -166,7 +180,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
               border-bottom:1px solid var(--line);flex-wrap:wrap}
 .pagecard .ph b{font-size:12.5px;color:var(--brand-deep);white-space:nowrap}
 .pagecard .ph select{padding:5px 9px;font-size:12.5px;font-weight:700;border-radius:8px;
-                     border:1px solid var(--line);background:#fff;color:var(--ink);font-family:inherit;max-width:250px}
+                     border:1px solid var(--line);background:#fff;color:var(--ink);font-family:inherit;max-width:265px}
 .pagecard .ph .sp{margin-left:auto;display:flex;gap:5px}
 .pagecard .pb{padding:12px;display:grid;gap:9px}
 .vo-row{display:grid;gap:4px}
@@ -180,7 +194,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 .banner-in:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,164,74,.18)}
 
 /* ---------- 右欄預覽 ---------- */
-.stage{display:grid;gap:10px}
+.stage{display:grid;gap:10px;max-height:520px;overflow-y:auto;padding-right:3px}
 .shotpv{border:1px solid var(--line);border-radius:var(--r-md);background:#fff;padding:11px 13px;
         box-shadow:var(--sh-xs);display:grid;gap:6px}
 .shotpv-top{display:flex;align-items:center;gap:8px;font-size:12px}
@@ -191,7 +205,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 .shotpv-sub{background:#182235;color:#fff6d6;border:1.5px solid #e7be46;border-radius:10px;
             padding:6px 10px;font-size:12.5px;font-weight:700;text-align:center;white-space:pre-line;line-height:1.4}
 
-/* ---------- CMD 輸出盒（只保留方法 A） ---------- */
+/* ---------- CMD 輸出盒（唯一保留方法 A） ---------- */
 .cmdbox{background:#16201b;color:#dff5e8;border:1px solid #2b4538;border-radius:var(--r-md);
         padding:12px 13px;font-family:var(--mono);font-size:12px;line-height:1.55;
         max-height:112px;overflow-y:auto;word-break:break-all;user-select:all;margin-top:10px}
@@ -227,7 +241,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
     <div class="shield">🎬</div>
     <div>
       <div class="logo">SCOUT 3D 動畫劇本生成器</div>
-      <div class="tagline">AI 寫廣東話旁白＋分鏡 · 一鍵貼落 CMD 直接出 3D 配音短片</div>
+      <div class="tagline">先定片長＆SCOUT 3D 穿搭碼 · AI 寫廣東話旁白 · 一鍵貼 CMD 出片</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -246,19 +260,61 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
       </div>
     </details>
-    <span class="ver" id="ver">v2.0.0</span>
+    <span class="ver" id="ver">v2.1.0</span>
   </div>
 </header>
 
 <main>
 
-  <!-- ══════════ 左欄：5 步極簡設定 ══════════ -->
+  <!-- ══════════ 左欄：先定片長＆角色穿搭 → 再叫 AI 寫故事 → 微調 ══════════ -->
   <div>
-    <!-- 1. AI 全自動 / 我作大綱 -->
+
+    <!-- 1. AI 寫故事前設定：目標片長（彈性鏡位範圍） + SCOUT 3D 穿搭碼 -->
     <div class="panel">
+      <div class="phead">
+        <span class="n">1</span>
+        <h2>片長節奏 ＆ 主角穿搭（AI 寫故事前先知晒）</h2>
+        <span class="hint">支援 SCOUT 3D 穿搭碼連動</span>
+      </div>
+      <div class="pbody">
+        <!-- 1A. 目標片長 -> 彈性鏡位範圍 -->
+        <div class="field">
+          <label>⏱️ 目標故事片長（自動配對合理分鏡範圍，留空間畀 AI 自由發揮節奏）</label>
+          <div class="styles cols5" id="durList"></div>
+          <div class="dur-banner" id="durBanner"></div>
+        </div>
+
+        <!-- 1B. SCOUT 3D 穿搭碼 -->
+        <div class="field">
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <span>🪪 貼入 SCOUT 3D 角色穿搭碼（選填 · 貼入後 AI 同本機渲染會 100% 跟足每粒章！）</span>
+            <span style="display:inline-flex;gap:6px">
+              <button type="button" class="btn xs" id="btnSampleS3d">🧪 試貼示範穿搭碼</button>
+              <button type="button" class="btn xs" id="btnClearS3d">🧹 清除</button>
+            </span>
+          </label>
+          <textarea id="f_s3d" rows="2" style="font-family:var(--mono);font-size:12.5px" placeholder="喺 SCOUT 3D 揀好章同旅巾後撳「複製動畫穿搭碼」，貼條 S3D1_... 代碼落嚟（留空則用下面快速制服卡）"></textarea>
+          <div id="s3dDecoded" hidden></div>
+        </div>
+
+        <!-- 1C. 未貼穿搭碼時嘅快速制服卡 -->
+        <div class="field" id="quickUniWrap">
+          <label id="quickUniLabel">🧢 快速揀主角制服（未貼 SCOUT 3D 穿搭碼時使用）</label>
+          <div class="unis" id="uniformList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. AI 全自動 / 我作大綱（已經知道 Step 1 片長範圍同角色穿搭！） -->
+    <div class="panel">
+      <div class="phead">
+        <span class="n">2</span>
+        <h2>叫 AI 構思故事 ＆ 廣東話旁白</h2>
+        <span class="hint" id="aiContextHint">按第 1 步片長＆穿搭自動編排</span>
+      </div>
       <div class="tabs">
-        <button class="tab on" data-tab="ai">🤖 AI 全自動</button>
-        <button class="tab" data-tab="manual">✍️ 我作大綱</button>
+        <button class="tab on" data-tab="ai">🤖 AI 全自動（讀 GitHub）</button>
+        <button class="tab" data-tab="manual">✍️ 我作大綱（AI 執旁白＋分鏡）</button>
       </div>
 
       <!-- 模式 A：AI 全自動 -->
@@ -266,65 +322,61 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         <div class="field">
           <label>🔗 GitHub 連結（最準，可多條，一行一條）</label>
           <textarea id="f_urls" rows="2" placeholder="https://github.com/playerkousas-rgb/SCOUT3D">https://github.com/playerkousas-rgb/SCOUT3D</textarea>
-          <div class="mini">貼 GitHub 網址會直接讀 <b>README 原文</b>，AI 嚴格跟足真實功能寫廣東話旁白同分鏡，唔會亂吹功能。</div>
+          <div class="mini">直接讀 GitHub <b>README 原文</b>，並結合你第 1 步設定嘅<b>片長範圍</b>同<b>主角真實徽章穿搭</b>構思故事。</div>
         </div>
-        <div class="row2">
-          <div class="field">
-            <label>🎯 今次想講咩重點</label>
-            <input id="f_focus" placeholder="例：出營前一晚唔使查書，撳章自動上身">
-          </div>
-          <div class="field">
-            <label>🎞️ 總共幾鏡</label>
-            <select id="f_np">
-              <option value="3">3 鏡（約 10 秒快節奏）</option>
-              <option value="4" selected>4 鏡（約 14 秒黃金短片）</option>
-              <option value="5">5 鏡（約 18 秒完整故事）</option>
-              <option value="6">6 鏡（約 22 秒詳細介紹）</option>
-            </select>
-          </div>
+        <div class="field">
+          <label>🎯 今次想講咩重點（選填）</label>
+          <input id="f_focus" placeholder="例：出營前一晚執制服、或者教學介紹主角身上幾粒章嘅正確位置">
         </div>
-        <button class="btn primary wide" id="btnAi">✨ 叫 AI 作故事＋廣東話旁白＋3D 分鏡</button>
+        <button class="btn primary wide" id="btnAi">✨ 按片長＆穿搭叫 AI 作故事＋廣東話旁白</button>
       </div>
 
       <!-- 模式 B：我作大綱 -->
       <div class="pbody" id="paneManual" hidden>
         <div class="field">
-          <label>✍️ 我嘅故事大綱（你自己打）</label>
-          <textarea id="f_outline" rows="5" placeholder="例：&#10;第 1 鏡：以前唔識聯章位置，查書查到頭暈仲聯錯位&#10;第 2 鏡：打開 SCOUT 3D 揀章，自動飛去正確胸袖位置&#10;第 3 鏡：阿媽望住 3D 轉台照聯，一次搞掂&#10;第 4 鏡：集會敬禮，領袖大讚整齊"></textarea>
-          <div class="mini">AI 只會幫你執順<b>地道廣東話旁白＋片底字幕＋配對 3D 場面</b>，<b>唔會自己亂加新內容</b>。</div>
+          <label>✍️ 我嘅故事大綱（你自己打，長短不限）</label>
+          <textarea id="f_outline" rows="5" placeholder="例：&#10;開場：以前唔識聯章位置，查書查到頭暈仲聯錯位&#10;中段：打開 SCOUT 3D 揀章，自動飛去正確胸口、右袖旅區章同左袖專科章位置&#10;結尾：阿媽望住 3D 轉台照聯一次搞掂，集會敬禮領袖大讚"></textarea>
+          <div class="mini">AI 會按你第 1 步揀嘅<b>片長範圍</b>自動拆鏡（遠景、互動、胸袖特寫穿插），執順地道廣東話旁白，<b>唔會亂加新功能</b>。</div>
         </div>
-        <div class="row2">
-          <div class="field">
-            <label>🎭 旁白語氣</label>
-            <select id="f_tone">
-              <option value="搞笑輕鬆">搞笑輕鬆（貼地生鬼）</option>
-              <option value="無奈自嘲">無奈自嘲（先苦後甜反差）</option>
-              <option value="溫馨親子">溫馨親子（媽媽童軍共鳴）</option>
-              <option value="認真介紹">認真介紹（清晰專業）</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>🎞️ 總共幾鏡</label>
-            <select id="f_np2">
-              <option value="3">3 鏡（約 10 秒）</option>
-              <option value="4" selected>4 鏡（約 14 秒）</option>
-              <option value="5">5 鏡（約 18 秒）</option>
-              <option value="6">6 鏡（約 22 秒）</option>
-            </select>
-          </div>
+        <div class="field">
+          <label>🎭 旁白語氣</label>
+          <select id="f_tone">
+            <option value="搞笑輕鬆">搞笑輕鬆（貼地生鬼）</option>
+            <option value="無奈自嘲">無奈自嘲（先苦後甜反差）</option>
+            <option value="溫馨親子">溫馨親子（媽媽童軍共鳴）</option>
+            <option value="認真教學介紹">認真教學介紹（清晰講解制服與徽章）</option>
+          </select>
         </div>
-        <button class="btn primary wide" id="btnManual">✍️ 叫 AI 執靚廣東話旁白＋編排分鏡</button>
+        <button class="btn primary wide" id="btnManual">✍️ 按片長＆穿搭叫 AI 執靚旁白＋拆鏡</button>
       </div>
     </div>
 
-    <!-- 2. 3D 畫風 & 影片比例 -->
+    <!-- 3. 3D 畫風 · 比例 · 廣東話聲線 -->
     <div class="panel">
       <div class="phead">
-        <span class="n">2</span>
-        <h2>3D 畫風 ＆ 畫面比例</h2>
-        <span class="hint">真 3D 引擎即時運算</span>
+        <span class="n">3</span>
+        <h2>畫風 · 比例 · 廣東話配音</h2>
+        <span class="hint">自動對嘴長短 · 自動壓低 BGM</span>
       </div>
       <div class="pbody">
+        <div class="field">
+          <label>🎙️ 香港廣東話配音聲線</label>
+          <div class="styles cols4" id="voiceList"></div>
+        </div>
+        <div class="row2" style="margin-bottom:14px">
+          <div class="field" style="margin-bottom:0">
+            <label>⏩ 旁白語速</label>
+            <select id="f_rate">
+              <option value="+0%">自然平穩（+0%）</option>
+              <option value="+6%" selected>輕快短片節奏（+6% 推薦）</option>
+              <option value="+12%">爽快節奏（+12%）</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>🏷️ 頂部系列小標</label>
+            <input id="f_series" value="如果系列 · 如果你有 SCOUT 3D" placeholder="例：如果系列 · 如果你有 SCOUT 3D">
+          </div>
+        </div>
         <div class="field">
           <label>🎨 3D 角色風格</label>
           <div class="styles" id="styleList"></div>
@@ -336,53 +388,12 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
       </div>
     </div>
 
-    <!-- 3. 主角童軍制服 -->
-    <div class="panel">
-      <div class="phead">
-        <span class="n">3</span>
-        <h2>主角童軍制服</h2>
-        <span class="hint">100% 跟足 SCOUT3D 官方徽章座標</span>
-      </div>
-      <div class="pbody">
-        <div class="unis" id="uniformList"></div>
-      </div>
-    </div>
-
-    <!-- 4. 廣東話配音 -->
+    <!-- 4. 逐鏡旁白 & 12 種 3D 場面微調 -->
     <div class="panel">
       <div class="phead">
         <span class="n">4</span>
-        <h2>廣東話配音 ＆ 音樂</h2>
-        <span class="hint">自動對嘴長短 · 自動壓低 BGM</span>
-      </div>
-      <div class="pbody">
-        <div class="styles cols4" id="voiceList"></div>
-        <div class="row2" style="margin-top:12px">
-          <div class="field" style="margin-bottom:0">
-            <label>⏩ 旁白語速</label>
-            <select id="f_rate">
-              <option value="+0%">自然平穩（+0%）</option>
-              <option value="+6%" selected>輕快短片節奏（+6% 推薦）</option>
-              <option value="+12%">爽快 Reels 節奏（+12%）</option>
-            </select>
-          </div>
-          <div class="field" style="margin-bottom:0">
-            <label>🏷️ 頂部系列小標</label>
-            <input id="f_series" value="如果系列 · 如果你有 SCOUT 3D" placeholder="例：如果系列 · 如果你有 SCOUT 3D">
-          </div>
-        </div>
-        <div class="mini" style="margin-top:8px">
-          💡 Python 出片時會自動合成香港廣東話語音，並按每句旁白真實秒數自動拉長該鏡 3D 動作，保證<b>唔會講到一半截斷</b>。
-        </div>
-      </div>
-    </div>
-
-    <!-- 5. 逐鏡旁白 & 場面微調 -->
-    <div class="panel">
-      <div class="phead">
-        <span class="n">5</span>
-        <h2>逐鏡旁白 ＆ 3D 場面</h2>
-        <span class="hint">隨時自己改字或換動作</span>
+        <h2>逐鏡旁白 ＆ 3D 鏡位微調</h2>
+        <span class="hint">內置 12 種遠中近特寫鏡位</span>
       </div>
       <div class="pbody">
         <div class="pages" id="shotList"></div>
@@ -392,11 +403,11 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
       </div>
     </div>
+
   </div>
 
   <!-- ══════════ 右欄：預覽 + 方法 A 一鍵貼 CMD 出片 ══════════ -->
   <div class="rightCol">
-    <!-- 預覽 -->
     <div class="panel">
       <div class="phead">
         <span class="n">📱</span>
@@ -404,17 +415,16 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         <span class="hint" id="pgCount">4 鏡</span>
       </div>
       <div class="pbody">
-        <div id="status" class="status idle">已載入預設示範劇本 —— 可直接複製下面 CMD 指令出片，或喺左邊叫 AI 作新故事</div>
+        <div id="status" class="status idle">先喺左邊第 1 步揀片長（同貼入 SCOUT 3D 穿搭碼），再叫 AI 作故事，或直接複製下面指令出片</div>
         <div class="stage" id="stage"></div>
       </div>
     </div>
 
-    <!-- 方法 A（唯一保留）：免經 Git · 直接貼落 CMD 即刻整片 -->
     <div class="panel">
       <div class="phead">
         <span class="n">💻</span>
         <h2>一鍵複製 CMD 指令 · 直接出 MP4</h2>
-        <span class="hint">免經 Git · 免存檔</span>
+        <span class="hint">免經 Git · 不限片長</span>
       </div>
       <div class="pbody">
         <div class="row2" style="margin-bottom:12px">
@@ -429,16 +439,16 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
 
         <button class="btn gold wide" id="btnCopyCmd" style="font-size:16px;padding:14px 20px">
-          📋 一鍵複製 CMD 出片指令（連廣東話配音）
+          📋 一鍵複製 CMD 出片指令（連穿搭碼＋廣東話配音）
         </button>
 
         <div class="cmdbox" id="cmdPreview" title="撳上面按鈕即可複製整條指令">正在準備指令…</div>
 
         <div class="steps3">
-          <b>⚡ 3 秒極速出片步驟：</b><br>
+          <b>⚡ 本機 3 步直出 MP4：</b><br>
           1️⃣ 撳上面 <b>「📋 一鍵複製 CMD 出片指令」</b><br>
           2️⃣ 喺電腦開 <b>CMD</b>，直接 <b>Right-click 貼上 → 按 Enter</b><br>
-          3️⃣ 等十幾秒即自動生成 <b>3D 畫面＋廣東話配音＋BGM</b>：<span class="codechip" id="outPathHint">D:\makemovie\output\whatif_ep01_scout3d.mp4</span>
+          3️⃣ 自動合成<b>精準徽章 3D 畫面＋廣東話配音＋BGM</b>：<span class="codechip" id="outPathHint">D:\makemovie\output\whatif_ep01_scout3d.mp4</span>
         </div>
       </div>
     </div>
@@ -451,12 +461,12 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 
 <script>
 /* ══════════════════════════════════════════════════════════════════
-   基本設定（嚴格對齊 IG貼文生成器 v1.4.0 嘅 Canvas 自動連線機制）
+   基本設定（對齊 IG貼文生成器 v1.4.0 Canvas 自動攔截機制）
    ══════════════════════════════════════════════════════════════════ */
-const VERSION = 'v2.0.0';
-const APP_VERSION = 'v2.0.0';
+const VERSION = 'v2.1.0';
+const APP_VERSION = 'v2.1.0';
 const apiKey  = "";   /* 【唔好改】Gemini Canvas 環境會透過 fetch 攔截自動注入 */
-let   userKey = "";   /* 用戶即場輸入嘅 Key（只留喺瀏覽器記憶；Canvas 環境唔需要） */
+let   userKey = "";
 
 const TEXT_MODELS = [
   'gemini-2.5-flash',
@@ -497,30 +507,38 @@ function showToast(msg){
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   選項資料庫（3D 畫風 · 比例 · 童軍制服 · 香港廣東話聲線 · 8 大 3D 場面）
+   片長節奏範圍（唔寫死鏡數，自動拉開合理 Range 留空間畀 AI 構思！）
    ══════════════════════════════════════════════════════════════════ */
+const DURATION_PLANS = [
+  { id:'15', sec:15, emoji:'⚡', name:'約 15 秒', note:'AI 自決 3–5 鏡',  minShots:3,  maxShots:5,  minChars:75,  maxChars:125, desc:'短小精悍 Reels 節奏：AI 會喺 3–5 鏡之間自由構思痛點反差與重點展示。' },
+  { id:'30', sec:30, emoji:'🎬', name:'約 30 秒', note:'AI 自決 6–9 鏡',  minShots:6,  maxShots:9,  minChars:150, maxChars:235, desc:'標準完整故事：AI 會喺 6–9 鏡之間自由穿插全景情境、撳章特效與近鏡特寫。' },
+  { id:'45', sec:45, emoji:'📽️', name:'約 45 秒', note:'AI 自決 9–13 鏡', minShots:9,  maxShots:13, minChars:225, maxChars:340, desc:'詳盡故事＋教學：AI 會喺 9–13 鏡之間靈活交替人物互動與胸袖徽章大特寫。' },
+  { id:'60', sec:60, emoji:'🎞️', name:'約 1 分鐘', note:'AI 自決 12–18 鏡', minShots:12, maxShots:18, minChars:300, maxChars:450, desc:'完整 1 分鐘長片：AI 會喺 12–18 鏡之間鋪排起承轉合與多角度特寫，絕唔會一鏡到底！' },
+  { id:'90', sec:90, emoji:'🍿', name:'約 90 秒', note:'AI 自決 18–25 鏡', minShots:18, maxShots:25, minChars:450, maxChars:660, desc:'深度故事／全套章教學：AI 會喺 18–25 鏡之間逐項拆解細節與故事高潮。' }
+];
+const DUR_MAP = Object.fromEntries(DURATION_PLANS.map(d => [d.id, d]));
+
 const HERO_STYLES = [
-  { id:'bobo',   emoji:'🫧', name:'波波圓滑 3D', note:'圓潤親切 · 社交短片首選' },
-  { id:'blocky', emoji:'🧱', name:'方塊積木 3D', note:'俐落硬朗 · 積木玩具質感' },
-  { id:'morph',  emoji:'✨', name:'方塊變身波波', note:'撳章瞬間華麗變身特效' }
+  { id:'bobo',   emoji:'🫧', name:'波波圓滑 3D', note:'圓潤親切 · 流線公仔' },
+  { id:'blocky', emoji:'🧱', name:'方塊積木 3D', note:'俐落硬朗 · 積木質感' },
+  { id:'morph',  emoji:'✨', name:'方塊變身波波', note:'撳章瞬間華麗變身' }
 ];
 
 const ASPECTS = [
-  { id:'9:16', emoji:'📱', name:'9:16 直向', note:'IG Reels · Shorts (720×1280)' },
-  { id:'1:1',  emoji:'🖼️', name:'1:1 方形',  note:'IG Post · 群組分享 (960×960)' },
-  { id:'16:9', emoji:'🖥️', name:'16:9 橫向', note:'YouTube · 大電視 (1280×720)' }
+  { id:'9:16', emoji:'📱', name:'9:16 直向', note:'Reels · Shorts (720×1280)' },
+  { id:'1:1',  emoji:'🖼️', name:'1:1 方形',  note:'IG Post · 群組 (960×960)' },
+  { id:'16:9', emoji:'🖥️', name:'16:9 橫向', note:'YouTube · 教學 (1280×720)' }
 ];
 
 const UNIFORMS = [
-  { id:'scout_boy',     emoji:'🧢', name:'陸童軍（男）',   note:'卡其衫 · 綠領巾 · 右肩章帶', shirt:'#c8b58a', scarf:'#1f6b4a' },
-  { id:'scout_girl',    emoji:'🧢', name:'陸童軍（女）',   note:'卡其衫 · 綠領巾 · 右肩章帶', shirt:'#c8b58a', scarf:'#1f6b4a' },
-  { id:'cub_boy',       emoji:'🟡', name:'幼童軍（男）',   note:'卡其衫 · 黃領巾 · 綠圓邊帽', shirt:'#c8b58a', scarf:'#e2b42b' },
-  { id:'cub_girl',      emoji:'🟡', name:'幼童軍（女）',   note:'卡其衫 · 黃領巾 · 綠圓邊帽', shirt:'#c8b58a', scarf:'#e2b42b' },
-  { id:'venture_boy',   emoji:'🟣', name:'深資童軍（男）', note:'卡其衫 · 棗紅領巾 · 肩章',   shirt:'#c8b58a', scarf:'#7b2338' },
-  { id:'venture_girl',  emoji:'🟣', name:'深資童軍（女）', note:'卡其衫 · 棗紅領巾 · 肩章',   shirt:'#c8b58a', scarf:'#7b2338' },
-  { id:'sea_scout_boy', emoji:'⚓', name:'海童軍',         note:'深藍海童軍制服 · 水手帽',     shirt:'#203c6b', scarf:'#7ec0ee' },
-  { id:'air_scout_boy', emoji:'✈️', name:'空童軍',         note:'淺藍空童軍恤衫 · 灰藍長褲',   shirt:'#9ec3e6', scarf:'#1e325c' },
-  { id:'leader_man',    emoji:'🎖️', name:'童軍領袖',       note:'領袖制服 · 桃紅木章領巾',     shirt:'#d2c2a8', scarf:'#c89595' }
+  { id:'ming_scout_sash', emoji:'🧢', name:'陸童軍（男）',   note:'卡其衫 · 綠領巾 · 專章帶', shirt:'#e4d8b6', scarf:'#2e7d4f' },
+  { id:'ching_scout_girl',emoji:'🧢', name:'陸童軍（女）',   note:'卡其衫 · 綠領巾 · 專章帶', shirt:'#e4d8b6', scarf:'#2e7d4f' },
+  { id:'lok_cub',         emoji:'🟡', name:'幼童軍',         note:'卡其衫 · 黃領巾綠邊 · 帽', shirt:'#e4d8b6', scarf:'#e9b425' },
+  { id:'yau_grasshopper', emoji:'🟠', name:'小童軍',         note:'橙色活動服 · 棗紅領巾',   shirt:'#ee7a30', scarf:'#7b1e2b' },
+  { id:'hin_venture',     emoji:'🟣', name:'深資童軍',       note:'卡其衫 · 棗紅領巾 · 肩章', shirt:'#e4d8b6', scarf:'#8b2231' },
+  { id:'hoi_sea_scout',   emoji:'⚓', name:'海童軍',         note:'海童軍制服 · 水手帽',     shirt:'#f4f6f9', scarf:'#1e4c8a' },
+  { id:'tin_air_scout',   emoji:'✈️', name:'空童軍',         note:'淺藍空童軍恤衫 · 貝雷帽', shirt:'#b8d2ec', scarf:'#1e325c' },
+  { id:'sir_leader',      emoji:'🎖️', name:'成年領袖',       note:'領袖制服 · 木章領巾肩章', shirt:'#dfd2bc', scarf:'#c89595' }
 ];
 
 const VOICES = [
@@ -530,15 +548,20 @@ const VOICES = [
   { id:'none',                emoji:'🎵', name:'純音樂唔配音', note:'只播輕快 BGM 音效' }
 ];
 
+/* 12 種 3D 鏡位（含胸前／右袖／左袖徽章大特寫＋領袖講解，長片都唔會重複沉悶！） */
 const PRESETS = [
-  { id:'disaster_wrong_badges', emoji:'💥', name:'大災難：查書頭暈＋聯錯章俾人鬧', defDur:3.2 },
-  { id:'scout3d_auto_snap',     emoji:'✨', name:'神技示範：SCOUT 3D 撳章自動歸位', defDur:3.6 },
-  { id:'turntable_360_closeup', emoji:'🔄', name:'360° 特寫：慢轉睇清胸袖肩帶位置', defDur:3.0 },
-  { id:'mom_turntable_sew',     emoji:'🧵', name:'輕鬆聯章：媽媽望住 3D 轉台照聯', defDur:3.0 },
-  { id:'camp_eve_ready',        emoji:'🏕️', name:'出營前夕：制服整齊執好晒裝備',   defDur:3.0 },
-  { id:'mom_and_kid_proud',     emoji:'🥰', name:'開心合照：媽媽同童軍歡呼慳晒時間', defDur:3.0 },
-  { id:'section_parade',        emoji:'🎖️', name:'支部列隊：幼童軍・童軍・深資同台', defDur:3.2 },
-  { id:'dual_salute_praise',    emoji:'🫡', name:'完美收尾：雙風格敬禮＋領袖讚賞', defDur:3.0 }
+  { id:'disaster_wrong_badges', emoji:'💥', name:'開場痛點：查書頭暈＋聯錯章俾人鬧',   defDur:3.2 },
+  { id:'scout3d_auto_snap',     emoji:'✨', name:'神技示範：SCOUT 3D 撳章自動歸位',     defDur:3.6 },
+  { id:'closeup_chest_badges',  emoji:'🔍', name:'胸前特寫：近鏡睇清胸袋徽章與旅巾',   defDur:3.0 },
+  { id:'closeup_right_sleeve',  emoji:'🔍', name:'右袖特寫：近鏡睇清旅號・區章・小隊章', defDur:3.0 },
+  { id:'closeup_left_sleeve',   emoji:'🔍', name:'左袖特寫：近鏡睇清進度章・專科章・肩帶', defDur:3.0 },
+  { id:'leader_guide_explain',  emoji:'🧑‍🏫', name:'領袖講解：領袖同台親切指點佩戴重點', defDur:3.2 },
+  { id:'turntable_360_closeup', emoji:'🔄', name:'360° 全景：慢轉一圈前後左右零死角',   defDur:3.2 },
+  { id:'mom_turntable_sew',     emoji:'🧵', name:'輕鬆聯章：媽媽望住 3D 轉台照住聯',   defDur:3.0 },
+  { id:'camp_eve_ready',        emoji:'🏕️', name:'出營前夕：營地帳篷前整齊出發',       defDur:3.0 },
+  { id:'mom_and_kid_proud',     emoji:'🥰', name:'開心合照：媽媽同童軍歡呼慳晒時間',   defDur:3.0 },
+  { id:'section_parade',        emoji:'🎖️', name:'支部列隊：幼童軍・童軍・深資同台敬禮', defDur:3.2 },
+  { id:'dual_salute_praise',    emoji:'🫡', name:'完美收尾：雙風格敬禮＋領袖豎拇指大讚', defDur:3.0 }
 ];
 const PRESET_MAP = Object.fromEntries(PRESETS.map(p => [p.id, p]));
 
@@ -562,10 +585,10 @@ const DEFAULT_SHOTS = () => ([
     subtitle: '如果你有 SCOUT 3D ——\n揀個章自動上身，啱晒位！'
   },
   {
-    preset: 'mom_turntable_sew',
+    preset: 'closeup_right_sleeve',
     duration: 3.0,
-    narration: '完全唔使再查書，媽媽望住 3D 人仔三百六十度照住聯，一定啱！',
-    subtitle: '完全唔使查書，\n媽媽望住 3D 人仔照聯一定啱！'
+    narration: '拉近右袖一睇，旅號條、區章同小隊章清清楚楚，媽媽照住聯一定啱！',
+    subtitle: '右袖旅號・區章・小隊章\n拉近一睇清清楚楚！'
   },
   {
     preset: 'dual_salute_praise',
@@ -577,9 +600,12 @@ const DEFAULT_SHOTS = () => ([
 
 const S = {
   tab: 'ai',
+  durPlan: '15',
   heroStyle: 'bobo',
   aspect: '9:16',
-  charPreset: 'scout_boy',
+  charPreset: 'ming_scout_sash',
+  s3dRaw: '',
+  s3dDecoded: null,   /* 解碼後嘅 SCOUT 3D 穿搭物件 */
   voice: 'zh-HK-HiuMaanNeural',
   voiceRate: '+6%',
   seriesBadge: '如果系列 · 如果你有 SCOUT 3D',
@@ -593,6 +619,151 @@ const S = {
   latestCmd: ''
 };
 
+/* ══════════════════════════════════════════════════════════════════
+   SCOUT 3D 穿搭碼編解碼（支援 S3D1_<deflate_b64> / S3D_<b64> / JSON）
+   ══════════════════════════════════════════════════════════════════ */
+function bytesToUrlSafeB64(bytes){
+  let bin = '';
+  for(let i=0; i<bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function urlSafeB64ToBytes(b64){
+  const s = String(b64 || '').trim().replace(/\+/g, '-').replace(/\//g, '_');
+  const pad = '='.repeat((4 - (s.length % 4)) % 4);
+  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad);
+  const out = new Uint8Array(bin.length);
+  for(let i=0; i<bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function compressJsonWithPrefix(prefix, obj){
+  const raw = new TextEncoder().encode(JSON.stringify(obj));
+  if(typeof CompressionStream !== 'undefined'){
+    try{
+      const cs = new CompressionStream('deflate');
+      const w = cs.writable.getWriter();
+      w.write(raw); w.close();
+      const buf = await new Response(cs.readable).arrayBuffer();
+      return prefix + bytesToUrlSafeB64(new Uint8Array(buf));
+    }catch(e){}
+  }
+  return prefix.replace('1_', '_') + bytesToUrlSafeB64(raw);
+}
+
+async function decodeS3dCode(inputStr){
+  const raw = String(inputStr || '').trim();
+  if(!raw) return null;
+  if(raw.startsWith('{')){
+    const j = JSON.parse(raw);
+    return (j && typeof j === 'object') ? j : null;
+  }
+  let isDeflate = false;
+  let body = '';
+  if(raw.startsWith('S3D1_')){
+    isDeflate = true;
+    body = raw.slice(5);
+  }else if(raw.startsWith('S3D_')){
+    body = raw.slice(4);
+  }else{
+    throw new Error('穿搭碼格式應以 S3D1_ 或 { 開頭');
+  }
+  const bytes = urlSafeB64ToBytes(body);
+  let text = '';
+  if(isDeflate){
+    if(typeof DecompressionStream === 'undefined') throw new Error('此瀏覽器未支援 DecompressionStream');
+    const ds = new DecompressionStream('deflate');
+    const w = ds.writable.getWriter();
+    w.write(bytes); w.close();
+    const outBuf = await new Response(ds.readable).arrayBuffer();
+    text = new TextDecoder('utf-8').decode(new Uint8Array(outBuf));
+  }else{
+    text = new TextDecoder('utf-8').decode(bytes);
+  }
+  const obj = JSON.parse(text);
+  if(!obj || typeof obj !== 'object') throw new Error('穿搭碼內容無效');
+  return obj;
+}
+
+/* 內置一條真實格式示範穿搭碼（未去 SCOUT 3D 之前都可以即刻試玩連動效果！） */
+async function makeSampleS3dCode(){
+  const sample = {
+    v: 1,
+    app: 'SCOUT3D',
+    section: 'scout',
+    rigSection: 'scout',
+    variant: 'land',
+    sectionZh: '童軍（陸上制服）',
+    gender: 'M',
+    look: 'smooth',
+    hat: true,
+    sash: true,
+    colors: {
+      shirt: '#e4d8b6',
+      leg: '#1c2d5a',
+      sock: '#1c2d5a',
+      shoe: '#202024',
+      belt: '#4a3525',
+      hatColor: '#1f4a2c',
+      neckerMain: '#1f6b4a',
+      neckerBorder: '#e9b425',
+      woggle: '#7a4b2a'
+    },
+    unit: {
+      regionZh: '香港島地域',
+      districtZh: '灣仔區',
+      troopNo: '125',
+      patrolZh: '獾小隊',
+      meritYear: 2025
+    },
+    badgeNamesZh: [
+      '世界會員章', '香港童軍章', '香港第 125 旅旅號', '香港島地域章',
+      '灣仔區章', '2025 優異旅團章', '獾小隊章', '探索獎章', '急救專科章', '露營專科章'
+    ],
+    badges: [
+      { key:'membership', id:'membership', zh:'世界會員章', mount:'torso', onSash:false, facing:'front', shape:'circle', w:3.6, h:3.6, x:7.0, y:97.5, z:7.2, rotZ:0, art:'world_membership.png' },
+      { key:'hongKong', id:'hongKong', zh:'香港童軍章', mount:'torso', onSash:false, facing:'front', shape:'rect', w:3.6, h:4.6, x:-7.0, y:97.5, z:7.2, rotZ:0, art:'hong_kong_badge.png' },
+      { key:'progressAward', id:'progressAward', zh:'探索獎章', mount:'torso', onSash:false, facing:'front', shape:'rect', w:4.0, h:2.8, x:7.0, y:103.5, z:7.2, rotZ:0, art:'scout_pathfinder.png' },
+      { key:'troop', id:'troop', zh:'香港第 125 旅旅號', mount:'r', onSash:false, facing:'front', shape:'rect', w:7.0, h:2.1, armLocalPos:[-4.2,-2.2,0.0], armArtRight:[0,0,1], art:'__dyn_troop__', dyn:{ kind:'troopTape', no:125 } },
+      { key:'region', id:'region', zh:'香港島地域章', mount:'r', onSash:false, facing:'front', shape:'rect', w:3.6, h:4.2, armLocalPos:[-4.2,-5.8,-2.0], armArtRight:[0,0,1], art:'regions/hkir.png' },
+      { key:'district', id:'district', zh:'灣仔區章', mount:'r', onSash:false, facing:'front', shape:'rect', w:3.6, h:4.2, armLocalPos:[-4.2,-5.8,2.0], armArtRight:[0,0,1], art:'districts/wan_chai.png' },
+      { key:'meritorious', id:'meritorious', zh:'2025 優異旅團章', mount:'r', onSash:false, facing:'front', shape:'circle', w:3.5, h:3.5, armLocalPos:[-4.2,-10.2,0.0], armArtRight:[0,0,1], art:'meritorious_base_blue.png', dyn:{ kind:'merit', year:2025 } },
+      { key:'patrol', id:'patrol', zh:'獾小隊章', mount:'r', onSash:false, facing:'front', shape:'rect', w:4.4, h:2.6, armLocalPos:[-4.2,-13.8,0.0], armArtRight:[0,0,1], art:'patrols/badger.png' },
+      { key:'prof1', id:'profServiceFirstAider', zh:'急救專科章', mount:'torso', onSash:true, facing:'front', shape:'circle', w:3.2, h:3.2, x:4.2, y:102.0, z:7.5, rotZ:-0.52, art:'scout/prof_service_first_aider.png' },
+      { key:'prof2', id:'profPursuitCamper', zh:'露營專科章', mount:'torso', onSash:true, facing:'front', shape:'circle', w:3.2, h:3.2, x:1.8, y:97.8, z:7.5, rotZ:-0.52, art:'scout/prof_pursuit_camper.png' }
+    ]
+  };
+  return await compressJsonWithPrefix('S3D1_', sample);
+}
+
+function summarizeS3dForPrompt(d){
+  if(!d) return '';
+  const unitParts = [];
+  const u = d.unit || {};
+  if(u.regionZh) unitParts.push(u.regionZh);
+  if(u.districtZh) unitParts.push(u.districtZh);
+  if(u.troopNo) unitParts.push('香港第 ' + u.troopNo + ' 旅');
+  if(u.patrolZh) unitParts.push(u.patrolZh);
+  if(u.rankZh) unitParts.push('職級：' + u.rankZh);
+  if(u.meritYear) unitParts.push(u.meritYear + ' 優異旅團');
+
+  const names = Array.isArray(d.badgeNamesZh) && d.badgeNamesZh.length
+    ? d.badgeNamesZh
+    : (Array.isArray(d.badges) ? d.badges.map(b => b.zh || b.id).filter(Boolean) : []);
+
+  const genderZh = String(d.gender || 'M').toUpperCase().startsWith('F') ? '女' : '男';
+  const sashZh = d.sash ? '有佩戴綠底紅邊專章帶' : '未佩戴專章帶（專科章喺左袖）';
+  return [
+    `· 制服支部：${d.sectionZh || d.section || '童軍'}（${genderZh}）`,
+    unitParts.length ? `· 所屬單位：${unitParts.join(' · ')}` : '',
+    `· 專章帶狀態：${sashZh}`,
+    names.length ? `· 主角身上真實佩戴嘅全部徽章（共 ${names.length} 粒）：${names.join('、')}` : '· 主角未佩戴額外徽章'
+  ].filter(Boolean).join('\n');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   本機偏好與 Gemini 呼叫
+   ══════════════════════════════════════════════════════════════════ */
 function loadPrefs(){
   try{
     userKey = localStorage.getItem(LS_KEY) || '';
@@ -608,13 +779,9 @@ function saveKey(){
 }
 function refreshKeyChip(){
   const s = $('keySummary');
-  if(!s) return;
-  s.textContent = userKey ? '🔑 Key ✓' : '🔑 Key';
+  if(s) s.textContent = userKey ? '🔑 Key ✓' : '🔑 Key';
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   Gemini 呼叫（保留 Canvas fetch 攔截相容：唔預先 throw、唔帶空 ?key=）
-   ══════════════════════════════════════════════════════════════════ */
 class FriendlyError extends Error {}
 
 function humanMessage(status){
@@ -669,7 +836,7 @@ function pickText(j){
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   讀 GitHub README / 網頁內容（支援 UTF-8 中文 Base64 解碼）
+   讀 GitHub README / 網頁內容
    ══════════════════════════════════════════════════════════════════ */
 const URL_MAX_CHARS = 12000;
 
@@ -750,48 +917,62 @@ async function fetchUrlText(url){
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   AI 編劇 Prompt（嚴守事實邊界 · 專出香港廣東話配音旁白＋3D 分鏡）
+   AI 編劇 Prompt（結合「彈性鏡位範圍」＋「SCOUT 3D 真實穿搭徽章清單」）
    ══════════════════════════════════════════════════════════════════ */
 function buildStoryPrompt(mode){
-  const np = parseInt(mode === 'ai' ? $('f_np').value : $('f_np2').value, 10) || 4;
+  const plan = DUR_MAP[S.durPlan] || DURATION_PLANS[0];
   const uniObj = UNIFORMS.find(u => u.id === S.charPreset) || UNIFORMS[0];
+  const s3dSummary = summarizeS3dForPrompt(S.s3dDecoded);
 
-  const common = `你係一位專寫香港童軍 3D 短片（Reels / Shorts）嘅編劇兼旁白撰稿員。
+  const charBlock = s3dSummary
+    ? `【主角真實穿搭與徽章（由 SCOUT 3D 穿搭碼精準載入 —— 最高準則）】\n${s3dSummary}\n★ 極重要：主角喺 3D 畫面入面只會戴住上面列出嘅徽章同旅團設定！旁白、字幕或 ui_card 提到具體徽章／旅號／區章／小隊時，必須 100% 對應上面清單，絕對唔准講主角冇戴嘅章！`
+    : `【主角預設制服】${uniObj.name}（${uniObj.note}）`;
 
-【短片形式與配音要求（必須嚴格遵守）】
-· 呢條係 3D 動畫短片，由「單一香港廣東話旁白」配音講故事（唔係對話氣泡）。
-· 每一鏡都要寫兩樣文字：
-  1. "narration"（廣東話配音稿）：畀香港廣東話語音引擎讀出嚟，必須自然地道口語（可用「唔使、搞掂、啱晒位、仲會、即刻、一撳」），每鏡 18–34 個字，節奏爽快有畫面感，唔好寫「旁白：」前綴。
-  2. "subtitle"（片底大字字幕）：濃縮重點，12–26 個字，可用 \\n 分成兩行短句，方便手機一眼睇清。
-· 主角制服設定：${uniObj.name}（${uniObj.note}）。
+  const common = `你係一位專寫香港童軍 3D 動畫影片嘅導演兼廣東話旁白撰稿員。
 
-【可用 3D 分鏡場面（preset 必須從以下 8 個 ID 揀，而且相鄰兩鏡唔准重複）】
-1. "disaster_wrong_badges" — 開場痛點：查厚書頭暈、徽章貼錯位、領袖搖頭嘆氣（最啱第 1 鏡製造反差）
-2. "scout3d_auto_snap"     — 核心示範：畫面彈出清單，徽章自動飛上正確胸口／袖口／肩帶位置
-3. "turntable_360_closeup" — 360° 特寫：3D 童軍慢轉一圈，前後左右睇清徽章位置
-4. "mom_turntable_sew"     — 親子實用：媽媽望住 3D 轉台輕鬆照住聯章，唔使再查書度尺
-5. "camp_eve_ready"        — 出營準備：出營／集會前一晚執齊整齊制服，安心出發
-6. "mom_and_kid_proud"     — 開心共鳴：媽媽同童軍一齊舉手歡呼，慳返晒冤枉時間
-7. "section_parade"        — 支部同台：幼童軍、童軍、深資童軍一字排開精神敬禮
-8. "dual_salute_praise"    — 完美收尾：童軍標準敬禮＋領袖點頭大讚（最啱最後一鏡收尾）
+【目標片長與彈性分鏡範圍（唔寫死鏡數，由你按節奏自由發揮！）】
+· 目標總片長：約 ${plan.sec} 秒。
+· 合理分鏡數量範圍：**${plan.minShots} 至 ${plan.maxShots} 鏡之間**（你可以按故事起承轉合自由決定用幾多鏡，千萬唔好 1 鏡到底，亦唔好用得太少鏡夾硬拖長！）。
+· 全片廣東話旁白總字數建議：約 ${plan.minChars}–${plan.maxChars} 個中文字（平均每鏡旁白 18–34 字，約 3–5 秒一鏡，長短鏡自然穿插）。
 
-【輸出格式】只輸出純 JSON，唔要任何解釋、唔要 markdown code fence：
+${charBlock}
+
+【短片配音與字幕格式】
+· 由「單一香港廣東話旁白」配音講故事，每一鏡輸出：
+  1. "narration"：畀香港廣東話語音引擎讀出嚟，必須地道香港口語（如「唔使、搞掂、啱晒位、即刻、一撳、清清楚楚」），唔好寫「旁白：」前綴。
+  2. "subtitle"：片底大字字幕（12–26 字，可用 \\n 分兩行短句）。
+
+【可用 12 種 3D 鏡位（preset 必須從以下 ID 揀，相鄰兩鏡嚴禁重複，請善用遠景＋互動＋胸袖特寫交替！）】
+1. "disaster_wrong_badges" — 開場痛點：查厚書頭暈、徽章貼錯位、領袖搖頭嘆氣
+2. "scout3d_auto_snap"     — 核心示範：畫面彈出清單，徽章自動飛上正確位置
+3. "closeup_chest_badges"  — 胸前特寫：鏡頭推近左右胸袋與領巾，睇清世界章／香港章／獎章／旅巾
+4. "closeup_right_sleeve"  — 右袖特寫：鏡頭推近右袖外側，睇清旅號條／地域章／區章／小隊章
+5. "closeup_left_sleeve"   — 左袖特寫：鏡頭推近左袖與專章帶，睇清進度章與專科章排列
+6. "leader_guide_explain"  — 領袖講解：領袖同主角並排親切指點佩戴重點
+7. "turntable_360_closeup" — 360° 全景：3D 人仔慢轉一圈，前後左右零死角展示
+8. "mom_turntable_sew"     — 輕鬆聯章：媽媽望住 3D 轉台輕鬆照住聯章，唔使查書度尺
+9. "camp_eve_ready"        — 出營前夕：戶外營地帳篷前制服整齊準備出發
+10. "mom_and_kid_proud"    — 開心合照：媽媽同童軍一齊歡呼敬禮，慳返晒冤枉時間
+11. "section_parade"       — 支部同台：幼童軍、童軍、深資童軍一字排開精神敬禮
+12. "dual_salute_praise"   — 完美收尾：雙風格童軍標準三指敬禮＋領袖點頭大讚
+
+【輸出格式】只輸出純 JSON，唔要解釋、唔要 markdown code fence：
 {
-  "episode_slug": "英文細楷加底線短檔名，例如 whatif_camp_eve",
-  "series_badge": "頂部系列小標（≤ 16 字，例如：如果系列 · 如果你有 SCOUT 3D）",
+  "episode_slug": "英文細楷加底線短檔名，例如 scout3d_ep02",
+  "series_badge": "頂部系列小標（≤ 16 字）",
   "ui_card": {
     "title": "功能卡短標題（≤ 14 字）",
-    "toggles": ["重點1", "重點2", "重點3", "重點4"]
+    "toggles": ["重點或徽章1", "重點或徽章2", "重點或徽章3", "重點或徽章4"]
   },
   "shots": [
     {
-      "preset": "上面 8 個 preset ID 之一",
-      "narration": "地道香港廣東話口語旁白（18–34 字）",
+      "preset": "上面 12 個 preset ID 之一",
+      "narration": "地道香港廣東話口語旁白",
       "subtitle": "片底大字兩行短字幕（可用 \\n 換行）"
     }
   ]
 }
-總共必須輸出恰好 ${np} 鏡（shots 長度 = ${np}）。`;
+請確保 shots 數量落喺 ${plan.minShots} 至 ${plan.maxShots} 鏡之間。`;
 
   if(mode === 'ai'){
     const urls = $('f_urls').value.split('\n').map(s=>s.trim()).filter(Boolean);
@@ -804,21 +985,20 @@ ${urls.length ? '網址：\n' + urls.join('\n') : '（未提供網址）'}
 ${focus ? '今次重點：' + focus : ''}
 ${ctx ? '\n【已讀取嘅 GitHub README / 網頁原文】\n' + ctx : ''}
 
-【事實邊界 —— 最高優先，違反即為失敗】
-· 只可以講上面「已讀取嘅原文」或「今次重點」入面真實存在嘅功能同情境。
-· 絕對唔准自己腦補新功能（例如唔准亂吹 AR 影相度位、AI 自動車衣、課金商城等原文冇提過嘅嘢）。
-· 唔好寫枯燥功能清單，要用「遇到麻煩 → 打開工具解決 → 輕鬆搞掂」嘅故事起承轉合帶出！`;
+【事實邊界 —— 最高優先】
+· 只可以講上面「已讀取嘅原文」、「今次重點」同「主角真實穿搭」入面存在嘅內容。
+· 絕對唔准自己虛構原文冇提過嘅功能。用生動故事＋遠近特寫鏡頭推進！`;
   }
 
   const outline = $('f_outline').value.trim();
   const tone = $('f_tone').value;
   return common + `
 
-【我寫嘅故事大綱（必須完全跟從，唔可以自己亂加新功能）】
+【我寫嘅故事大綱（必須跟足大綱脈絡，並按目標片長拆成 ${plan.minShots}–${plan.maxShots} 個豐富分鏡）】
 ${outline || '（未填）'}
 
 旁白語氣：${tone}
-請將我大綱嘅重點編排成 ${np} 鏡，執靚地道廣東話旁白、片底字幕同最貼切嘅 3D preset。`;
+請按大綱執靚地道廣東話旁白、片底字幕同最貼切嘅遠近特寫 3D preset。`;
 }
 
 function parseStoryJson(raw){
@@ -865,8 +1045,8 @@ async function doStory(mode){
   if(mode === 'ai'){
     const hasUrl = $('f_urls').value.trim().length > 0;
     const hasFocus = $('f_focus').value.trim().length > 0;
-    if(!hasUrl && !hasFocus){
-      showToast('請貼入 GitHub 連結或者填寫今次重點');
+    if(!hasUrl && !hasFocus && !S.s3dDecoded){
+      showToast('請貼入 GitHub 連結、填寫重點，或貼入 SCOUT 3D 穿搭碼');
       return;
     }
   }else{
@@ -879,6 +1059,7 @@ async function doStory(mode){
   S.busy = true;
   $('btnAi').disabled = true;
   $('btnManual').disabled = true;
+  const plan = DUR_MAP[S.durPlan] || DURATION_PLANS[0];
 
   try{
     window.__URL_CTX = '';
@@ -899,7 +1080,7 @@ async function doStory(mode){
       }
     }
 
-    setStatus('busy', (readLabels.length ? '已讀 ' + readLabels.join('、') + ' · ' : '') + 'AI 正在撰寫廣東話旁白＋編排 3D 分鏡…');
+    setStatus('busy', `AI 正在按「約 ${plan.sec} 秒（${plan.minShots}–${plan.maxShots} 鏡）」${S.s3dDecoded ? '＋已載入穿搭碼' : ''}構思廣東話劇本…`);
     const resp = await callText(buildStoryPrompt(mode));
     const parsed = parseStoryJson(pickText(resp));
     if(!parsed) throw new FriendlyError('⚠️ AI 回傳格式未能解析，請再撳一次試試。');
@@ -926,8 +1107,8 @@ async function doStory(mode){
 
     renderShotsEditor();
     await refreshAllOutputs();
-    setStatus('ok', '✅ 已生成 ' + S.shots.length + ' 鏡廣東話旁白＋3D 分鏡！右邊撳「複製 CMD 指令」即可出片。');
-    showToast('✨ 廣東話劇本＋分鏡已就緒！');
+    setStatus('ok', `✅ AI 已編排 ${S.shots.length} 鏡廣東話劇本！右邊撳「複製 CMD 出片指令」即可本機生成 MP4。`);
+    showToast(`✨ 已生成 ${S.shots.length} 鏡廣東話劇本！`);
   }catch(err){
     const msg = (err instanceof FriendlyError) ? err.message : ('⚠️ ' + (err && err.message ? err.message : '發生錯誤'));
     setStatus('err', msg);
@@ -940,11 +1121,11 @@ async function doStory(mode){
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   組裝 Episode JSON + 壓縮成超短方法 A CMD 指令（z_ zlib Base64）
+   組裝 Episode JSON + 壓縮成方法 A CMD 指令（連埋 s3d_custom 穿搭資料！）
    ══════════════════════════════════════════════════════════════════ */
 function buildEpisodeSpec(){
   const epId = ($('f_epid').value || 'whatif_ep01_scout3d').trim().replace(/[^a-zA-Z0-9_-]+/g, '_') || 'whatif_ep01_scout3d';
-  return {
+  const spec = {
     episode_id: epId,
     series_badge: ($('f_series').value || '如果系列 · 如果你有 SCOUT 3D').trim(),
     aspect: S.aspect,
@@ -959,7 +1140,6 @@ function buildEpisodeSpec(){
       const p = PRESET_MAP[sh.preset] ? sh.preset : 'scout3d_auto_snap';
       const nar = String(sh.narration || '').trim();
       const sub = String(sh.subtitle || nar).trim();
-      /* 預估每鏡基礎秒數（Python 端會再按真實廣東話 TTS 長度自動微調延長，絕唔截斷） */
       const estSpeak = S.voice === 'none' ? 0 : Math.max(2.4, nar.replace(/\s+/g,'').length * 0.21 + 0.55);
       const dur = Number(Math.max(sh.duration || 3.0, estSpeak).toFixed(1));
       return {
@@ -971,34 +1151,15 @@ function buildEpisodeSpec(){
       };
     })
   };
-}
-
-function bytesToUrlSafeB64(bytes){
-  let bin = '';
-  for(let i=0; i<bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function encodeSpecPayload(specObj){
-  const jsonStr = JSON.stringify(specObj);
-  const rawBytes = new TextEncoder().encode(jsonStr);
-  /* 優先用瀏覽器原生 zlib deflate（產生 z_ 短碼，CMD 指令縮短 60%+，貼落 Windows CMD 超順暢） */
-  if(typeof CompressionStream !== 'undefined'){
-    try{
-      const cs = new CompressionStream('deflate');
-      const writer = cs.writable.getWriter();
-      writer.write(rawBytes);
-      writer.close();
-      const buf = await new Response(cs.readable).arrayBuffer();
-      return 'z_' + bytesToUrlSafeB64(new Uint8Array(buf));
-    }catch(e){}
+  if(S.s3dDecoded){
+    spec.s3d_custom = S.s3dDecoded;
   }
-  return bytesToUrlSafeB64(rawBytes);
+  return spec;
 }
 
 async function buildMethodACommand(){
   const spec = buildEpisodeSpec();
-  const b64 = await encodeSpecPayload(spec);
+  const b64 = await compressJsonWithPrefix('z_', spec);
   const workdir = ($('f_workdir').value || '').trim().replace(/"/g, '');
   const cdPart = workdir ? `cd /d "${workdir}" && ` : '';
   const sep = workdir.includes('/') ? '/' : '\\';
@@ -1031,10 +1192,74 @@ function renderCardGroup(containerId, items, currentId, onPick){
   });
 }
 
+function renderDurationPicker(){
+  renderCardGroup('durList', DURATION_PLANS, S.durPlan, id => {
+    S.durPlan = id;
+    renderDurationPicker();
+    updateContextHints();
+  });
+  const p = DUR_MAP[S.durPlan] || DURATION_PLANS[0];
+  $('durBanner').innerHTML = `🎯 <b>目標約 ${p.sec} 秒（彈性範圍 ${p.minShots}–${p.maxShots} 鏡）</b>：${esc(p.desc)}`;
+}
+
+function renderS3dStatus(){
+  const box = $('s3dDecoded');
+  const uniList = $('uniformList');
+  const uniLbl = $('quickUniLabel');
+  if(!S.s3dDecoded){
+    box.hidden = true;
+    box.innerHTML = '';
+    uniList.classList.remove('dimmed');
+    uniLbl.textContent = '🧢 快速揀主角制服（未貼 SCOUT 3D 穿搭碼時使用）';
+    return;
+  }
+  const d = S.s3dDecoded;
+  const cols = d.colors || {};
+  const u = d.unit || {};
+  const unitArr = [
+    u.regionZh, u.districtZh,
+    u.troopNo ? ('香港第 ' + u.troopNo + ' 旅') : '',
+    u.patrolZh,
+    u.rankZh,
+    u.meritYear ? (u.meritYear + ' 優異旅團') : ''
+  ].filter(Boolean);
+  const names = Array.isArray(d.badgeNamesZh) && d.badgeNamesZh.length
+    ? d.badgeNamesZh
+    : (Array.isArray(d.badges) ? d.badges.map(b => b.zh || b.id).filter(Boolean) : []);
+  const genderZh = String(d.gender || 'M').toUpperCase().startsWith('F') ? '女' : '男';
+
+  box.hidden = false;
+  box.className = 's3d-box';
+  box.innerHTML = `
+    <div class="s3d-head">
+      <span>✅ 已連動 SCOUT 3D 穿搭：${esc(d.sectionZh || d.section || '童軍')}（${genderZh}${d.sash ? ' · 專章帶' : ''}${d.hat ? ' · 戴帽' : ''}）</span>
+      <span class="s3d-swatches" title="衫色 · 旅巾主色 · 旅巾邊色 · 巾圈">
+        ${cols.shirt ? `<span class="s3d-dot" style="background:${esc(cols.shirt)}"></span>` : ''}
+        ${cols.neckerMain ? `<span class="s3d-dot" style="background:${esc(cols.neckerMain)}"></span>` : ''}
+        ${cols.neckerBorder ? `<span class="s3d-dot" style="background:${esc(cols.neckerBorder)}"></span>` : ''}
+        ${cols.woggle ? `<span class="s3d-dot" style="background:${esc(cols.woggle)}"></span>` : ''}
+      </span>
+    </div>
+    ${unitArr.length ? `<div class="s3d-unit">📍 ${esc(unitArr.join(' · '))}</div>` : ''}
+    <div class="s3d-chips">
+      ${names.length
+        ? names.map(n => `<span class="s3d-chip">🎖️ ${esc(n)}</span>`).join('')
+        : '<span class="s3d-chip">標準基本制服</span>'}
+    </div>
+  `;
+  uniList.classList.add('dimmed');
+  uniLbl.textContent = '🧢 快速制服卡（目前已被上方 SCOUT 3D 穿搭碼覆蓋；清除穿搭碼即可改用）';
+}
+
+function updateContextHints(){
+  const p = DUR_MAP[S.durPlan] || DURATION_PLANS[0];
+  $('aiContextHint').textContent = `目標 ~${p.sec}s (${p.minShots}–${p.maxShots} 鏡)` + (S.s3dDecoded ? ' · 已載入穿搭碼 ✓' : '');
+}
+
 function renderUniforms(){
   const box = $('uniformList');
   box.innerHTML = UNIFORMS.map(u => `
-    <div class="unicard ${u.id === S.charPreset ? 'on' : ''}" data-id="${esc(u.id)}">
+    <div class="unicard ${(!S.s3dDecoded && u.id === S.charPreset) ? 'on' : ''}" data-id="${esc(u.id)}">
       <div class="uniswatch" style="background:${u.shirt}">
         <span>${u.emoji}</span>
         <i style="background:${u.scarf}"></i>
@@ -1049,6 +1274,9 @@ function renderUniforms(){
   box.querySelectorAll('.unicard').forEach(el => {
     el.addEventListener('click', async () => {
       S.charPreset = el.dataset.id;
+      if(S.s3dDecoded){
+        showToast('💡 目前用緊上方 SCOUT 3D 穿搭碼；如需改用快速卡可撳「清除」');
+      }
       renderUniforms();
       await refreshAllOutputs();
     });
@@ -1056,6 +1284,7 @@ function renderUniforms(){
 }
 
 function renderStaticPickers(){
+  renderDurationPicker();
   renderCardGroup('styleList', HERO_STYLES, S.heroStyle, async id => {
     S.heroStyle = id;
     renderStaticPickers();
@@ -1072,6 +1301,8 @@ function renderStaticPickers(){
     await refreshAllOutputs();
   });
   renderUniforms();
+  renderS3dStatus();
+  updateContextHints();
 }
 
 function renderShotsEditor(){
@@ -1095,7 +1326,7 @@ function renderShotsEditor(){
           <div class="vo-row">
             <div class="vo-lbl">
               <span>🎙️ 廣東話旁白（配音讀出）</span>
-              <span>建議 18–34 字</span>
+              <span>Python 會按語音長度自動對齊秒數</span>
             </div>
             <textarea class="vo-in js-nar" rows="2" placeholder="輸入地道廣東話旁白…">${esc(sh.narration)}</textarea>
           </div>
@@ -1147,7 +1378,7 @@ function renderShotsEditor(){
 function renderPreviewAndStats(spec){
   const totalSec = spec.shots.reduce((acc, s) => acc + s.duration, 0);
   const voiceObj = VOICES.find(v => v.id === spec.voice) || VOICES[0];
-  $('pgCount').textContent = `${spec.shots.length} 鏡 · 約 ${totalSec.toFixed(1)} 秒 · ${voiceObj.name}`;
+  $('pgCount').textContent = `${spec.shots.length} 鏡 · 預估 ~${totalSec.toFixed(0)} 秒 · ${voiceObj.name}`;
 
   $('stage').innerHTML = spec.shots.map((sh, i) => {
     const p = PRESET_MAP[sh.preset] || PRESETS[0];
@@ -1180,11 +1411,44 @@ async function refreshAllOutputs(){
   $('cmdPreview').textContent = cmd;
 }
 
+async function handleS3dInput(){
+  const val = ($('f_s3d').value || '').trim();
+  S.s3dRaw = val;
+  if(!val){
+    S.s3dDecoded = null;
+    renderStaticPickers();
+    await refreshAllOutputs();
+    return;
+  }
+  try{
+    const d = await decodeS3dCode(val);
+    S.s3dDecoded = d;
+    if(d && d.look){
+      S.heroStyle = (d.look === 'simple' || d.look === 'blocky') ? 'blocky' : 'bobo';
+    }
+    if(d && Array.isArray(d.badgeNamesZh) && d.badgeNamesZh.length){
+      S.uiCard.toggles = d.badgeNamesZh.slice(0, 4).map(x => String(x).slice(0, 14));
+    }
+    renderStaticPickers();
+    await refreshAllOutputs();
+    showToast('✅ 已成功解碼 SCOUT 3D 穿搭碼！');
+  }catch(err){
+    S.s3dDecoded = null;
+    const box = $('s3dDecoded');
+    box.hidden = false;
+    box.className = 'status err';
+    box.style.marginTop = '10px';
+    box.style.marginBottom = '0';
+    box.textContent = '⚠️ 穿搭碼未能解碼：' + (err && err.message ? err.message : '請確認完整複製 S3D1_... 代碼');
+    updateContextHints();
+    await refreshAllOutputs();
+  }
+}
+
 /* ══════════════════════════════════════════════════════════════════
    事件綁定與啟動自檢
    ══════════════════════════════════════════════════════════════════ */
 function bindEvents(){
-  /* 分頁切換 */
   document.querySelectorAll('.tabs .tab').forEach(btn => {
     btn.addEventListener('click', () => {
       S.tab = btn.dataset.tab;
@@ -1194,7 +1458,6 @@ function bindEvents(){
     });
   });
 
-  /* Key 設定 */
   $('btnKey').addEventListener('click', () => {
     userKey = ($('f_key').value || '').trim();
     saveKey();
@@ -1203,11 +1466,20 @@ function bindEvents(){
     showToast(userKey ? '🔑 已儲存 Gemini Key' : '已清除自訂 Key（使用 Canvas 預設連線）');
   });
 
-  /* AI 生成按鈕 */
+  $('f_s3d').addEventListener('input', () => handleS3dInput());
+  $('btnSampleS3d').addEventListener('click', async () => {
+    $('f_s3d').value = await makeSampleS3dCode();
+    await handleS3dInput();
+  });
+  $('btnClearS3d').addEventListener('click', async () => {
+    $('f_s3d').value = '';
+    await handleS3dInput();
+    showToast('已清除穿搭碼，改用快速制服卡');
+  });
+
   $('btnAi').addEventListener('click', () => doStory('ai'));
   $('btnManual').addEventListener('click', () => doStory('manual'));
 
-  /* 欄位即時更新 CMD */
   ['f_rate', 'f_series', 'f_epid'].forEach(id => {
     $(id).addEventListener('input', () => refreshAllOutputs());
     $(id).addEventListener('change', () => refreshAllOutputs());
@@ -1217,10 +1489,9 @@ function bindEvents(){
     refreshAllOutputs();
   });
 
-  /* 新增一鏡 / 載入示範 */
   $('btnAddShot').addEventListener('click', async () => {
     const used = S.shots[S.shots.length - 1]?.preset || '';
-    const nextP = PRESETS.find(p => p.id !== used) || PRESETS[1];
+    const nextP = PRESETS.find(p => p.id !== used) || PRESETS[2];
     S.shots.push({
       preset: nextP.id,
       duration: nextP.defDur,
@@ -1240,11 +1511,10 @@ function bindEvents(){
     $('f_epid').value = S.episodeId;
     renderShotsEditor();
     await refreshAllOutputs();
-    setStatus('ok', '💡 已載入「如果系列 EP.01」示範劇本 —— 可直接複製 CMD 指令出片！');
-    showToast('已載入 EP.01 示範劇本');
+    setStatus('ok', '💡 已載入示範劇本 —— 可直接複製 CMD 指令出片！');
+    showToast('已載入示範劇本');
   });
 
-  /* 一鍵複製 CMD 出片指令（方法 A） */
   $('btnCopyCmd').addEventListener('click', async () => {
     await refreshAllOutputs();
     try{
@@ -1264,11 +1534,13 @@ function bindEvents(){
 
 async function runSelfTest(){
   const checks = [];
-  checks.push(['8 大 3D 場面', PRESETS.length === 8]);
-  checks.push(['9 款 SCOUT3D 制服', UNIFORMS.length === 9]);
-  checks.push(['廣東話配音聲線', VOICES.length === 4]);
+  checks.push(['5 級彈性片長', DURATION_PLANS.length === 5]);
+  checks.push(['12 種遠近特寫鏡位', PRESETS.length === 12]);
+  const sampleS3d = await makeSampleS3dCode();
+  const decoded = await decodeS3dCode(sampleS3d);
+  checks.push(['S3D1 穿搭碼編解碼', !!(decoded && decoded.badges && decoded.badges.length === 10)]);
   const sampleCmd = await buildMethodACommand();
-  checks.push(['CMD 短碼編碼', sampleCmd.includes('src/scout3d_runner.py --b64 ')]);
+  checks.push(['CMD 短碼輸出', sampleCmd.includes('src/scout3d_runner.py --b64 z_')]);
   const ok = checks.every(c => c[1]);
   $('selfTest').textContent = `© SCOUT SYSTEM · SCOUT 3D 動畫劇本生成器 ${APP_VERSION} · 自檢 ${ok ? '通過 ✓' : '異常'}（${checks.map(c=>c[0]).join(' · ')}）`;
 }
