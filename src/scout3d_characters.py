@@ -1,52 +1,63 @@
-"""3D Character & Prop Rigs for 'What If EP.01: 如果你有 SCOUT 3D':
-- Bobo Smooth 3D Scout ('波波圓滑 3D 風' — hero style!)
-- Blocky 3D Scout ('方塊 3D 風' — cameo comparison in Shot 2 & Shot 4!)
-- Bobo Smooth 3D Mom & Bobo Smooth 3D Scout Leader
-- Hero-Forge 3D Turntable Pedestal, 3D Handbook Stack, 3D Warning/Check Signs
+"""Authoritative SCOUT3D Character, Garment & Programmatic Badge Engine for `makemovie`.
+
+Driven 100% by `assets/scout3d/scout3d_rig_data.json` + official RGBA badge PNGs compiled from
+`playerkousas-rgb/SCOUT3D` (`src/three/body.js`, `src/three/badgeLayout.js`, `src/data/*_rules_v1.0.json`).
+
+Coordinate Convention (identical to SCOUT3D):
+- Character stands on y = 0, facing +Z.
+- +X = Wearer's LEFT (`穿著者左`, viewer's right when facing front).
+- -X = Wearer's RIGHT (`穿著者右`, viewer's left when facing front).
+- Metric scale: 1 cm in SCOUT3D = `CM_SCALE` (0.0156) world units (155 cm Scout = 2.42u).
 """
 
 from __future__ import annotations
 
+import json
 import math
-from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from PIL import Image
 
 from engine3d import RGBf, Scene3D, hex_rgb01, normalize, rot_x, rot_y, rot_z, v3
 
-# Official SCOUT3D-aligned color palette (converted to linear-friendly 0..1 RGB)
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCOUT3D_ASSET_DIR = REPO_ROOT / "assets" / "scout3d"
+RIG_JSON_PATH = SCOUT3D_ASSET_DIR / "scout3d_rig_data.json"
+BADGE_DIR = SCOUT3D_ASSET_DIR / "badges"
+
+# 155 cm Scout -> 2.418 world units (matches existing camera framing across all shots)
+CM_SCALE: float = 0.0156
+
+# Studio & prop color palette
 COL: Dict[str, RGBf] = {
-    "skin": hex_rgb01("#F5CEB0"),
-    "blush": hex_rgb01("#F08A7E"),
-    "hair_dark": hex_rgb01("#3A2720"),
+    "skin": hex_rgb01("#F1C6A2"),
+    "blush": hex_rgb01("#F2A7A0"),
+    "hair_dark": hex_rgb01("#241913"),
     "hair_mom": hex_rgb01("#4E3229"),
     "eye_dark": hex_rgb01("#231815"),
     "white": hex_rgb01("#FFFFFF"),
-    "khaki": hex_rgb01("#CFB68C"),
-    "khaki_dark": hex_rgb01("#AE946A"),
-    "navy": hex_rgb01("#1F3052"),
-    "maroon": hex_rgb01("#822030"),
-    "yellow": hex_rgb01("#F0BA29"),
-    "scout_green": hex_rgb01("#2E7D4F"),
-    "scout_red": hex_rgb01("#C93B3B"),
+    "khaki": hex_rgb01("#E4D8B6"),
+    "khaki_dark": hex_rgb01("#C9B98F"),
+    "navy": hex_rgb01("#1C2D5A"),
+    "maroon": hex_rgb01("#7B1E2B"),
+    "yellow": hex_rgb01("#E9B425"),
+    "scout_green": hex_rgb01("#1F8F45"),
+    "scout_red": hex_rgb01("#D3262E"),
     "world_purple": hex_rgb01("#6242AD"),
     "district_blue": hex_rgb01("#2A6FBD"),
     "mom_sweater": hex_rgb01("#E6736E"),
     "mom_skirt": hex_rgb01("#36496E"),
     "pedestal_top": hex_rgb01("#2C3548"),
     "pedestal_rim": hex_rgb01("#1E2533"),
-    "gold": hex_rgb01("#F7C942"),
+    "gold": hex_rgb01("#D8B23A"),
     "ok_green": hex_rgb01("#26B36B"),
     "warn_red": hex_rgb01("#E63946"),
-    "sock": hex_rgb01("#F4F6F9"),
-    "shoe": hex_rgb01("#2D4A7A"),
-    "beret": hex_rgb01("#286643"),
-    "beret_maroon": hex_rgb01("#7B1E2B"),
-    "grasshopper_orange": hex_rgb01("#F2791C"),
-    "air_blue": hex_rgb01("#8DB9E2"),
-    "sea_white": hex_rgb01("#F2F6FA"),
-    "venture_pants": hex_rgb01("#3A6347"),
-    "necker_blue": hex_rgb01("#1F4E9C"),
+    "sock": hex_rgb01("#F4F4F6"),
+    "shoe": hex_rgb01("#202024"),
+    "beret": hex_rgb01("#1F4A2C"),
+    "beret_maroon": hex_rgb01("#8B2231"),
     "tent_green": hex_rgb01("#3D7A5A"),
     "tent_tan": hex_rgb01("#E6D2B5"),
     "book_a": hex_rgb01("#3A6EA5"),
@@ -54,6 +65,160 @@ COL: Dict[str, RGBf] = {
     "book_c": hex_rgb01("#4A7C59"),
     "pages": hex_rgb01("#FAF3E3"),
 }
+
+# Supported SCOUT3D uniform sections (aligned 1:1 with `scout3d_rig_data.json`)
+SECTION_STYLES: Dict[str, Dict[str, Any]] = {
+    "grasshopper": {"zh": "小童軍", "sash_capable": False},
+    "cub": {"zh": "幼童軍", "sash_capable": False},
+    "scout": {"zh": "童軍", "sash_capable": True},
+    "sea_scout": {"zh": "海童軍", "sash_capable": True},
+    "air_scout": {"zh": "空童軍", "sash_capable": True},
+    "venture": {"zh": "深資童軍", "sash_capable": False},
+    "leader": {"zh": "成年領袖", "sash_capable": False},
+}
+
+# Reusable 3D Character Presets ('人物角色設定檔') — configure once, reuse across unlimited episodes!
+CHARACTER_PRESETS: Dict[str, Dict[str, Any]] = {
+    "ming_scout": {
+        "name": "阿明（童軍・左袖專科章）",
+        "section": "scout",
+        "gender": "M",
+        "style_mode": "bobo",
+        "show_sash": 0.0,
+        "hat": False,
+    },
+    "ming_scout_sash": {
+        "name": "阿明（童軍・綠底紅邊專章帶）",
+        "section": "scout",
+        "gender": "M",
+        "style_mode": "bobo",
+        "show_sash": 1.0,
+        "hat": True,
+    },
+    "ching_scout_girl": {
+        "name": "小晴（女童軍成員・孖辮・專章帶）",
+        "section": "scout",
+        "gender": "F",
+        "style_mode": "bobo",
+        "show_sash": 1.0,
+        "hat": False,
+    },
+    "lok_cub": {
+        "name": "樂樂（幼童軍・黃領巾綠邊）",
+        "section": "cub",
+        "gender": "M",
+        "style_mode": "bobo",
+        "show_sash": 0.0,
+        "hat": True,
+    },
+    "yau_grasshopper": {
+        "name": "悠悠（小童軍・橙色上衣）",
+        "section": "grasshopper",
+        "gender": "F",
+        "style_mode": "bobo",
+        "show_sash": 0.0,
+        "hat": False,
+    },
+    "hin_venture": {
+        "name": "阿軒（深資童軍・紫紅肩章貝雷帽）",
+        "section": "venture",
+        "gender": "M",
+        "style_mode": "bobo",
+        "show_sash": 0.0,
+        "hat": True,
+    },
+    "hoi_sea_scout": {
+        "name": "阿海（海童軍・白色制服水手帽）",
+        "section": "sea_scout",
+        "gender": "M",
+        "style_mode": "bobo",
+        "show_sash": 0.0,
+        "hat": True,
+    },
+    "tin_air_scout": {
+        "name": "阿天（空童軍・淺藍制服）",
+        "section": "air_scout",
+        "gender": "M",
+        "style_mode": "bobo",
+        "show_sash": 0.0,
+        "hat": True,
+    },
+    "sir_leader": {
+        "name": "陳領袖（成年領袖・SL肩章・右袋香港章）",
+        "section": "leader",
+        "gender": "M",
+        "style_mode": "bobo",
+        "show_sash": 0.0,
+        "hat": True,
+    },
+}
+
+_RIG_CACHE: Optional[Dict[str, Any]] = None
+_TEX_CACHE: Dict[str, np.ndarray] = {}
+
+
+def _get_rig_data() -> Dict[str, Any]:
+    global _RIG_CACHE
+    if _RIG_CACHE is None:
+        with open(RIG_JSON_PATH, "r", encoding="utf-8") as f:
+            _RIG_CACHE = json.load(f)
+    return _RIG_CACHE
+
+
+def _get_badge_rgba(rel_file: str) -> Optional[np.ndarray]:
+    if not rel_file:
+        return None
+    clean = rel_file.lstrip("/")
+    if clean.startswith("badges/"):
+        clean = clean[len("badges/") :]
+    if clean in _TEX_CACHE:
+        return _TEX_CACHE[clean]
+    full = BADGE_DIR / clean
+    if not full.is_file():
+        return None
+    img = Image.open(full).convert("RGBA")
+    arr = np.asarray(img, dtype=np.float32) / 255.0
+    _TEX_CACHE[clean] = arr
+    return arr
+
+
+def _darken_rgb(col: RGBf, factor: float = 0.88) -> RGBf:
+    return (col[0] * factor, col[1] * factor, col[2] * factor)
+
+
+def resolve_character_preset(preset: Union[str, Dict[str, Any], Path, None]) -> Dict[str, Any]:
+    """Load a reusable 3D character preset by ID, dict, or `.json` file path."""
+    if preset is None:
+        return {}
+    if isinstance(preset, dict):
+        base_id = preset.get("preset")
+        merged = dict(CHARACTER_PRESETS.get(base_id, {})) if base_id else {}
+        merged.update(preset)
+        return merged
+    if isinstance(preset, Path) or (isinstance(preset, str) and preset.endswith(".json")):
+        p = Path(preset)
+        if not p.is_absolute():
+            p = REPO_ROOT / p
+        with open(p, "r", encoding="utf-8") as f:
+            return resolve_character_preset(json.load(f))
+    if isinstance(preset, str):
+        return dict(CHARACTER_PRESETS.get(preset, {}))
+    return {}
+
+
+def _select_rig_bundle(section: str, gender: str, use_sash: bool) -> Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]]]:
+    data = _get_rig_data()["sections"]
+    sec = section.lower().strip()
+    if sec not in data:
+        sec = "scout"
+    gen = "girl" if str(gender).upper().startswith(("F", "G")) else "boy"
+    sec_entry = data[sec]
+    gen_entry = sec_entry["genders"][gen]
+    if (not use_sash) and (gen_entry.get("placementsNoSash") is not None):
+        badges = gen_entry["placementsNoSash"]["badges"]
+    else:
+        badges = gen_entry["placements"]["badges"]
+    return sec_entry["variant"], gen_entry, badges
 
 
 def draw_turntable_pedestal(
@@ -64,7 +229,6 @@ def draw_turntable_pedestal(
     sc.add_floor_shadow(cx, cz, radius * 1.28, strength=0.34)
     sc.add_cylinder(v3(cx, 0.0, cz), v3(cx, y_top * 0.58, cz), radius * 1.06, COL["pedestal_rim"], roughness=0.38)
     sc.add_cylinder(v3(cx, y_top * 0.55, cz), v3(cx, y_top, cz), radius, COL["pedestal_top"], roughness=0.34)
-    # Subtle glowing cyan/gold ring accent around turntable top
     sc.add_cylinder(
         v3(cx, y_top - 0.012, cz),
         v3(cx, y_top + 0.004, cz),
@@ -81,178 +245,231 @@ def draw_turntable_pedestal(
     )
 
 
-def get_scout_badge_slots_local() -> List[Dict]:
-    """Return canonical 3D local coordinates & normals of HK Scout badges on a character
-    standing with feet at y=0, facing +Z, Wearer's Left = +X, Wearer's Right = -X.
-    """
+def get_scout_badge_slots_local(section: str = "scout", gender: str = "M", sash: bool = False) -> List[Dict[str, Any]]:
+    """Return authoritative SCOUT3D badge slots in world-scaled local coordinates."""
+    _, gen_entry, badges = _select_rig_bundle(section, gender, sash)
+    L = gen_entry["layout"]
+    out: List[Dict[str, Any]] = []
+    for p in badges:
+        mount = p.get("mount", "torso")
+        if mount in ("r", "l"):
+            sgn = -1.0 if mount == "r" else +1.0
+            alp = p["armLocalPos"]
+            pos_cm = v3(sgn * L["armX"] + alp[0], L["shoulderY"] + alp[1], alp[2])
+        else:
+            pos_cm = v3(float(p["x"]), float(p["y"]), float(p["z"]))
+        out.append(
+            {
+                "id": p["key"],
+                "slot": p["id"],
+                "pos": pos_cm * CM_SCALE,
+                "w": float(p["w"]) * CM_SCALE,
+                "h": float(p["h"]) * CM_SCALE,
+                "mount": mount,
+                "facing": p.get("facing", "front"),
+                "rotZ": float(p.get("rotZ", 0.0)),
+                "file": p.get("art"),
+            }
+        )
+    return out
+
+
+def get_wrong_messy_badges_local() -> List[Dict[str, Any]]:
+    """Intentionally hilarious misplaced badges ONLY for 'Before SCOUT 3D' disaster gag shots!"""
     return [
         {
-            "id": "membership",
-            "pos": v3(0.21, 1.56, 0.285),    # Wearer's Left chest pocket: World Membership Badge
-            "nrm": v3(0.12, 0.04, 0.99),
-            "r": 0.078,
-            "base": COL["world_purple"],
-            "emb": COL["white"],
-            "shape": "circle",
+            "pos": v3(0.04, 1.44, 0.145),     # Troop tape stuck crooked right on the belly!
+            "nrm": v3(0.0, 0.0, 1.0),
+            "u_right": v3(0.94, -0.34, 0.0),
+            "v_up": v3(0.34, 0.94, 0.0),
+            "w": 0.145,
+            "h": 0.040,
+            "file": "handbook_example_troop.png",
         },
         {
-            "id": "link_award",
-            "pos": v3(-0.21, 1.66, 0.275),   # Above Wearer's Right chest pocket
-            "nrm": v3(-0.12, 0.06, 0.99),
-            "r": 0.068,
-            "base": COL["white"],
-            "emb": COL["scout_green"],
-            "shape": "diamond",
+            "pos": v3(0.33, 1.84, 0.01),      # Patrol badge sewed upside-down onto WRONG (left) sleeve!
+            "nrm": v3(1.0, 0.0, 0.0),
+            "u_right": v3(0.0, 0.0, 1.0),
+            "v_up": v3(0.0, -1.0, 0.0),
+            "w": 0.075,
+            "h": 0.036,
+            "file": "patrols/badger.png",
         },
         {
-            "id": "troop_tape",
-            "pos": v3(-0.565, 1.77, 0.02),   # Wearer's Right sleeve top (2 cm): Curved Troop Tape
-            "nrm": v3(-0.98, 0.18, 0.05),
-            "r": 0.095,
-            "base": COL["maroon"],
-            "emb": COL["yellow"],
-            "shape": "tape",
+            "pos": v3(-0.14, 1.34, 0.145),    # World Membership badge way down near right waist!
+            "nrm": v3(0.0, 0.0, 1.0),
+            "u_right": v3(0.96, 0.28, 0.0),
+            "v_up": v3(-0.28, 0.96, 0.0),
+            "w": 0.072,
+            "h": 0.072,
+            "file": "world_membership.png",
         },
         {
-            "id": "district",
-            "pos": v3(-0.585, 1.61, 0.02),   # Wearer's Right sleeve mid (6.2 cm): District/Region
-            "nrm": v3(-0.99, 0.06, 0.06),
-            "r": 0.072,
-            "base": COL["district_blue"],
-            "emb": COL["gold"],
-            "shape": "circle",
-        },
-        {
-            "id": "patrol",
-            "pos": v3(-0.60, 1.46, 0.02),    # Wearer's Right sleeve lower (15.4 cm): Patrol Badge
-            "nrm": v3(-0.99, 0.02, 0.06),
-            "r": 0.066,
-            "base": COL["white"],
-            "emb": COL["scout_red"],
-            "shape": "diamond",
-        },
-        {
-            "id": "prof_sleeve_1",
-            "pos": v3(0.585, 1.63, 0.04),    # Wearer's Left sleeve: Proficiency Badge #1
-            "nrm": v3(0.99, 0.06, 0.08),
-            "r": 0.068,
-            "base": COL["scout_green"],
-            "emb": COL["gold"],
-            "shape": "circle",
-        },
-        {
-            "id": "prof_sleeve_2",
-            "pos": v3(0.60, 1.48, -0.02),    # Wearer's Left sleeve: Proficiency Badge #2
-            "nrm": v3(0.99, 0.02, -0.04),
-            "r": 0.068,
-            "base": COL["scout_green"],
-            "emb": COL["gold"],
-            "shape": "circle",
+            "pos": v3(-0.10, 0.98, 0.12),     # Hong Kong badge sewed crooked onto shorts knee!!
+            "nrm": v3(0.0, 0.0, 1.0),
+            "u_right": v3(0.92, -0.38, 0.0),
+            "v_up": v3(0.38, 0.92, 0.0),
+            "w": 0.068,
+            "h": 0.092,
+            "file": "hong_kong_badge.png",
         },
     ]
 
 
-def get_wrong_messy_badges_local() -> List[Dict]:
-    """Hilariously misplaced badges in Shot 1 (before SCOUT 3D — belly, knee, forehead/wrong side!)."""
-    return [
-        {
-            "pos": v3(0.06, 1.18, 0.30),     # Stuck crooked right on the belly!
-            "nrm": v3(0.05, -0.08, 0.99),
-            "r": 0.095,
-            "base": COL["maroon"],
-            "emb": COL["yellow"],
-            "shape": "tape",
-        },
-        {
-            "pos": v3(0.57, 1.74, 0.05),     # Troop/District badge sewed onto WRONG sleeve!
-            "nrm": v3(0.98, 0.12, 0.08),
-            "r": 0.080,
-            "base": COL["district_blue"],
-            "emb": COL["gold"],
-            "shape": "circle",
-        },
-        {
-            "pos": v3(-0.24, 1.35, 0.28),    # World Membership badge way down near waist!
-            "nrm": v3(-0.15, -0.05, 0.98),
-            "r": 0.082,
-            "base": COL["world_purple"],
-            "emb": COL["white"],
-            "shape": "circle",
-        },
-        {
-            "pos": v3(-0.20, 0.78, 0.23),    # Proficiency badge sewed onto navy shorts knee!!
-            "nrm": v3(-0.08, 0.04, 0.99),
-            "r": 0.075,
-            "base": COL["scout_green"],
-            "emb": COL["gold"],
-            "shape": "diamond",
-        },
-    ]
+def _slot_progress(slot_key: str, slot_id: str, badge_progress: Optional[Dict[str, float]]) -> float:
+    """Resolve animation progress for both native SCOUT3D slot IDs and legacy EP.01 keys."""
+    if badge_progress is None:
+        return 1.0
+    if slot_key in badge_progress:
+        return float(badge_progress[slot_key])
+    if slot_id in badge_progress:
+        return float(badge_progress[slot_id])
+
+    if slot_id in ("membership", "serviceStars", "nameTag"):
+        return float(badge_progress.get("membership", 1.0))
+    if slot_id in ("hongKong", "emblemBauhinia", "ventureLink", "scoutLink", "progressAward", "ventureAward", "award"):
+        return float(badge_progress.get("link_award", badge_progress.get("membership", 1.0)))
+    if slot_id in ("troop", "epaulette", "meritorious"):
+        return float(badge_progress.get("troop_tape", 1.0))
+    if slot_id in ("region", "district"):
+        return float(badge_progress.get("district", 1.0))
+    if slot_id in ("patrol", "instructor", "dragonAward", "chiefScoutAward", "tribe", "leadership"):
+        return float(badge_progress.get("patrol", 1.0))
+    if slot_id.startswith("prof") or slot_key.startswith("prof") or slot_id in ("progress", "activity", "challenge"):
+        digits = "".join(ch for ch in slot_key if ch.isdigit())
+        idx = max(0, int(digits) - 1) if digits else 0
+        p1 = badge_progress.get("prof_sleeve_1", 1.0)
+        p2 = badge_progress.get("prof_sleeve_2", p1)
+        base = p1 if idx < 4 else p2
+        return float(max(0.0, min(1.0, base * 1.15 - idx * 0.02)))
+    return 1.0
 
 
-# Section uniform color mapping (aligned with SCOUT3D v1.0)
-SECTION_STYLES: Dict[str, Dict] = {
-    "grasshopper": {
-        "shirt": "grasshopper_orange",
-        "pocket": "grasshopper_orange",
-        "necker": "maroon",
-        "woggle": "yellow",
-        "bottom": "navy",
-        "long_pants": False,
-        "beret": None,
-        "epaulette": None,
-    },
-    "cub": {
-        "shirt": "khaki",
-        "pocket": "khaki_dark",
-        "necker": "yellow",
-        "woggle": "scout_green",
-        "bottom": "navy",
-        "long_pants": False,
-        "beret": None,
-        "epaulette": None,
-    },
-    "scout": {
-        "shirt": "khaki",
-        "pocket": "khaki_dark",
-        "necker": "maroon",
-        "woggle": "yellow",
-        "bottom": "navy",
-        "long_pants": False,
-        "beret": None,
-        "epaulette": None,
-    },
-    "venture": {
-        "shirt": "khaki",
-        "pocket": "khaki_dark",
-        "necker": "scout_green",
-        "woggle": "khaki_dark",
-        "bottom": "venture_pants",
-        "long_pants": True,
-        "beret": "beret_maroon",
-        "epaulette": "beret_maroon",
-    },
-    "sea_scout": {
-        "shirt": "sea_white",
-        "pocket": "sea_white",
-        "necker": "necker_blue",
-        "woggle": "white",
-        "bottom": "navy",
-        "long_pants": False,
-        "beret": None,
-        "epaulette": "navy",
-    },
-    "air_scout": {
-        "shirt": "air_blue",
-        "pocket": "air_blue",
-        "necker": "necker_blue",
-        "woggle": "white",
-        "bottom": "navy",
-        "long_pants": True,
-        "beret": None,
-        "epaulette": "navy",
-    },
-}
+def _draw_headwear(
+    sc: Scene3D,
+    W,
+    WV,
+    WN,
+    R: np.ndarray,
+    S_cm,
+    head: Dict[str, float],
+    variant: Dict[str, Any],
+    is_blocky: bool,
+) -> None:
+    """Draw authentic SCOUT3D headwear (`beret`, `cubCap`, `seaCap`, `cap`) + official RGBA cap badge."""
+    hat_type = variant.get("hat")
+    if not hat_type:
+        return
+    hat_col = hex_rgb01(variant.get("hatColor") or "#1F4A2C")
+    cap_tex = _get_badge_rgba(variant.get("capBadge") or "")
+
+    top_y = head["y"] + head["h"]
+    hw = head["w"] * 0.5
+    hd = head["d"] * 0.5
+    hz = head["z"]
+
+    if hat_type == "beret":
+        # Authentic HK Scout Beret tilted slightly right (-X), cap badge over left eye (+X)
+        b_rot = R @ rot_z(6.5)
+        if is_blocky:
+            sc.add_rounded_box(
+                W(-0.7, top_y + 1.1, hz + 0.2),
+                (S_cm(hw + 1.6), S_cm(2.5), S_cm(hd + 1.5)),
+                S_cm(0.85),
+                hat_col,
+                rot=b_rot,
+                roughness=0.52,
+            )
+        else:
+            sc.add_ellipsoid(
+                W(-0.7, top_y + 1.1, hz + 0.2),
+                (S_cm(hw + 2.1), S_cm(2.9), S_cm(hd + 1.9)),
+                hat_col,
+                rot=b_rot,
+                roughness=0.50,
+            )
+        sc.add_rounded_box(
+            W(0.0, top_y - 0.65, hz + 0.15),
+            (S_cm(hw + 0.85), S_cm(0.75), S_cm(hd + 0.85)),
+            S_cm(0.38 if is_blocky else 1.2),
+            COL["shoe"],
+            rot=R,
+            roughness=0.38,
+        )
+        if cap_tex is not None:
+            sc.add_textured_patch_3d(
+                WV(v3(2.8, top_y + 1.0, hz + hd + 1.85)),
+                WN(v3(0.14, 0.05, 0.99)),
+                WN(v3(0.99, 0.0, -0.14)),
+                WN(v3(0.0, 1.0, -0.05)),
+                S_cm(3.4),
+                S_cm(3.8),
+                cap_tex,
+                lift=S_cm(0.08),
+            )
+    elif hat_type in ("cubCap", "cap"):
+        sc.add_ellipsoid(
+            W(0.0, top_y + 0.9, hz),
+            (S_cm(hw + 1.3), S_cm(2.9), S_cm(hd + 1.3)),
+            hat_col,
+            rot=R,
+            roughness=0.48,
+        )
+        sc.add_rounded_box(
+            W(0.0, top_y - 0.55, hz + hd + 2.2),
+            (S_cm(hw * 0.80), S_cm(0.50), S_cm(3.0)),
+            S_cm(0.42),
+            hat_col,
+            rot=R @ rot_x(10.0),
+            roughness=0.48,
+        )
+        if cap_tex is not None:
+            sc.add_textured_patch_3d(
+                WV(v3(0.0, top_y + 1.25, hz + hd + 1.35)),
+                WN(v3(0.0, 0.08, 1.0)),
+                WN(v3(1.0, 0.0, 0.0)),
+                WN(v3(0.0, 1.0, -0.08)),
+                S_cm(3.4),
+                S_cm(3.4),
+                cap_tex,
+                lift=S_cm(0.08),
+            )
+    elif hat_type == "seaCap":
+        # White-top Sea Scout cap with dark navy tally band (`sea_scout_cap_tally.png`) + black peak
+        sc.add_rounded_box(
+            W(0.0, top_y - 0.35, hz),
+            (S_cm(hw + 0.95), S_cm(1.1), S_cm(hd + 0.95)),
+            S_cm(0.45 if is_blocky else 1.35),
+            COL["navy"],
+            rot=R,
+            roughness=0.42,
+        )
+        sc.add_ellipsoid(
+            W(0.0, top_y + 1.65, hz + 0.15),
+            (S_cm(hw + 1.9), S_cm(2.1), S_cm(hd + 1.9)),
+            hat_col,
+            rot=R,
+            roughness=0.40,
+        )
+        sc.add_rounded_box(
+            W(0.0, top_y - 0.95, hz + hd + 2.1),
+            (S_cm(hw * 0.78), S_cm(0.44), S_cm(2.6)),
+            S_cm(0.35),
+            COL["shoe"],
+            rot=R @ rot_x(12.0),
+            roughness=0.25,
+        )
+        if cap_tex is not None:
+            sc.add_textured_patch_3d(
+                WV(v3(0.0, top_y - 0.30, hz + hd + 1.05)),
+                WN(v3(0.0, 0.0, 1.0)),
+                WN(v3(1.0, 0.0, 0.0)),
+                WN(v3(0.0, 1.0, 0.0)),
+                S_cm(9.2),
+                S_cm(1.6),
+                cap_tex,
+                lift=S_cm(0.08),
+            )
 
 
 def draw_scout_figure(
@@ -260,345 +477,701 @@ def draw_scout_figure(
     base_pos: np.ndarray,
     yaw_deg: float = 0.0,
     scale: float = 1.0,
-    style_mode: str = "bobo",        # "bobo" (Smooth Rounded 3D) or "blocky" (Beveled Cube 3D)
+    style_mode: str = "bobo",        # "bobo" (Smooth Rounded 3D) or "blocky" (SCOUT3D Blocky 3D)
     expression: str = "happy",       # "happy" | "nervous" | "surprised" | "proud"
-    salute: float = 0.0,             # 0.0 = relaxed arms, 1.0 = crisp 3-finger Scout salute!
+    salute: float = 0.0,             # 0.0 = relaxed arms, 1.0 = crisp 3-finger HK Scout salute!
     badge_mode: str = "correct",     # "none" | "wrong" | "correct" | "animated"
     badge_progress: Optional[Dict[str, float]] = None,
-    show_sash: float = 0.0,          # 0..1 visibility of green/red Proficiency Sash
-    section: str = "scout",          # "grasshopper" | "cub" | "scout" | "venture" | "sea_scout" | "air_scout"
-    gender: str = "M",               # "M" (curls) | "F" (twin pigtails)
+    show_sash: float = 0.0,          # 0..1 visibility of Scout green/red Proficiency Sash
+    section: str = "scout",          # "grasshopper"|"cub"|"scout"|"sea_scout"|"air_scout"|"venture"|"leader"
+    gender: str = "M",               # "M" | "F"
     wave: float = 0.0,               # 0..1 cheerful left-hand wave
     t_sec: float = 0.0,
+    hat: Optional[bool] = None,
+    preset: Union[str, Dict[str, Any], Path, None] = None,
+    highlight_slots: Optional[Sequence[str]] = None,
 ) -> None:
-    """Draw a complete 3D Hong Kong Scout character at `base_pos` rotated by `yaw_deg`."""
-    R = rot_y(yaw_deg)
-    sec = SECTION_STYLES.get(section, SECTION_STYLES["scout"])
-    c_shirt = COL[sec["shirt"]]
-    c_pocket = COL[sec["pocket"]]
-    c_necker = COL[sec["necker"]]
-    c_woggle = COL[sec["woggle"]]
-    c_bottom = COL[sec["bottom"]]
-    long_pants = bool(sec["long_pants"])
+    """Draw an authentic 3D Hong Kong Scout character using exact SCOUT3D rules & RGBA badges."""
+    if preset is not None:
+        cfg = resolve_character_preset(preset)
+        section = str(cfg.get("section", section))
+        gender = str(cfg.get("gender", gender))
+        style_mode = str(cfg.get("style_mode", style_mode))
+        show_sash = float(cfg.get("show_sash", show_sash))
+        if hat is None and "hat" in cfg:
+            hat = bool(cfg["hat"])
 
-    def W(lx: float, ly: float, lz: float) -> np.ndarray:
-        return base_pos + (R @ v3(lx * scale, ly * scale, lz * scale))
+    sec = section.lower().strip()
+    sash_supported = sec in ("scout", "sea_scout", "air_scout")
+    sash_amt = float(max(0.0, min(1.0, show_sash))) if sash_supported else 0.0
+    use_sash_layout = sash_supported and (sash_amt > 0.05)
 
-    def WN(nx: float, ny: float, nz: float) -> np.ndarray:
-        return normalize(R @ v3(nx, ny, nz))
-
-    S = lambda d: d * scale
-    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(0.58), strength=0.26)
+    variant, gen_entry, badges = _select_rig_bundle(sec, gender, use_sash_layout)
+    L = gen_entry["layout"]
+    B = L["B"]
+    strap = gen_entry.get("strap")
+    sash_cfg = gen_entry.get("sash")
 
     is_blocky = style_mode == "blocky"
+    is_girl = str(gender).upper().startswith(("F", "G"))
+    wear_hat = bool(hat) if hat is not None else (sec in ("venture", "leader"))
 
-    # --- 1. Shoes, Socks & Legs ---
+    R = rot_y(yaw_deg)
+    k = CM_SCALE * scale
+
+    def W(cx: float, cy: float, cz: float) -> np.ndarray:
+        return base_pos + (R @ v3(cx * k, cy * k, cz * k))
+
+    def WV(vec_cm: np.ndarray) -> np.ndarray:
+        return base_pos + (R @ (vec_cm * k))
+
+    def WN(n_local: np.ndarray) -> np.ndarray:
+        return normalize(R @ n_local)
+
+    S_cm = lambda cm_val: float(cm_val) * k
+
+    c_shirt = hex_rgb01(variant["shirt"])
+    c_pocket = _darken_rgb(c_shirt, 0.90)
+    c_bottom = hex_rgb01(variant["leg"])
+    c_sock = hex_rgb01(variant["sock"])
+    c_shoe = hex_rgb01(variant["shoe"])
+    c_belt = hex_rgb01(variant["belt"]) if variant.get("belt") else None
+    c_buckle = hex_rgb01(variant.get("buckle") or "#C9CCD1")
+    c_necker = hex_rgb01(variant["necker"])
+    c_neck_trim = hex_rgb01("#1F7A3F") if sec == "cub" else (hex_rgb01("#F5C518") if sec == "grasshopper" else None)
+    c_woggle = hex_rgb01(variant["woggle"])
+
+    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S_cm(B["torso"]["w"] * 1.15), strength=0.26)
+
+    # =========================================================================
+    # 1. SHOES, SOCKS, LEGS & SHORTS / CULOTTES / TROUSERS (Exact SCOUT3D `B`)
+    # =========================================================================
+    leg = B["leg"]
+    shoe = B["shoe"]
+    leg_hw = leg["w"] * 0.5
+    leg_hd = leg["d"] * 0.5
+    leg_x_abs = float(L["legX"])
+    long_trousers = bool(variant.get("longPants")) and not (is_girl and B.get("skirtBottom") is not None)
+    has_skirt = is_girl and (sec != "grasshopper")
+
     for side in (-1.0, 1.0):
-        lx = side * 0.19
+        lx = side * leg_x_abs
         if is_blocky:
-            sc.add_rounded_box(W(lx, 0.09, 0.05), (S(0.11), S(0.09), S(0.17)), S(0.025), COL["shoe"], rot=R)
-            if long_pants:
-                sc.add_rounded_box(W(lx, 0.56, 0.0), (S(0.125), S(0.42), S(0.13)), S(0.025), c_bottom, rot=R)
-            else:
-                sc.add_rounded_box(W(lx, 0.24, 0.0), (S(0.095), S(0.08), S(0.095)), S(0.02), COL["sock"], rot=R)
-                sc.add_rounded_box(W(lx, 0.52, 0.0), (S(0.10), S(0.22), S(0.10)), S(0.025), COL["skin"], rot=R)
-                sc.add_rounded_box(W(lx, 0.84, 0.0), (S(0.125), S(0.16), S(0.135)), S(0.025), c_bottom, rot=R)
+            sc.add_rounded_box(
+                W(lx, shoe["h"] * 0.5, shoe["z"]),
+                (S_cm(shoe["w"] * 0.5), S_cm(shoe["h"] * 0.5), S_cm(shoe["d"] * 0.5)),
+                S_cm(0.45),
+                c_shoe,
+                rot=R,
+                roughness=0.40,
+            )
         else:
-            sc.add_ellipsoid(W(lx, 0.09, 0.06), (S(0.12), S(0.09), S(0.18)), COL["shoe"], rot=R, roughness=0.40)
-            if long_pants:
-                sc.add_capsule(W(lx, 0.16, 0.0), W(lx, 0.96, 0.0), S(0.128), c_bottom, roughness=0.55)
+            sc.add_ellipsoid(
+                W(lx, shoe["h"] * 0.52, shoe["z"] + 0.3),
+                (S_cm(shoe["w"] * 0.54), S_cm(shoe["h"] * 0.56), S_cm(shoe["d"] * 0.54)),
+                c_shoe,
+                rot=R,
+                roughness=0.36,
+            )
+
+        if long_trousers:
+            y0, y1 = shoe["h"] * 0.85, leg["top"] + 0.8
+            sc.add_rounded_box(
+                W(lx, 0.5 * (y0 + y1), 0.0),
+                (S_cm(leg_hw + 0.25), S_cm(0.5 * (y1 - y0)), S_cm(leg_hd + 0.25)),
+                S_cm(0.48 if is_blocky else 1.65),
+                c_bottom,
+                rot=R,
+                roughness=0.55,
+            )
+        else:
+            leg_span = leg["top"] - leg["y"]
+            sock_top = leg["y"] + leg_span * 0.36
+            shorts_bot = float(B.get("skirtBottom") or (leg["top"] - leg_span * 0.32))
+            if is_blocky:
+                sc.add_rounded_box(
+                    W(lx, 0.5 * (leg["y"] + sock_top), 0.0),
+                    (S_cm(leg_hw * 0.92), S_cm(0.5 * (sock_top - leg["y"])), S_cm(leg_hd * 0.92)),
+                    S_cm(0.4),
+                    c_sock,
+                    rot=R,
+                    roughness=0.58,
+                )
+                sc.add_rounded_box(
+                    W(lx, 0.5 * (sock_top + shorts_bot), 0.0),
+                    (S_cm(leg_hw * 0.88), S_cm(0.5 * (shorts_bot - sock_top)), S_cm(leg_hd * 0.88)),
+                    S_cm(0.4),
+                    COL["skin"],
+                    rot=R,
+                    roughness=0.50,
+                )
             else:
-                sc.add_capsule(W(lx, 0.16, 0.0), W(lx, 0.30, 0.0), S(0.098), COL["sock"], roughness=0.60)
-                sc.add_capsule(W(lx, 0.30, 0.0), W(lx, 0.76, 0.0), S(0.095), COL["skin"], roughness=0.52)
-                sc.add_capsule(W(lx, 0.72, 0.0), W(lx, 0.96, 0.0), S(0.135), c_bottom, roughness=0.55)
+                sc.add_capsule(W(lx, leg["y"] + 0.8, 0.0), W(lx, sock_top, 0.0), S_cm(leg_hw * 0.86), c_sock, roughness=0.58)
+                sc.add_capsule(W(lx, sock_top - 0.4, 0.0), W(lx, shorts_bot + 1.2, 0.0), S_cm(leg_hw * 0.84), COL["skin"], roughness=0.50)
 
-    # Shorts/Trousers Pelvis + Belt
-    sc.add_rounded_box(
-        W(0.0, 0.96, 0.0),
-        (S(0.32), S(0.15), S(0.23)),
-        S(0.04 if is_blocky else 0.12),
-        c_bottom,
-        rot=R,
-        roughness=0.55,
-    )
-    sc.add_rounded_box(
-        W(0.0, 1.10, 0.0),
-        (S(0.33), S(0.045), S(0.245)),
-        S(0.02 if is_blocky else 0.04),
-        COL["hair_dark"],
-        rot=R,
-        roughness=0.40,
-    )
-    # Gold Scout belt buckle
-    sc.add_rounded_box(W(0.0, 1.10, 0.25), (S(0.065), S(0.048), S(0.02)), S(0.012), COL["gold"], rot=R, roughness=0.25)
+            if not has_skirt:
+                sc.add_rounded_box(
+                    W(lx, 0.5 * (shorts_bot + leg["top"]), 0.0),
+                    (S_cm(leg_hw + 0.35), S_cm(0.5 * (leg["top"] - shorts_bot) + 0.3), S_cm(leg_hd + 0.35)),
+                    S_cm(0.48 if is_blocky else 1.55),
+                    c_bottom,
+                    rot=R,
+                    roughness=0.55,
+                )
 
-    # --- 2. Uniform Shirt Torso + Chest Pockets (+ Optional Epaulettes) ---
+    tor = B["torso"]
+    tor_hw = tor["w"] * 0.5
+    tor_hh = tor["h"] * 0.5
+    tor_hd = tor["d"] * 0.5
+
+    if has_skirt:
+        sk_bot = float(B.get("skirtBottom") or (leg["top"] - (leg["top"] - leg["y"]) * 0.34))
+        sc.add_rounded_box(
+            W(0.0, 0.5 * (sk_bot + tor["y"] + 1.0), 0.0),
+            (S_cm(tor_hw * 1.03), S_cm(0.5 * (tor["y"] + 1.0 - sk_bot)), S_cm(tor_hd * 1.04)),
+            S_cm(0.55 if is_blocky else 1.75),
+            c_bottom,
+            rot=R,
+            roughness=0.55,
+        )
+    else:
+        pelvis_bot = tor["y"] - 5.5
+        sc.add_rounded_box(
+            W(0.0, 0.5 * (pelvis_bot + tor["y"] + 1.2), 0.0),
+            (S_cm(tor_hw * 0.98), S_cm(0.5 * (tor["y"] + 1.2 - pelvis_bot)), S_cm(tor_hd * 0.98)),
+            S_cm(0.48 if is_blocky else 1.55),
+            c_bottom,
+            rot=R,
+            roughness=0.55,
+        )
+
+    if c_belt is not None:
+        belt_y = float(B.get("waist") or (tor["y"] + 1.0))
+        sc.add_rounded_box(
+            W(0.0, belt_y, 0.0),
+            (S_cm(tor_hw * 1.025), S_cm(1.4), S_cm(tor_hd * 1.025)),
+            S_cm(0.35 if is_blocky else 0.8),
+            c_belt,
+            rot=R,
+            roughness=0.40,
+        )
+        sc.add_rounded_box(
+            W(0.0, belt_y, tor_hd + 0.35),
+            (S_cm(2.3), S_cm(1.65), S_cm(0.42)),
+            S_cm(0.25),
+            c_buckle,
+            rot=R,
+            roughness=0.24,
+        )
+
+    # =========================================================================
+    # 2. UNIFORM SHIRT TORSO, BREAST POCKETS & SHOULDER STRAPS
+    # =========================================================================
+    tor_cy = tor["y"] + tor_hh
     sc.add_rounded_box(
-        W(0.0, 1.48, 0.0),
-        (S(0.34), S(0.36), S(0.25)),
-        S(0.045 if is_blocky else 0.16),
+        W(0.0, tor_cy, 0.0),
+        (S_cm(tor_hw), S_cm(tor_hh), S_cm(tor_hd)),
+        S_cm(0.45 if is_blocky else 2.25),
         c_shirt,
         rot=R,
         roughness=0.52,
     )
-    if section != "grasshopper":
+    if not is_blocky:
+        # Soft vinyl-toy rounded shoulder bridge in `bobo` mode (keeps front/sleeve badge planes untouched)
         for side in (-1.0, 1.0):
-            sc.add_rounded_box(
-                W(side * 0.20, 1.54, 0.252),
-                (S(0.095), S(0.105), S(0.025)),
-                S(0.018),
-                c_pocket,
+            sc.add_ellipsoid(
+                W(side * (tor_hw + 1.2), L["top"] - 2.4, 0.0),
+                (S_cm(3.2), S_cm(2.4), S_cm(tor_hd * 0.72)),
+                c_shirt,
                 rot=R,
-                roughness=0.55,
-            )
-    if sec["epaulette"]:
-        for side in (-1.0, 1.0):
-            sc.add_rounded_box(
-                W(side * 0.26, 1.85, 0.0),
-                (S(0.085), S(0.024), S(0.058)),
-                S(0.012),
-                COL[sec["epaulette"]],
-                rot=R,
+                roughness=0.52,
             )
 
-    # --- 3. Proficiency Sash ('專章帶': Flat Tailored Green Ribbon with Red Trim, +X Shoulder -> -X Hip) ---
-    if show_sash > 0.02:
-        sa = min(1.0, show_sash)
-        sash_rot = R @ rot_z(-39.5)
-        # Front & back tailored flat sash ribbons: Red trim backing + proud Forest Green center!
-        for z_sgn in (1.0, -1.0):
-            sz = z_sgn * 0.262
+    if B.get("pocket"):
+        pk = B["pocket"]
+        flap_top_y = L["top"] - pk["top"]
+        pk_bot_y = flap_top_y - pk["h"]
+        pk_cy = 0.5 * (flap_top_y + pk_bot_y)
+        flap_cy = flap_top_y - pk["flap"] * 0.5
+        for side in (-1.0, 1.0):
+            px = side * pk["x"]
             sc.add_rounded_box(
-                W(-0.02, 1.49, sz),
-                (S(0.088 * sa), S(0.45 * sa), S(0.015)),
-                S(0.012),
+                W(px, pk_cy, tor_hd + 0.02),
+                (S_cm(pk["w"] * 0.5), S_cm(pk["h"] * 0.5), S_cm(0.11)),
+                S_cm(0.22),
+                c_pocket,
+                rot=R,
+                roughness=0.56,
+            )
+            sc.add_rounded_box(
+                W(px, flap_cy, tor_hd + 0.05),
+                (S_cm(pk["w"] * 0.51), S_cm(pk["flap"] * 0.5), S_cm(0.12)),
+                S_cm(0.20),
+                c_shirt,
+                rot=R,
+                roughness=0.50,
+            )
+
+    # Venture & Leader tailored khaki shoulder straps (`strap`) supporting the shoulder epaulettes!
+    if strap is not None:
+        for side in (-1.0, 1.0):
+            sc.add_rounded_box(
+                W(side * strap["cx"], strap["boxY"], 0.0),
+                (S_cm(strap["len"] * 0.5), S_cm(strap["boxT"] * 0.55), S_cm(strap["w"] * 0.5)),
+                S_cm(0.22),
+                c_pocket,
+                rot=R,
+                roughness=0.50,
+            )
+
+    # =========================================================================
+    # 3. PROFICIENCY SASH ('專章帶': Left Shoulder +X -> Right Waist -X, UNDER Neckerchief!)
+    # =========================================================================
+    if sash_amt > 0.02 and sash_cfg is not None:
+        # Tuck top & bottom centers inside shoulder/hip bounds so rotated corners never poke past torso silhouette
+        p_top = v3(float(sash_cfg["cTop"]) - 0.8, L["top"] - 1.6, 0.0)
+        p_bot = v3(-tor_hw + 4.4, float(sash_cfg["endY"]) + 2.6, 0.0)
+        e_y = normalize(p_top - p_bot)
+        e_z = v3(0.0, 0.0, 1.0)
+        e_x = normalize(np.cross(e_y, e_z))
+        R_sash_local = np.column_stack([e_x, e_y, e_z]).astype(np.float32)
+        R_sash_world = R @ R_sash_local
+
+        sash_mid_xy = 0.5 * (p_top + p_bot)
+        sash_half_len = 0.5 * float(np.linalg.norm(p_top - p_bot)) * sash_amt
+        green_hw = (float(sash_cfg["widthCm"]) * 0.5) * sash_amt
+        red_hw = ((float(sash_cfg["widthCm"]) + 2.0 * float(sash_cfg["edgeCm"])) * 0.5) * sash_amt
+
+        for z_sgn in (1.0, -1.0):
+            sc.add_rounded_box(
+                W(float(sash_mid_xy[0]), float(sash_mid_xy[1]), z_sgn * (tor_hd + 0.24)),
+                (S_cm(red_hw), S_cm(sash_half_len), S_cm(0.11)),
+                S_cm(0.16),
                 COL["scout_red"],
-                rot=sash_rot,
+                rot=R_sash_world,
                 roughness=0.50,
             )
             sc.add_rounded_box(
-                W(-0.02, 1.49, sz + z_sgn * 0.007),
-                (S(0.060 * sa), S(0.45 * sa), S(0.016)),
-                S(0.010),
+                W(float(sash_mid_xy[0]), float(sash_mid_xy[1]), z_sgn * (tor_hd + 0.34)),
+                (S_cm(green_hw), S_cm(sash_half_len * 0.995), S_cm(0.12)),
+                S_cm(0.14),
                 COL["scout_green"],
-                rot=sash_rot,
+                rot=R_sash_world,
                 roughness=0.48,
             )
-        # Smooth shoulder & waist wrap-over caps so sash wraps seamlessly around torso in 3D!
-        sc.add_rounded_box(W(0.26, 1.83, 0.0), (S(0.085 * sa), S(0.028), S(0.27)), S(0.015), COL["scout_red"], rot=R)
-        sc.add_rounded_box(W(0.26, 1.838, 0.0), (S(0.058 * sa), S(0.028), S(0.272)), S(0.012), COL["scout_green"], rot=R)
-        sc.add_rounded_box(W(-0.31, 1.16, 0.0), (S(0.032), S(0.085 * sa), S(0.27)), S(0.015), COL["scout_red"], rot=R)
-        sc.add_rounded_box(W(-0.316, 1.16, 0.0), (S(0.032), S(0.058 * sa), S(0.272)), S(0.012), COL["scout_green"], rot=R)
+        # Left-shoulder (+X) & right-hip (-X) wrap-around bridges
+        sc.add_rounded_box(
+            W(float(sash_cfg["cTop"]), L["top"] + 0.32, 0.0),
+            (S_cm(red_hw * 0.85), S_cm(0.32), S_cm(tor_hd + 0.34)),
+            S_cm(0.20),
+            COL["scout_red"],
+            rot=R,
+            roughness=0.50,
+        )
+        sc.add_rounded_box(
+            W(float(sash_cfg["cTop"]), L["top"] + 0.40, 0.0),
+            (S_cm(green_hw * 0.85), S_cm(0.30), S_cm(tor_hd + 0.36)),
+            S_cm(0.18),
+            COL["scout_green"],
+            rot=R,
+            roughness=0.48,
+        )
+        sc.add_rounded_box(
+            W(-tor_hw - 0.20, float(sash_cfg["endY"]) + 2.2, 0.0),
+            (S_cm(0.32), S_cm(red_hw * 0.78), S_cm(tor_hd + 0.34)),
+            S_cm(0.20),
+            COL["scout_red"],
+            rot=R,
+            roughness=0.50,
+        )
+        sc.add_rounded_box(
+            W(-tor_hw - 0.30, float(sash_cfg["endY"]) + 2.2, 0.0),
+            (S_cm(0.30), S_cm(green_hw * 0.78), S_cm(tor_hd + 0.36)),
+            S_cm(0.18),
+            COL["scout_green"],
+            rot=R,
+            roughness=0.48,
+        )
 
-        # Crisp circular Proficiency Badges ('專科章') mounted flush along the front green sash!
-        if sa > 0.65:
-            for u_b in (0.22, 0.44, 0.66, 0.84):
-                bx_s = 0.24 * (1.0 - u_b) + (-0.28) * u_b
-                by_s = 1.80 * (1.0 - u_b) + 1.20 * u_b
-                sc.add_scout_badge_3d(
-                    W(bx_s, by_s, 0.288),
-                    WN(0.0, 0.04, 1.0),
-                    S(0.046),
-                    COL["scout_green"],
-                    COL["gold"],
-                    shape="circle",
-                )
+    # =========================================================================
+    # 4. NECKERCHIEF ('領巾') & WOGGLE ('領巾圈') — Draped OVER Collar & Sash!
+    # =========================================================================
+    nk = B["necker"]
+    collar_y = L["top"] + 0.55
+    wog_y = L["top"] - float(nk["wogDrop"])
+    wog_z = tor_hd + 1.15
+    tip_y = wog_y - float(nk["tailLen"]) * 0.48
 
-    # --- 4. Scout Neckerchief ('旅巾') + Woggle ('巾圈') ---
-    sc.add_capsule(W(-0.22, 1.84, 0.08), W(0.0, 1.66, 0.265), S(0.058), c_necker, roughness=0.50)
-    sc.add_capsule(W(0.22, 1.84, 0.08), W(0.0, 1.66, 0.265), S(0.058), c_necker, roughness=0.50)
-    sc.add_capsule(W(-0.22, 1.84, -0.10), W(0.22, 1.84, -0.10), S(0.055), c_necker, roughness=0.50)
-    sc.add_rounded_box(W(0.0, 1.72, -0.255), (S(0.18), S(0.12), S(0.025)), S(0.02), c_necker, rot=R)
-    sc.add_capsule(W(-0.02, 1.63, 0.27), W(-0.06, 1.42, 0.275), S(0.038), c_necker, roughness=0.50)
-    sc.add_capsule(W(0.02, 1.63, 0.27), W(0.06, 1.42, 0.275), S(0.038), c_necker, roughness=0.50)
-    sc.add_ellipsoid(W(0.0, 1.64, 0.285), (S(0.062), S(0.048), S(0.052)), c_woggle, rot=R, roughness=0.28)
+    for side in (-1.0, 1.0):
+        if c_neck_trim is not None:
+            sc.add_capsule(W(side * 6.6, collar_y, 1.8), W(0.0, wog_y - 0.3, wog_z - 0.14), S_cm(1.62), c_neck_trim, roughness=0.52)
+        sc.add_capsule(W(side * 6.4, collar_y + 0.15, 1.9), W(0.0, wog_y, wog_z), S_cm(1.35), c_necker, roughness=0.50)
 
-    # --- 5. Left Arm (+X, relaxed or cheerful wave!) & Right Arm (-X, relaxed or 3-Finger Scout Salute!) ---
-    wave_sw = math.sin(t_sec * 10.0) * 0.09 * wave
-    l_sh = (0.43, 1.76, 0.0)
-    l_el = (0.53 * (1.0 - wave) + 0.66 * wave, 1.48 * (1.0 - wave) + 1.84 * wave, 0.03 * (1.0 - wave) + 0.16 * wave)
-    l_wr = (0.56 * (1.0 - wave) + (0.64 + wave_sw) * wave, 1.18 * (1.0 - wave) + 2.22 * wave, 0.06 * (1.0 - wave) + 0.24 * wave)
-    if is_blocky and wave <= 0.02:
-        sc.add_rounded_box(W(0.49, 1.62, 0.01), (S(0.105), S(0.18), S(0.11)), S(0.025), c_shirt, rot=R @ rot_z(14))
-        sc.add_rounded_box(W(0.54, 1.32, 0.04), (S(0.085), S(0.16), S(0.085)), S(0.025), COL["skin"], rot=R @ rot_z(10))
-        sc.add_rounded_box(W(*l_wr), (S(0.09), S(0.09), S(0.09)), S(0.03), COL["skin"], rot=R)
-    else:
-        sc.add_capsule(W(*l_sh), W(*l_el), S(0.118), c_shirt, roughness=0.52)
-        sc.add_capsule(W(*l_el), W(*l_wr), S(0.088), COL["skin"], roughness=0.50)
-        sc.add_sphere(W(l_wr[0], l_wr[1] - 0.04 * (1.0 - wave), l_wr[2]), S(0.096), COL["skin"], roughness=0.48)
-        if wave <= 0.2:
-            sc.add_capsule(W(l_wr[0] - 0.05, l_wr[1] - 0.02, l_wr[2] + 0.05), W(l_wr[0] - 0.07, l_wr[1] - 0.09, l_wr[2] + 0.07), S(0.038), COL["skin"])
+    # Back triangular neckerchief bib
+    if c_neck_trim is not None:
+        sc.add_rounded_box(
+            W(0.0, L["top"] - float(nk["backH"]) * 0.45, -tor_hd - 0.38),
+            (S_cm(float(nk["backW"]) * 0.28), S_cm(float(nk["backH"]) * 0.44), S_cm(0.30)),
+            S_cm(0.42),
+            c_neck_trim,
+            rot=R,
+            roughness=0.52,
+        )
+    sc.add_rounded_box(
+        W(0.0, L["top"] - float(nk["backH"]) * 0.43, -tor_hd - 0.48),
+        (S_cm(float(nk["backW"]) * 0.24), S_cm(float(nk["backH"]) * 0.38), S_cm(0.32)),
+        S_cm(0.38),
+        c_necker,
+        rot=R,
+        roughness=0.50,
+    )
+    for side in (-1.0, 1.0):
+        sc.add_capsule(W(side * 0.35, wog_y - 0.8, wog_z - 0.05), W(side * 1.4, tip_y, tor_hd + 0.92), S_cm(0.92), c_necker, roughness=0.50)
+    sc.add_ellipsoid(W(0.0, wog_y, wog_z + 0.25), (S_cm(1.70), S_cm(1.30), S_cm(1.40)), c_woggle, rot=R, roughness=0.28)
 
-    # Wearer's Right Arm (-X): blends from relaxed side (salute=0) to crisp 3-finger Scout Salute (salute=1)!
-    r_sh = (-0.43, 1.76, 0.0)
-    r_el = (-0.53 * (1.0 - salute) + (-0.68) * salute, 1.48 * (1.0 - salute) + 1.82 * salute, 0.03 * (1.0 - salute) + 0.18 * salute)
-    r_wr = (-0.56 * (1.0 - salute) + (-0.44) * salute, 1.18 * (1.0 - salute) + 2.18 * salute, 0.06 * (1.0 - salute) + 0.28 * salute)
+    # =========================================================================
+    # 5. LEFT (+X) & RIGHT (-X) ARMS (Exact SCOUT3D `B.sleeve` + Rigid Badge Frame!)
+    # =========================================================================
+    slv = B["sleeve"]
+    u_arm = B["upperArm"]
+    l_arm = B["lowerArm"]
+    hand = B["hand"]
+    head = B["head"]
+    sleeve_len = float(slv["len"])
+    forearm_len = float(l_arm["h"])
 
+    # --- Wearer's LEFT Arm (+X) ---
+    l_pivot = v3(+float(L["armX"]), float(L["shoulderY"]), 0.0)
+    wave_u = float(max(0.0, min(1.0, wave)))
+    wave_osc = math.sin(t_sec * 10.0) * 14.0 * wave_u
+    R_upper_l = rot_z(-132.0 * wave_u - wave_osc * 0.4) @ rot_x(-18.0 * wave_u)
+    l_elbow = l_pivot + (R_upper_l @ v3(0.0, -float(u_arm["h"]), 0.0))
+    l_sleeve_mid = l_pivot + (R_upper_l @ v3(0.0, -sleeve_len * 0.5 + 1.0, 0.0))
+
+    slv_hd = slv["d"] * 0.50
+    slv_bevel = 0.45 if is_blocky else 1.35
+
+    sc.add_rounded_box(
+        WV(l_sleeve_mid),
+        (S_cm(slv["w"] * 0.5), S_cm(sleeve_len * 0.5), S_cm(slv_hd)),
+        S_cm(slv_bevel),
+        c_shirt,
+        rot=R @ R_upper_l,
+        roughness=0.52,
+    )
+    R_fore_l = R_upper_l @ rot_z(-18.0 * wave_u - wave_osc)
+    l_wrist = l_elbow + (R_fore_l @ v3(0.0, -forearm_len, 0.0))
     if is_blocky:
-        sc.add_capsule(W(*r_sh), W(*r_el), S(0.112), c_shirt, roughness=0.52)
-        sc.add_capsule(W(*r_el), W(*r_wr), S(0.085), COL["skin"], roughness=0.50)
-        sc.add_rounded_box(W(*r_wr), (S(0.078), S(0.075), S(0.068)), S(0.022), COL["skin"], rot=R)
+        sc.add_rounded_box(
+            WV(0.5 * (l_elbow + l_wrist)),
+            (S_cm(l_arm["w"] * 0.5), S_cm(forearm_len * 0.52), S_cm(l_arm["d"] * 0.5)),
+            S_cm(0.4),
+            COL["skin"],
+            rot=R @ R_fore_l,
+            roughness=0.50,
+        )
+        sc.add_rounded_box(
+            WV(l_wrist + (R_fore_l @ v3(0.0, -hand["h"] * 0.38, 0.0))),
+            (S_cm(hand["w"] * 0.5), S_cm(hand["h"] * 0.45), S_cm(hand["d"] * 0.5)),
+            S_cm(0.4),
+            COL["skin"],
+            rot=R @ R_fore_l,
+            roughness=0.48,
+        )
     else:
-        sc.add_capsule(W(*r_sh), W(*r_el), S(0.118), c_shirt, roughness=0.52)
-        sc.add_capsule(W(*r_el), W(*r_wr), S(0.088), COL["skin"], roughness=0.50)
-        sc.add_sphere(W(*r_wr), S(0.082), COL["skin"], roughness=0.48)
+        sc.add_capsule(WV(l_elbow), WV(l_wrist), S_cm(l_arm["w"] * 0.48), COL["skin"], roughness=0.50)
+        sc.add_sphere(WV(l_wrist + (R_fore_l @ v3(0.0, -hand["h"] * 0.30, 0.0))), S_cm(hand["w"] * 0.56), COL["skin"], roughness=0.48)
 
-    if salute > 0.5:
-        # Crisp 3-Finger Hong Kong Scout Salute for BOTH Bobo & Blocky Scouts! (Index, Middle, Ring + folded Thumb)
-        for fx_off in (-0.036, 0.0, 0.036):
+    # --- Wearer's RIGHT Arm (-X): relaxed at 0.0 -> crisp 3-finger HK Scout Salute at 1.0 ---
+    r_pivot = v3(-float(L["armX"]), float(L["shoulderY"]), 0.0)
+    sal_u = float(max(0.0, min(1.0, salute)))
+    # Lift right elbow outward (-X) and slightly forward (+Z) so all right-sleeve badges stay readable
+    R_upper_r = rot_x(-24.0 * sal_u) @ rot_z(-40.0 * sal_u)
+    r_elbow = r_pivot + (R_upper_r @ v3(0.0, -float(u_arm["h"]), 0.0))
+    r_sleeve_mid = r_pivot + (R_upper_r @ v3(0.0, -sleeve_len * 0.5 + 1.0, 0.0))
+
+    sc.add_rounded_box(
+        WV(r_sleeve_mid),
+        (S_cm(slv["w"] * 0.5), S_cm(sleeve_len * 0.5), S_cm(slv_hd)),
+        S_cm(slv_bevel),
+        c_shirt,
+        rot=R @ R_upper_r,
+        roughness=0.52,
+    )
+
+    r_wrist_rest = r_elbow + v3(0.0, -forearm_len, 0.0)
+    r_wrist_salute = v3(-head["w"] * 0.5 - 3.2, head["y"] + head["h"] * 0.44, head["d"] * 0.5 + 2.2)
+    r_wrist = r_wrist_rest * (1.0 - sal_u) + r_wrist_salute * sal_u
+
+    if is_blocky and sal_u < 0.05:
+        sc.add_rounded_box(
+            WV(0.5 * (r_elbow + r_wrist)),
+            (S_cm(l_arm["w"] * 0.5), S_cm(forearm_len * 0.52), S_cm(l_arm["d"] * 0.5)),
+            S_cm(0.4),
+            COL["skin"],
+            rot=R,
+            roughness=0.50,
+        )
+        sc.add_rounded_box(
+            WV(r_wrist + v3(0.0, -hand["h"] * 0.38, 0.0)),
+            (S_cm(hand["w"] * 0.5), S_cm(hand["h"] * 0.45), S_cm(hand["d"] * 0.5)),
+            S_cm(0.4),
+            COL["skin"],
+            rot=R,
+            roughness=0.48,
+        )
+    else:
+        sc.add_capsule(WV(r_elbow), WV(r_wrist), S_cm(l_arm["w"] * 0.48), COL["skin"], roughness=0.50)
+        sc.add_sphere(WV(r_wrist), S_cm(hand["w"] * 0.52), COL["skin"], roughness=0.48)
+
+    if sal_u > 0.5:
+        for fx_cm in (-1.30, 0.0, 1.30):
             sc.add_capsule(
-                W(r_wr[0] + fx_off, r_wr[1] + 0.04, r_wr[2] + 0.01),
-                W(r_wr[0] + fx_off * 0.92, r_wr[1] + 0.175, r_wr[2] + 0.01),
-                S(0.022),
+                WV(r_wrist + v3(fx_cm, 1.2, 0.2)),
+                WV(r_wrist + v3(fx_cm * 0.88 + 0.8, 6.2, 0.2)),
+                S_cm(0.70),
                 COL["skin"],
                 roughness=0.46,
             )
-        # Thumb folded neatly across palm (pressing pinky — authentic Scout Salute!)
-        sc.add_capsule(
-            W(r_wr[0] + 0.045, r_wr[1] + 0.01, r_wr[2] + 0.055),
-            W(r_wr[0] - 0.025, r_wr[1] + 0.035, r_wr[2] + 0.065),
-            S(0.022),
+        sc.add_capsule(WV(r_wrist + v3(1.6, 0.4, 1.5)), WV(r_wrist + v3(-0.8, 1.5, 1.7)), S_cm(0.70), COL["skin"], roughness=0.46)
+
+    # =========================================================================
+    # 6. NECK, HEAD, HAIR, OPTIONAL SECTION HEADWEAR & EXPRESSIVE FACE
+    # =========================================================================
+    neck = B["neck"]
+    sc.add_capsule(W(0.0, neck["y"] - 0.5, 0.0), W(0.0, head["y"] + 2.0, head["z"] * 0.5), S_cm(neck["w"] * 0.42), COL["skin"], roughness=0.50)
+
+    head_cy = head["y"] + head["h"] * 0.5
+    head_hw = head["w"] * 0.5
+    head_hh = head["h"] * 0.5
+    head_hd = head["d"] * 0.5
+    hz = head["z"]
+
+    if is_blocky:
+        sc.add_rounded_box(
+            W(0.0, head_cy, hz),
+            (S_cm(head_hw), S_cm(head_hh), S_cm(head_hd)),
+            S_cm(0.90),
             COL["skin"],
+            rot=R,
+            roughness=0.48,
+        )
+        sc.add_rounded_box(
+            W(0.0, head_cy + head_hh * 0.78, hz - 0.4),
+            (S_cm(head_hw + 0.65), S_cm(head_hh * 0.28), S_cm(head_hd + 0.55)),
+            S_cm(0.75),
+            COL["hair_dark"],
+            rot=R,
+            roughness=0.45,
+        )
+        sc.add_rounded_box(
+            W(0.0, head_cy + 0.5, hz - head_hd * 0.72),
+            (S_cm(head_hw + 0.45), S_cm(head_hh * 0.74), S_cm(head_hd * 0.35)),
+            S_cm(0.75),
+            COL["hair_dark"],
+            rot=R,
+            roughness=0.45,
+        )
+        face_z = hz + head_hd + 0.25
+        ear_x = head_hw + 0.45
+    else:
+        sc.add_ellipsoid(
+            W(0.0, head_cy, hz),
+            (S_cm(head_hw * 1.08), S_cm(head_hh * 1.04), S_cm(head_hd * 1.06)),
+            COL["skin"],
+            rot=R,
             roughness=0.46,
         )
+        sc.add_ellipsoid(
+            W(0.0, head_cy + head_hh * (0.12 if wear_hat else 0.22), hz - 1.5),
+            (S_cm(head_hw * 1.12), S_cm(head_hh * (0.88 if wear_hat else 1.02)), S_cm(head_hd * 1.04)),
+            COL["hair_dark"],
+            rot=R,
+            roughness=0.44,
+        )
+        if not wear_hat:
+            for bx_f, by_f, bz_f, br_f in [
+                (-0.48, 0.78, 0.56, 0.36),
+                (0.0, 0.84, 0.62, 0.39),
+                (0.48, 0.78, 0.56, 0.36),
+                (-0.80, 0.58, 0.32, 0.30),
+                (0.80, 0.58, 0.32, 0.30),
+            ]:
+                sc.add_sphere(
+                    W(bx_f * head_hw, head_cy + by_f * head_hh, hz + bz_f * head_hd),
+                    S_cm(br_f * head_hw),
+                    COL["hair_dark"],
+                    roughness=0.42,
+                )
+        face_z = hz + head_hd * 1.06
+        ear_x = head_hw * 1.08
 
-    # --- 6. Neck, Head, High-Clearance 3D Hair & Expressive 3D Face ---
-    sc.add_capsule(W(0.0, 1.80, 0.0), W(0.0, 1.98, 0.0), S(0.12), COL["skin"], roughness=0.50)
-
-    head_cy = 2.26
-    if is_blocky:
-        sc.add_rounded_box(W(0.0, head_cy, 0.02), (S(0.33), S(0.31), S(0.31)), S(0.055), COL["skin"], rot=R, roughness=0.48)
-        # Neat blocky hair cap strictly ABOVE forehead (y >= head_cy + 0.17 -> zero face occlusion!)
-        sc.add_rounded_box(W(0.0, head_cy + 0.25, -0.01), (S(0.35), S(0.11), S(0.33)), S(0.04), COL["hair_dark"], rot=R, roughness=0.45)
-        sc.add_rounded_box(W(0.0, head_cy + 0.02, -0.22), (S(0.34), S(0.24), S(0.12)), S(0.04), COL["hair_dark"], rot=R, roughness=0.45)
-        face_z = 0.335
-        ear_x = 0.35
-    else:
-        # Adorable plump '波波圓滑 3D' vinyl-toy head (like SCOUT3D og-image.png!)
-        sc.add_ellipsoid(W(0.0, head_cy, 0.02), (S(0.38), S(0.35), S(0.35)), COL["skin"], rot=R, roughness=0.46)
-        # Sculpted 3D rounded hair cap & high fluffy bangs STRICTLY above y = head_cy + 0.16!
-        sc.add_ellipsoid(W(0.0, head_cy + 0.07, -0.05), (S(0.40), S(0.35), S(0.36)), COL["hair_dark"], rot=R, roughness=0.44)
-        for bx_h, by_h, bz_h, br_h in [
-            (-0.18, 0.26, 0.20, 0.14),
-            (0.0, 0.28, 0.22, 0.15),
-            (0.18, 0.26, 0.20, 0.14),
-            (-0.30, 0.20, 0.12, 0.12),
-            (0.30, 0.20, 0.12, 0.12),
-        ]:
-            sc.add_sphere(W(bx_h, head_cy + by_h, bz_h), S(br_h), COL["hair_dark"], roughness=0.42)
-        face_z = 0.355
-        ear_x = 0.38
-
-    # Cute 3D ears (+ Girl Twin Pigtails & Venture Beret when selected!)
     for side in (-1.0, 1.0):
-        sc.add_ellipsoid(W(side * ear_x, head_cy - 0.02, 0.02), (S(0.07), S(0.095), S(0.065)), COL["skin"], rot=R)
-        if gender.upper() == "F":
-            sc.add_sphere(W(side * 0.42, head_cy + 0.04, -0.06), S(0.11), COL["hair_mom"], roughness=0.42)
+        sc.add_ellipsoid(W(side * ear_x, head_cy - 0.6, hz + 0.3), (S_cm(1.8), S_cm(2.6), S_cm(1.7)), COL["skin"], rot=R)
+        if is_girl:
+            sc.add_sphere(W(side * (ear_x + 1.4), head_cy + 0.8, hz - 2.2), S_cm(2.7), COL["hair_dark"], roughness=0.42)
             sc.add_capsule(
-                W(side * 0.44, head_cy + 0.02, -0.08),
-                W(side * 0.50, head_cy - 0.20, -0.06),
-                S(0.085),
-                COL["hair_mom"],
+                W(side * (ear_x + 1.7), head_cy + 0.3, hz - 2.4),
+                W(side * (ear_x + 3.2), head_cy - 6.6, hz - 1.9),
+                S_cm(2.2),
+                COL["hair_dark"],
                 roughness=0.42,
             )
 
-    if sec["beret"]:
-        sc.add_ellipsoid(W(0.04, head_cy + 0.32, 0.02), (S(0.42), S(0.13), S(0.39)), COL[sec["beret"]], rot=R @ rot_z(-8), roughness=0.50)
-        sc.add_sphere(W(-0.08, head_cy + 0.30, 0.38), S(0.050), COL["gold"], roughness=0.22)
+    if wear_hat:
+        _draw_headwear(sc, W, WV, WN, R, S_cm, head, variant, is_blocky)
 
-    # Glossy 3D eyes + bright white catchlights + eyebrows (strictly clear below hair!)
+    eye_x = head_hw * 0.38
+    eye_y = head_cy + 0.2
     for side in (-1.0, 1.0):
-        ex = side * 0.135
-        ey = head_cy + 0.01
-        sc.add_sphere(W(ex, ey, face_z - 0.01), S(0.046), COL["eye_dark"], roughness=0.12)
-        sc.add_sphere(W(ex - 0.014, ey + 0.016, face_z + 0.028), S(0.015), COL["white"], roughness=0.05, emissive=(0.4, 0.4, 0.4))
-        # Eyebrows (well below hair bangs at y = head_cy + 0.10!)
+        ex = side * eye_x
+        sc.add_sphere(W(ex, eye_y, face_z - 0.3), S_cm(1.30), COL["eye_dark"], roughness=0.12)
+        sc.add_sphere(W(ex - 0.38, eye_y + 0.45, face_z + 0.78), S_cm(0.44), COL["white"], roughness=0.05, emissive=(0.4, 0.4, 0.4))
         if expression == "nervous":
-            sc.add_capsule(
-                W(ex - side * 0.045, head_cy + 0.115, face_z - 0.02),
-                W(ex + side * 0.045, head_cy + 0.085, face_z - 0.02),
-                S(0.016),
-                COL["hair_dark"],
-            )
+            sc.add_capsule(W(ex - side * 1.3, head_cy + 3.2, face_z - 0.5), W(ex + side * 1.3, head_cy + 2.2, face_z - 0.5), S_cm(0.46), COL["hair_dark"])
         else:
-            sc.add_capsule(
-                W(ex - 0.045, head_cy + 0.105, face_z - 0.02),
-                W(ex + 0.045, head_cy + 0.112, face_z - 0.02),
-                S(0.016),
-                COL["hair_dark"],
-            )
+            sc.add_capsule(W(ex - 1.3, head_cy + 3.0, face_z - 0.5), W(ex + 1.3, head_cy + 3.2, face_z - 0.5), S_cm(0.46), COL["hair_dark"])
 
-    # Cute 3D button nose & rosy cheeks
-    sc.add_sphere(W(0.0, head_cy - 0.045, face_z + 0.025), S(0.036), COL["skin"], roughness=0.42)
+    sc.add_sphere(W(0.0, head_cy - 1.35, face_z + 0.65), S_cm(1.0), COL["skin"], roughness=0.42)
     for side in (-1.0, 1.0):
-        sc.add_ellipsoid(W(side * 0.21, head_cy - 0.065, face_z - 0.045), (S(0.055), S(0.035), S(0.03)), COL["blush"], rot=R)
+        sc.add_ellipsoid(W(side * (head_hw * 0.58), head_cy - 1.9, face_z - 1.25), (S_cm(1.55), S_cm(0.95), S_cm(0.8)), COL["blush"], rot=R)
 
-    # 3D Mouth expression
     if expression == "nervous":
-        # Wavy nervous frown + 3D sweat drop
-        sc.add_capsule(W(-0.07, head_cy - 0.145, face_z - 0.01), W(0.0, head_cy - 0.125, face_z), S(0.016), COL["maroon"])
-        sc.add_capsule(W(0.0, head_cy - 0.125, face_z), W(0.07, head_cy - 0.145, face_z - 0.01), S(0.016), COL["maroon"])
-        sc.add_ellipsoid(W(0.28, head_cy + 0.08, face_z - 0.05), (S(0.028), S(0.048), S(0.028)), hex_rgb01("#5EC8F8"), rot=R, roughness=0.15)
+        sc.add_capsule(W(-2.0, head_cy - 4.1, face_z - 0.3), W(0.0, head_cy - 3.5, face_z), S_cm(0.46), COL["maroon"])
+        sc.add_capsule(W(0.0, head_cy - 3.5, face_z), W(2.0, head_cy - 4.1, face_z - 0.3), S_cm(0.46), COL["maroon"])
+        sc.add_ellipsoid(W(head_hw * 0.78, head_cy + 2.3, face_z - 1.4), (S_cm(0.82), S_cm(1.40), S_cm(0.82)), hex_rgb01("#5EC8F8"), rot=R, roughness=0.15)
     elif expression == "surprised":
-        sc.add_sphere(W(0.0, head_cy - 0.135, face_z), S(0.040), COL["maroon"])
+        sc.add_sphere(W(0.0, head_cy - 3.9, face_z), S_cm(1.15), COL["maroon"])
     else:
-        # Warm beaming happy/proud smile arc!
-        sc.add_capsule(W(-0.085, head_cy - 0.115, face_z - 0.015), W(-0.03, head_cy - 0.145, face_z), S(0.018), COL["maroon"])
-        sc.add_capsule(W(-0.03, head_cy - 0.145, face_z), W(0.03, head_cy - 0.145, face_z), S(0.018), COL["maroon"])
-        sc.add_capsule(W(0.03, head_cy - 0.145, face_z), W(0.085, head_cy - 0.115, face_z - 0.015), S(0.018), COL["maroon"])
+        sc.add_capsule(W(-2.4, head_cy - 3.3, face_z - 0.4), W(-0.85, head_cy - 4.2, face_z), S_cm(0.50), COL["maroon"])
+        sc.add_capsule(W(-0.85, head_cy - 4.2, face_z), W(0.85, head_cy - 4.2, face_z), S_cm(0.50), COL["maroon"])
+        sc.add_capsule(W(0.85, head_cy - 4.2, face_z), W(2.4, head_cy - 3.3, face_z - 0.4), S_cm(0.50), COL["maroon"])
 
-    # --- 7. 3D Surface-Snapped Scout Badges! ---
+    # =========================================================================
+    # 7. AUTHORITATIVE SCOUT3D PROGRAMMATIC BADGE RENDERING (RGBA PNG PATCHES!)
+    # =========================================================================
     if badge_mode == "wrong":
-        for b in get_wrong_messy_badges_local():
-            p = b["pos"]
-            n = b["nrm"]
-            sc.add_scout_badge_3d(
-                W(float(p[0]), float(p[1]), float(p[2])),
-                WN(float(n[0]), float(n[1]), float(n[2])),
-                S(b["r"]),
-                b["base"],
-                b["emb"],
-                shape=b["shape"],
-            )
-    elif badge_mode in ("correct", "animated"):
-        # Compute dynamic right-upper-arm frame so sleeve badges track the arm cleanly during salute!
-        r_sh_v = v3(*r_sh)
-        r_el_v = v3(*r_el)
-        r_arm_axis = normalize(r_el_v - r_sh_v)
-        # Outward sleeve normal perpendicular to upper arm (pointing toward -X / +Z front-outer)
-        r_out_nrm = normalize(np.cross(r_arm_axis, v3(0.0, 0.0, -1.0)))
-        if r_out_nrm[0] > 0:
-            r_out_nrm = -r_out_nrm
-
-        for b in get_scout_badge_slots_local():
-            prog = 1.0 if (badge_progress is None) else badge_progress.get(b["id"], 1.0)
-            if prog <= 0.01:
+        for wb in get_wrong_messy_badges_local():
+            tex = _get_badge_rgba(wb["file"])
+            if tex is None:
                 continue
-            target_p = b["pos"]
-            n = b["nrm"]
-            # If right-sleeve badge & arm is saluting, attach cleanly to the raised khaki upper sleeve!
-            if salute > 0.02 and b["id"] in ("troop_tape", "district", "patrol"):
-                u_along = {"troop_tape": 0.22, "district": 0.52, "patrol": 0.80}[b["id"]]
-                arm_pt = r_sh_v * (1.0 - u_along) + r_el_v * u_along + r_out_nrm * 0.125
-                target_p = target_p * (1.0 - salute) + arm_pt * salute
-                n = normalize(n * (1.0 - salute) + r_out_nrm * salute)
-
-            # Fly in along a snappy 3D arc when 0 < prog < 1!
-            fly_t = min(1.0, prog)
-            ease = 1.0 - (1.0 - fly_t) ** 3
-            start_p = target_p + v3(0.85 * (1.0 if target_p[0] >= 0 else -1.0), 0.45, 0.75)
-            cur_p = start_p * (1.0 - ease) + target_p * ease
-            pop_scale = 1.0 + 0.28 * math.sin(fly_t * math.pi) if fly_t < 0.99 else 1.0
-            glow_amt = 0.55 * (1.0 - fly_t) if fly_t < 0.99 else 0.0
-            sc.add_scout_badge_3d(
-                W(float(cur_p[0]), float(cur_p[1]), float(cur_p[2])),
-                WN(float(n[0]), float(n[1]), float(n[2])),
-                S(b["r"] * pop_scale),
-                b["base"],
-                b["emb"],
-                shape=b["shape"],
-                glow=glow_amt,
+            p_w = base_pos + (R @ (wb["pos"] * scale))
+            sc.add_textured_patch_3d(
+                p_w,
+                WN(wb["nrm"]),
+                WN(wb["u_right"]),
+                WN(wb["v_up"]),
+                wb["w"] * scale,
+                wb["h"] * scale,
+                tex,
+                lift=0.008 * scale,
             )
+        return
+
+    if badge_mode not in ("correct", "animated"):
+        return
+
+    hi_set = set(highlight_slots or ())
+
+    for p in badges:
+        s_key = p["key"]
+        s_id = p["id"]
+        rel_file = p.get("art")
+        if not rel_file:
+            continue
+
+        is_sash_badge = bool(p.get("onSash"))
+        if is_sash_badge and sash_amt < 0.55:
+            continue
+
+        prog = 1.0 if badge_mode == "correct" else _slot_progress(s_key, s_id, badge_progress)
+        if prog <= 0.01:
+            continue
+
+        tex = _get_badge_rgba(rel_file)
+        if tex is None:
+            continue
+
+        mount = p.get("mount", "torso")
+        facing = p.get("facing", "front")
+        rot_z_rad = float(p.get("rotZ", 0.0))
+
+        if mount == "r":
+            alp = p["armLocalPos"]
+            # Push outward slightly (`-slv.w/2 - 0.16`) so patch sits cleanly on top of the right sleeve box
+            local_off = v3(-slv["w"] * 0.5 - 0.16, float(alp[1]), float(alp[2]))
+            target_cm = r_pivot + (R_upper_r @ local_off)
+            n_loc = R_upper_r @ v3(-1.0, 0.0, 0.0)
+            u_loc = R_upper_r @ v3(*p["armArtRight"])
+            v_loc = R_upper_r @ v3(0.0, +1.0, 0.0)
+        elif mount == "l":
+            alp = p["armLocalPos"]
+            local_off = v3(+slv["w"] * 0.5 + 0.16, float(alp[1]), float(alp[2]))
+            target_cm = l_pivot + (R_upper_l @ local_off)
+            n_loc = R_upper_l @ v3(+1.0, 0.0, 0.0)
+            u_loc = R_upper_l @ v3(*p["armArtRight"])
+            v_loc = R_upper_l @ v3(0.0, +1.0, 0.0)
+        elif facing == "up":
+            # Shoulder Epaulettes (`venture_epaulette.png` or `leader/epaulette_sl.png`)
+            ep_y = (strap["boxY"] + strap["boxT"] * 0.6 + 0.12) if strap else (L["top"] + 0.35)
+            target_cm = v3(float(p["x"]), ep_y, float(p["z"]))
+            n_loc = v3(0.0, +1.0, 0.0)
+            if rel_file == "venture_epaulette.png":
+                # Horizontal PNG (w=9, h=3.8): left = square V-wreath (outer shoulder), right = button (collar)
+                pw_cm, ph_cm = float(p["w"]), float(p["h"])
+                if p["x"] < 0:
+                    u_loc = v3(+1.0, 0.0, 0.0)
+                    v_loc = v3(0.0, 0.0, -1.0)
+                else:
+                    u_loc = v3(-1.0, 0.0, 0.0)
+                    v_loc = v3(0.0, 0.0, +1.0)
+            else:
+                # Vertical PNG (`leader/epaulette_sl.png`, image is tall: top = pointed collar end!)
+                # In `Badges.jsx`, plane is `[p.h, p.w]` rotated 90 deg so `p.w` (4.6 cm) runs along shoulder X!
+                pw_cm, ph_cm = float(p["h"]), float(p["w"])
+                if p["x"] < 0:
+                    v_loc = v3(+1.0, 0.0, 0.0)
+                    u_loc = v3(0.0, 0.0, +1.0)
+                else:
+                    v_loc = v3(-1.0, 0.0, 0.0)
+                    u_loc = v3(0.0, 0.0, -1.0)
+        else:
+            z_cm = (tor_hd + 0.54) if is_sash_badge else (tor_hd + 0.24)
+            target_cm = v3(float(p["x"]), float(p["y"]), z_cm)
+            n_loc = v3(0.0, 0.0, +1.0)
+            cs, sn = math.cos(rot_z_rad), math.sin(rot_z_rad)
+            u_loc = v3(cs, sn, 0.0)
+            v_loc = v3(-sn, cs, 0.0)
+
+        if facing != "up":
+            pw_cm, ph_cm = float(p["w"]), float(p["h"])
+
+        fly_t = min(1.0, prog)
+        ease = 1.0 - (1.0 - fly_t) ** 3
+        if fly_t < 0.995:
+            side_sgn = 1.0 if target_cm[0] >= 0 else -1.0
+            start_cm = target_cm + v3(46.0 * side_sgn, 24.0, 42.0)
+            cur_cm = start_cm * (1.0 - ease) + target_cm * ease
+            pop_scale = 1.0 + 0.25 * math.sin(fly_t * math.pi)
+            glow_amt = 0.60 * (1.0 - fly_t)
+        else:
+            cur_cm = target_cm
+            pop_scale = 1.0
+            glow_amt = 0.38 if (s_key in hi_set or s_id in hi_set) else 0.0
+
+        patch_shape = "circle" if p.get("shape") == "circle" else "rect"
+        sc.add_textured_patch_3d(
+            WV(cur_cm),
+            WN(n_loc),
+            WN(u_loc),
+            WN(v_loc),
+            S_cm(pw_cm * pop_scale),
+            S_cm(ph_cm * pop_scale),
+            tex,
+            shape=patch_shape,
+            lift=S_cm(0.08),
+            glow=glow_amt,
+        )
 
 
 def draw_mom_figure(
@@ -619,12 +1192,10 @@ def draw_mom_figure(
         sc.add_ellipsoid(W(side * 0.18, 0.09, 0.05), (S(0.11), S(0.08), S(0.16)), COL["maroon"], rot=R)
         sc.add_capsule(W(side * 0.18, 0.16, 0.0), W(side * 0.18, 0.78, 0.0), S(0.095), COL["skin"])
 
-    # Navy skirt + cozy coral-rose sweater
     sc.add_cylinder(W(0.0, 0.72, 0.0), W(0.0, 1.12, 0.0), S(0.36), COL["mom_skirt"], roughness=0.55)
     sc.add_rounded_box(W(0.0, 1.48, 0.0), (S(0.34), S(0.36), S(0.25)), S(0.17), COL["mom_sweater"], rot=R, roughness=0.52)
     sc.add_ellipsoid(W(0.0, 1.82, 0.08), (S(0.20), S(0.06), S(0.16)), COL["white"], rot=R)
 
-    # Arms (gesturing happily or holding sewing needle/head)
     bob_a = math.sin(t_sec * 6.0) * 0.05
     if mood == "dizzy":
         sc.add_capsule(W(-0.40, 1.74, 0.0), W(-0.52, 2.02 + bob_a, 0.18), S(0.105), COL["mom_sweater"])
@@ -637,12 +1208,10 @@ def draw_mom_figure(
         sc.add_capsule(W(0.40, 1.74, 0.0), W(0.34, 1.46 - bob_a, 0.32), S(0.105), COL["mom_sweater"])
         sc.add_sphere(W(0.32, 1.44 - bob_a, 0.35), S(0.095), COL["skin"])
 
-    # Neck, smooth round head & cute high top-bun (strictly above forehead!)
     sc.add_capsule(W(0.0, 1.82, 0.0), W(0.0, 1.98, 0.0), S(0.115), COL["skin"])
     hy = 2.26
     sc.add_ellipsoid(W(0.0, hy, 0.02), (S(0.37), S(0.35), S(0.35)), COL["skin"], rot=R, roughness=0.46)
     sc.add_ellipsoid(W(0.0, hy + 0.08, -0.06), (S(0.39), S(0.35), S(0.36)), COL["hair_mom"], rot=R, roughness=0.44)
-    # High round Mom bun on top of head!
     sc.add_sphere(W(0.0, hy + 0.44, -0.06), S(0.17), COL["hair_mom"], roughness=0.42)
     for bx_h in (-0.16, 0.0, 0.16):
         sc.add_sphere(W(bx_h, hy + 0.27, 0.19), S(0.13), COL["hair_mom"], roughness=0.42)
@@ -658,9 +1227,8 @@ def draw_mom_figure(
     sc.add_sphere(W(0.0, hy - 0.04, fz + 0.025), S(0.034), COL["skin"])
     if mood == "dizzy":
         sc.add_sphere(W(0.0, hy - 0.135, fz), S(0.036), COL["maroon"])
-        # Orbiting 3D dizzy stars above Mom's head!
-        for k in range(3):
-            ang = t_sec * 4.5 + k * (2.0 * math.pi / 3.0)
+        for k_i in range(3):
+            ang = t_sec * 4.5 + k_i * (2.0 * math.pi / 3.0)
             sc.add_sphere(
                 W(0.32 * math.cos(ang), hy + 0.56 + 0.03 * math.sin(ang * 2), 0.32 * math.sin(ang)),
                 S(0.052),
@@ -677,102 +1245,61 @@ def draw_leader_figure(
     sc: Scene3D,
     base_pos: np.ndarray,
     yaw_deg: float = 0.0,
-    scale: float = 1.08,
+    scale: float = 1.0,
     mood: str = "scold",  # "scold" | "praise"
     t_sec: float = 0.0,
 ) -> None:
-    """Adorable '波波圓滑 3D' Adult Scout Leader (Green Beret + Khaki Uniform + Red X or Green Check/Thumbs-Up!)."""
+    """Adult HK Scout Leader wearing the exact SCOUT3D `leader` uniform & RGBA badges,
+    plus 3D Red-X warning sign (`mood='scold'`) or Salute + Green Check (`mood='praise'`).
+    """
+    eff_scale = scale * 0.94
+    expr = "nervous" if mood == "scold" else "proud"
+    draw_scout_figure(
+        sc,
+        base_pos,
+        yaw_deg=yaw_deg,
+        scale=eff_scale,
+        style_mode="bobo",
+        expression=expr,
+        salute=0.0 if mood == "scold" else 1.0,
+        badge_mode="correct",
+        section="leader",
+        gender="M",
+        hat=True,
+        t_sec=t_sec,
+    )
+
     R = rot_y(yaw_deg)
     W = lambda lx, ly, lz: base_pos + (R @ v3(lx * scale, ly * scale, lz * scale))
     S = lambda d: d * scale
-    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(0.62), strength=0.28)
-
-    # Long navy uniform trousers & shoes
-    for side in (-1.0, 1.0):
-        sc.add_ellipsoid(W(side * 0.19, 0.09, 0.06), (S(0.12), S(0.09), S(0.18)), COL["eye_dark"], rot=R)
-        sc.add_capsule(W(side * 0.19, 0.16, 0.0), W(side * 0.19, 0.96, 0.0), S(0.13), COL["navy"], roughness=0.55)
-
-    sc.add_rounded_box(W(0.0, 0.98, 0.0), (S(0.33), S(0.14), S(0.24)), S(0.12), COL["navy"], rot=R)
-    sc.add_rounded_box(W(0.0, 1.50, 0.0), (S(0.36), S(0.38), S(0.26)), S(0.16), COL["khaki"], rot=R, roughness=0.50)
-    # Leader Maroon/Gilwell Neckerchief + Epaulettes
-    for side in (-1.0, 1.0):
-        sc.add_rounded_box(W(side * 0.28, 1.88, 0.0), (S(0.09), S(0.025), S(0.06)), S(0.015), COL["maroon"], rot=R)
-    sc.add_capsule(W(-0.22, 1.86, 0.08), W(0.0, 1.66, 0.275), S(0.060), COL["maroon"])
-    sc.add_capsule(W(0.22, 1.86, 0.08), W(0.0, 1.66, 0.275), S(0.060), COL["maroon"])
-    sc.add_ellipsoid(W(0.0, 1.65, 0.295), (S(0.062), S(0.05), S(0.05)), COL["khaki_dark"], rot=R)
-    # Leader ribbon bar above right pocket!
-    sc.add_rounded_box(W(-0.21, 1.68, 0.27), (S(0.09), S(0.028), S(0.02)), S(0.01), COL["scout_green"], rot=R)
-
-    # Arms + 3D Verdict Sign (Red X in Shot 1 vs Thumbs-Up + Green Check in Shot 4!)
     bob = math.sin(t_sec * 5.0) * 0.04
+    sx_c, sy_c, sz_c = -0.34, 2.94 + bob, 0.34
     if mood == "scold":
-        sc.add_capsule(W(0.45, 1.78, 0.0), W(0.54, 1.24, 0.08), S(0.115), COL["khaki"])
-        sc.add_sphere(W(0.55, 1.18, 0.09), S(0.098), COL["skin"])
-        # Pointing / raising Red X warning sign high in open air!
-        sc.add_capsule(W(-0.45, 1.78, 0.0), W(-0.56, 2.18 + bob, 0.24), S(0.115), COL["khaki"])
-        sc.add_sphere(W(-0.58, 2.25 + bob, 0.26), S(0.098), COL["skin"])
-        sx_c, sy_c, sz_c = -0.52, 2.92 + bob, 0.34
-        sc.add_cylinder(W(sx_c, sy_c, sz_c - 0.04), W(sx_c, sy_c, sz_c + 0.04), S(0.26), COL["warn_red"], roughness=0.30, emissive=(0.25, 0.02, 0.02))
-        sc.add_capsule(W(sx_c - 0.12, sy_c - 0.12, sz_c + 0.06), W(sx_c + 0.12, sy_c + 0.12, sz_c + 0.06), S(0.042), COL["white"])
-        sc.add_capsule(W(sx_c - 0.12, sy_c + 0.12, sz_c + 0.06), W(sx_c + 0.12, sy_c - 0.12, sz_c + 0.06), S(0.042), COL["white"])
+        sc.add_cylinder(
+            W(sx_c, sy_c, sz_c - 0.04),
+            W(sx_c, sy_c, sz_c + 0.04),
+            S(0.25),
+            COL["warn_red"],
+            roughness=0.30,
+            emissive=(0.25, 0.02, 0.02),
+        )
+        sc.add_capsule(W(sx_c - 0.11, sy_c - 0.11, sz_c + 0.06), W(sx_c + 0.11, sy_c + 0.11, sz_c + 0.06), S(0.040), COL["white"])
+        sc.add_capsule(W(sx_c - 0.11, sy_c + 0.11, sz_c + 0.06), W(sx_c + 0.11, sy_c - 0.11, sz_c + 0.06), S(0.040), COL["white"])
     else:
-        # Relaxed inner arm + Big Unobstructed Outer Thumbs-Up + Glowing Green Checkmark Shield!
-        sc.add_capsule(W(-0.44, 1.76, 0.0), W(-0.48, 1.24, 0.08), S(0.112), COL["khaki"])
-        sc.add_sphere(W(-0.49, 1.18, 0.09), S(0.094), COL["skin"])
-
-        sc.add_capsule(W(0.44, 1.78, 0.0), W(0.54, 1.84 + bob, 0.38), S(0.115), COL["khaki"])
-        sc.add_sphere(W(0.54, 1.86 + bob, 0.42), S(0.104), COL["skin"])
-        # Big clear 3D Thumb pointing straight up!
-        sc.add_capsule(W(0.54, 1.93 + bob, 0.42), W(0.54, 2.13 + bob, 0.42), S(0.046), COL["skin"])
-        # Floating 3D Green Check badge cleanly above heads!
-        sx_c, sy_c, sz_c = -0.38, 2.94 + bob, 0.36
-        sc.add_cylinder(W(sx_c, sy_c, sz_c - 0.04), W(sx_c, sy_c, sz_c + 0.04), S(0.27), COL["ok_green"], roughness=0.28, emissive=(0.04, 0.25, 0.10))
-        sc.add_capsule(W(sx_c - 0.12, sy_c - 0.01, sz_c + 0.06), W(sx_c - 0.02, sy_c - 0.11, sz_c + 0.06), S(0.042), COL["white"])
-        sc.add_capsule(W(sx_c - 0.02, sy_c - 0.11, sz_c + 0.06), W(sx_c + 0.14, sy_c + 0.11, sz_c + 0.06), S(0.042), COL["white"])
-
-    # Head + Classic Scout Green Beret (high above eyebrows -> zero face occlusion!)
-    sc.add_capsule(W(0.0, 1.84, 0.0), W(0.0, 2.00, 0.0), S(0.12), COL["skin"])
-    hy = 2.28
-    sc.add_ellipsoid(W(0.0, hy, 0.02), (S(0.38), S(0.35), S(0.35)), COL["skin"], rot=R, roughness=0.46)
-    sc.add_ellipsoid(W(0.0, hy + 0.06, -0.07), (S(0.39), S(0.32), S(0.35)), COL["hair_dark"], rot=R)
-    # Green Scout Beret tilted stylishly above forehead!
-    sc.add_ellipsoid(W(0.04, hy + 0.31, 0.02), (S(0.42), S(0.14), S(0.39)), COL["beret"], rot=R @ rot_z(-8), roughness=0.52)
-    sc.add_sphere(W(-0.08, hy + 0.29, 0.38), S(0.055), COL["gold"], roughness=0.22)
-
-    fz = 0.355
-    for side in (-1.0, 1.0):
-        sc.add_ellipsoid(W(side * 0.38, hy - 0.02, 0.02), (S(0.07), S(0.095), S(0.065)), COL["skin"], rot=R)
-        ex = side * 0.135
-        sc.add_sphere(W(ex, hy + 0.01, fz - 0.01), S(0.046), COL["eye_dark"], roughness=0.12)
-        sc.add_sphere(W(ex - 0.014, hy + 0.016, fz + 0.026), S(0.014), COL["white"], roughness=0.05, emissive=(0.4, 0.4, 0.4))
-        if mood == "scold":
-            # Stern angled scolding eyebrows!
-            sc.add_capsule(
-                W(ex - side * 0.05, hy + 0.085, fz - 0.01),
-                W(ex + side * 0.05, hy + 0.135, fz - 0.02),
-                S(0.020),
-                COL["hair_dark"],
-            )
-        else:
-            sc.add_capsule(
-                W(ex - 0.045, hy + 0.115, fz - 0.02),
-                W(ex + 0.045, hy + 0.120, fz - 0.02),
-                S(0.018),
-                COL["hair_dark"],
-            )
-            sc.add_ellipsoid(W(side * 0.21, hy - 0.065, fz - 0.045), (S(0.055), S(0.035), S(0.03)), COL["blush"], rot=R)
-
-    sc.add_sphere(W(0.0, hy - 0.045, fz + 0.025), S(0.038), COL["skin"])
-    if mood == "scold":
-        sc.add_capsule(W(-0.075, hy - 0.148, fz - 0.01), W(0.0, hy - 0.118, fz), S(0.020), COL["maroon"])
-        sc.add_capsule(W(0.0, hy - 0.118, fz), W(0.075, hy - 0.148, fz - 0.01), S(0.020), COL["maroon"])
-    else:
-        sc.add_capsule(W(-0.09, hy - 0.110, fz - 0.015), W(0.0, hy - 0.150, fz), S(0.020), COL["maroon"])
-        sc.add_capsule(W(0.0, hy - 0.150, fz), W(0.09, hy - 0.110, fz - 0.015), S(0.020), COL["maroon"])
+        sc.add_cylinder(
+            W(sx_c, sy_c, sz_c - 0.04),
+            W(sx_c, sy_c, sz_c + 0.04),
+            S(0.26),
+            COL["ok_green"],
+            roughness=0.28,
+            emissive=(0.04, 0.25, 0.10),
+        )
+        sc.add_capsule(W(sx_c - 0.11, sy_c - 0.01, sz_c + 0.06), W(sx_c - 0.02, sy_c - 0.10, sz_c + 0.06), S(0.040), COL["white"])
+        sc.add_capsule(W(sx_c - 0.02, sy_c - 0.10, sz_c + 0.06), W(sx_c + 0.13, sy_c + 0.10, sz_c + 0.06), S(0.040), COL["white"])
 
 
 def draw_handbook_stack(sc: Scene3D, base_pos: np.ndarray, yaw_deg: float = 0.0, scale: float = 1.0) -> None:
-    """Giant intimidating stack of 3 thick uniform manuals (zero baked text!)."""
+    """Giant stack of 3 thick uniform manuals (zero baked text)."""
     R = rot_y(yaw_deg)
     W = lambda lx, ly, lz: base_pos + (R @ v3(lx * scale, ly * scale, lz * scale))
     S = lambda d: d * scale
@@ -790,18 +1317,14 @@ def draw_handbook_stack(sc: Scene3D, base_pos: np.ndarray, yaw_deg: float = 0.0,
 
 
 def draw_camp_tent(sc: Scene3D, base_pos: np.ndarray, yaw_deg: float = 0.0, scale: float = 1.0) -> None:
-    """Cute 3D Scout A-Frame Camp Tent prop for outdoor camp episodes."""
+    """3D Scout A-Frame Camp Tent prop for outdoor camp episodes."""
     R = rot_y(yaw_deg)
     W = lambda lx, ly, lz: base_pos + (R @ v3(lx * scale, ly * scale, lz * scale))
     S = lambda d: d * scale
     sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(1.05), strength=0.22)
-    # Left & right canvas roof panels
     sc.add_rounded_box(W(-0.36, 0.54, 0.0), (S(0.50), S(0.045), S(0.62)), S(0.02), COL["tent_green"], rot=R @ rot_z(48), roughness=0.65)
     sc.add_rounded_box(W(0.36, 0.54, 0.0), (S(0.50), S(0.045), S(0.62)), S(0.02), COL["tent_green"], rot=R @ rot_z(-48), roughness=0.65)
-    # Ridge pole + front/back wooden poles
     sc.add_capsule(W(0.0, 0.96, -0.66), W(0.0, 0.96, 0.66), S(0.038), COL["khaki_dark"], roughness=0.55)
     sc.add_capsule(W(0.0, 0.0, 0.64), W(0.0, 1.04, 0.64), S(0.036), COL["khaki_dark"], roughness=0.55)
     sc.add_capsule(W(0.0, 0.0, -0.64), W(0.0, 1.04, -0.64), S(0.036), COL["khaki_dark"], roughness=0.55)
-    # Cozy warm interior mat
     sc.add_rounded_box(W(0.0, 0.04, 0.0), (S(0.56), S(0.035), S(0.58)), S(0.02), COL["tent_tan"], rot=R, roughness=0.70)
-

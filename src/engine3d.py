@@ -545,6 +545,79 @@ class Scene3D:
         emis = (emblem_color[0] * glow, emblem_color[1] * glow, emblem_color[2] * glow) if glow > 0.01 else None
         self._commit_hit(x0, y0, x1, y1, inside, t, n_arr, col_arr, roughness=0.35, emissive=emis)
 
+    def add_textured_patch_3d(
+        self,
+        center: np.ndarray,
+        normal: np.ndarray,
+        u_right: np.ndarray,
+        v_up: np.ndarray,
+        width: float,
+        height: float,
+        rgba_tex: np.ndarray,
+        shape: str = "rect",
+        lift: float = 0.008,
+        glow: float = 0.0,
+    ) -> None:
+        """Project an official RGBA PNG badge texture (`(H, W, 4)` float32 in [0,1]) onto an
+        exact oriented 3D plane (`u_right` = artwork right, `v_up` = artwork top) in Z-buffer space.
+        """
+        n = normalize(normal)
+        u_ax = normalize(u_right)
+        v_ax = normalize(v_up)
+        half_w = 0.5 * width
+        half_h = 0.5 * height
+        bound_r = math.hypot(half_w, half_h) + abs(lift) + 0.02
+        bb = self.project_bbox(center, bound_r)
+        if bb is None:
+            return
+        x0, y0, x1, y1 = bb
+        rd = self.rd[y0:y1, x0:x1]
+
+        top_c = center + n * lift
+        denom = np.einsum("hwk,k->hw", rd, n)
+        valid_front = denom < -1e-4
+        if not np.any(valid_front):
+            return
+
+        t = float(np.dot(top_c - self.cam_pos, n)) / np.where(valid_front, denom, -1.0)
+        p = self.cam_pos + t[..., None] * rd
+        rel = p - top_c
+        lu = np.einsum("hwk,k->hw", rel, u_ax) / max(1e-6, half_w)  # [-1, +1] left -> right
+        lv = np.einsum("hwk,k->hw", rel, v_ax) / max(1e-6, half_h)  # [-1, +1] bottom -> top
+
+        if shape == "circle":
+            geom_in = valid_front & ((lu * lu + lv * lv) <= 1.0)
+        else:
+            geom_in = valid_front & (np.abs(lu) <= 1.0) & (np.abs(lv) <= 1.0)
+        if not np.any(geom_in):
+            return
+
+        th, tw = rgba_tex.shape[:2]
+        # Map lu in [-1,+1] -> [0, tw-1], lv in [+1,-1] -> [0, th-1] (top of image = +v_up!)
+        fx = np.clip((lu * 0.5 + 0.5) * (tw - 1), 0.0, tw - 1.001)
+        fy = np.clip((0.5 - lv * 0.5) * (th - 1), 0.0, th - 1.001)
+        ix0 = fx.astype(np.int32)
+        iy0 = fy.astype(np.int32)
+        ix1 = np.minimum(tw - 1, ix0 + 1)
+        iy1 = np.minimum(th - 1, iy0 + 1)
+        wx = (fx - ix0)[..., None]
+        wy = (fy - iy0)[..., None]
+
+        c00 = rgba_tex[iy0, ix0]
+        c10 = rgba_tex[iy0, ix1]
+        c01 = rgba_tex[iy1, ix0]
+        c11 = rgba_tex[iy1, ix1]
+        sampled = (c00 * (1.0 - wx) + c10 * wx) * (1.0 - wy) + (c01 * (1.0 - wx) + c11 * wx) * wy
+
+        inside = geom_in & (sampled[..., 3] > 0.25)
+        if not np.any(inside):
+            return
+
+        col_arr = sampled[..., :3].astype(np.float32)
+        n_arr = np.broadcast_to(n, rd.shape).copy()
+        emis = (0.35 * glow, 0.30 * glow, 0.12 * glow) if glow > 0.01 else None
+        self._commit_hit(x0, y0, x1, y1, inside, t, n_arr, col_arr, roughness=0.58, emissive=emis)
+
     def render(self) -> Image.Image:
         """Shade G-buffer with 3-point vinyl-toy studio lighting, floor shadows & edge AA."""
         # 1. Studio backdrop gradient (clean subtle vertical studio cyclorama)

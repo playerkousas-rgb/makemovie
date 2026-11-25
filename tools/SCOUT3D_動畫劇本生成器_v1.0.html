@@ -322,14 +322,30 @@
         </select>
       </div>
       <div class="field">
+        <label for="charPresetSelect">🎭 3D 角色設定檔（一次設定・無限重用演員庫）</label>
+        <select id="charPresetSelect">
+          <option value="" selected>自訂組合（跟隨下方支部／髮型／風格）</option>
+          <option value="ming_scout_sash">阿明（童軍・綠底紅邊專章帶 12 枚＋貝雷帽）</option>
+          <option value="ming_scout">阿明（童軍・左袖 5 枚專科章標準款）</option>
+          <option value="ching_scout_girl">小晴（女童軍成員・雙馬尾＋專章帶）</option>
+          <option value="lok_cub">樂樂（幼童軍・黃領巾綠邊＋幼童軍帽）</option>
+          <option value="yau_grasshopper">悠悠（小童軍・橙色上衣＋灰短褲）</option>
+          <option value="hin_venture">阿軒（深資童軍・紫紅肩章＋紫紅貝雷帽＋長褲）</option>
+          <option value="hoi_sea_scout">阿海（海童軍・白恤＋藍領巾＋水手帽）</option>
+          <option value="tin_air_scout">阿天（空童軍・淺藍恤＋藍領巾＋空童軍帽）</option>
+          <option value="sir_leader">陳領袖（成年領袖・SL肩章＋右袋香港章＋Gilwell巾）</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="sectionSelect">預設童軍支部制服（各鏡頭亦可單獨覆蓋）</label>
         <select id="sectionSelect">
-          <option value="scout" selected>童軍 Scout（卡其恤衫＋紫紅旅巾＋綠紅專章帶）</option>
-          <option value="grasshopper">小童軍 Grasshopper（橙色 Polo＋紫紅旅巾）</option>
-          <option value="cub">幼童軍 Cub Scout（卡其恤衫＋黃旅巾＋綠巾圈）</option>
-          <option value="venture">深資童軍 Venture（卡其恤衫＋紫紅貝雷帽＋長褲）</option>
-          <option value="sea_scout">海童軍 Sea Scout（白色海童軍恤＋藍旅巾＋專章帶）</option>
-          <option value="air_scout">空童軍 Air Scout（天藍空童軍恤＋藍旅巾＋長褲）</option>
+          <option value="scout" selected>童軍 Scout（卡其恤衫＋橄欖綠短褲＋綠紅專章帶）</option>
+          <option value="grasshopper">小童軍 Grasshopper（橙色上衣＋灰短褲＋酒紅領巾）</option>
+          <option value="cub">幼童軍 Cub Scout（卡其恤衫＋橄欖綠短褲＋黃領巾綠邊）</option>
+          <option value="venture">深資童軍 Venture（卡其恤衫＋紫紅肩章貝雷帽＋長褲）</option>
+          <option value="sea_scout">海童軍 Sea Scout（白色海童軍恤＋深藍短褲＋水手帽）</option>
+          <option value="air_scout">空童軍 Air Scout（淺藍空童軍恤＋深藍短褲＋空童軍帽）</option>
+          <option value="leader">成年領袖 Leader（卡其恤衫＋SL肩章＋右袋香港章＋長褲）</option>
         </select>
       </div>
       <div class="field">
@@ -386,7 +402,7 @@
           <div class="chips">
             <button type="button" class="chip" data-idea="ep02_camp_eve|如果系列 EP.02 · 大露營前夕|大露營前一日夜晚，媽媽先發現啲新專科章唔知聯邊度，好彩有 SCOUT 3D 撳個章就自動貼上 3D 人仔，望住照聯十分鐘搞掂，去到營地領袖大讚！">⛺ EP.02 大露營前夕救星</button>
             <button type="button" class="chip" data-idea="ep03_section_up|如果系列 EP.03 · 升團換新制服|幼童軍升上童軍換新制服，成套章位置唔同晒！用 SCOUT 3D 一揀支部同徽章即刻自動擺啱位，小童軍、幼童軍、童軍、深資童軍全部支援！">🎖️ EP.03 升團換新制服</button>
-            <button type="button" class="chip" data-idea="ep04_sash_master|如果系列 EP.04 · 專章帶點樣戴|考夠專科章要戴綠紅專章帶，究竟左肩定右肩？SCOUT 3D 自動幫你由右肩斜佩到左腰，360度轉身睇清前後零死角！">🎗️ EP.04 專章帶斜佩零死角</button>
+            <button type="button" class="chip" data-idea="ep04_sash_master|如果系列 EP.04 · 專章帶點樣戴|考夠 6 個或以上專科章要改戴綠底紅邊專章帶，究竟左肩定右肩？SCOUT 3D 自動幫你由左肩斜佩至右腰並壓於領巾之下，360度轉身睇清前後零死角！">🎗️ EP.04 專章帶斜佩零死角</button>
             <button type="button" class="chip" data-idea="ep05_sea_air|如果系列 EP.05 · 海空童軍都啱位|唔止陸童軍！海童軍白恤衫、空童軍天藍恤衫一樣複雜，SCOUT 3D 一撳徽章自動上身，方塊定波波公仔都百發百中！">⚓ EP.05 海童軍／空童軍特輯</button>
           </div>
         </div>
@@ -570,21 +586,35 @@ pip install -r requirements.txt</div>
 
   const SECTION_LABELS = {
     "": "跟隨全集預設支部",
-    scout: "童軍 Scout（卡其＋紫紅巾）",
-    grasshopper: "小童軍（橙色 Polo）",
-    cub: "幼童軍（黃旅巾）",
-    venture: "深資童軍（紫紅貝雷帽＋長褲）",
-    sea_scout: "海童軍（白恤＋藍旅巾）",
-    air_scout: "空童軍（天藍恤＋長褲）"
+    scout: "童軍 Scout（卡其＋橄欖綠短褲）",
+    grasshopper: "小童軍（橙色上衣＋灰短褲）",
+    cub: "幼童軍（卡其＋黃領巾綠邊）",
+    venture: "深資童軍（紫紅肩章貝雷帽＋長褲）",
+    sea_scout: "海童軍（白恤＋深藍短褲＋水手帽）",
+    air_scout: "空童軍（淺藍恤＋深藍短褲）",
+    leader: "成年領袖（SL肩章＋右袋香港章）"
   };
 
   const SECTION_COLORS = {
-    scout: { shirt: "#CFB68C", necker: "#822030", sash: true },
-    grasshopper: { shirt: "#F2791C", necker: "#7B1E2B", sash: false },
-    cub: { shirt: "#CFB68C", necker: "#F0BA29", sash: false },
-    venture: { shirt: "#CFB68C", necker: "#2E7D4F", sash: false },
-    sea_scout: { shirt: "#F2F6FA", necker: "#1F4E9C", sash: true },
-    air_scout: { shirt: "#8DB9E2", necker: "#1F4E9C", sash: true }
+    scout: { shirt: "#E4D8B6", bottom: "#6E7D43", necker: "#7B1E2B", sash: true, leader: false },
+    grasshopper: { shirt: "#F07A1C", bottom: "#8D8E90", necker: "#7B1E2B", sash: false, leader: false },
+    cub: { shirt: "#E4D8B6", bottom: "#6E7D43", necker: "#E9B425", sash: false, leader: false },
+    venture: { shirt: "#E4D8B6", bottom: "#6E7D43", necker: "#7B1E2B", sash: false, leader: false },
+    sea_scout: { shirt: "#F7F7F4", bottom: "#313166", necker: "#1F4E9C", sash: false, leader: false },
+    air_scout: { shirt: "#94AFDB", bottom: "#313166", necker: "#1F4E9C", sash: false, leader: false },
+    leader: { shirt: "#E4D8B6", bottom: "#6E7D43", necker: "#B59870", sash: false, leader: true }
+  };
+
+  const CHAR_PRESET_MAP = {
+    ming_scout_sash: { section: "scout", gender: "M", hero_style: "bobo", show_sash: 1.0, hat: true },
+    ming_scout: { section: "scout", gender: "M", hero_style: "bobo", show_sash: 0.0, hat: false },
+    ching_scout_girl: { section: "scout", gender: "F", hero_style: "bobo", show_sash: 1.0, hat: false },
+    lok_cub: { section: "cub", gender: "M", hero_style: "bobo", show_sash: 0.0, hat: true },
+    yau_grasshopper: { section: "grasshopper", gender: "F", hero_style: "bobo", show_sash: 0.0, hat: false },
+    hin_venture: { section: "venture", gender: "M", hero_style: "bobo", show_sash: 0.0, hat: true },
+    hoi_sea_scout: { section: "sea_scout", gender: "M", hero_style: "bobo", show_sash: 0.0, hat: true },
+    tin_air_scout: { section: "air_scout", gender: "M", hero_style: "bobo", show_sash: 0.0, hat: true },
+    sir_leader: { section: "leader", gender: "M", hero_style: "bobo", show_sash: 0.0, hat: true }
   };
 
   // ── 4 套內建黃金劇本範本 ──
@@ -643,8 +673,8 @@ pip install -r requirements.txt</div>
       hero_style: "bobo",
       toggles: ["世界會員章", "旅條 · 區章", "小隊章", "專章帶模式"],
       shots: [
-        { preset: "scout3d_auto_snap", duration: 3.4, section: "", show_ui_card: true, trio_sections: ["cub","scout","venture"], subtitle: "專科章考得多，\n專章帶究竟左肩定右肩斜佩？" },
-        { preset: "turntable_360_closeup", duration: 3.2, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "SCOUT 3D 360 度自由轉，\n右肩斜去左腰、前後袖章一清二楚！" },
+        { preset: "scout3d_auto_snap", duration: 3.4, section: "", show_ui_card: true, trio_sections: ["cub","scout","venture"], subtitle: "專科章考夠六個，\n專章帶究竟左肩定右肩斜佩？" },
+        { preset: "turntable_360_closeup", duration: 3.2, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "SCOUT 3D 360 度自由轉，\n左肩斜落右腰、領巾壓帶一清二楚！" },
         { preset: "mom_and_kid_proud", duration: 2.6, section: "", show_ui_card: false, trio_sections: ["cub","scout","venture"], subtitle: "媽媽照住聯零死角，\n宣誓禮精神奕奕出發 —— SCOUT 3D！" }
       ]
     }
@@ -690,9 +720,11 @@ pip install -r requirements.txt</div>
   function buildCurrentSpec() {
     const epId = sanitizeId($("episodeId").value);
     const aspect = $("aspectSelect").value || "9:16";
-    const section = $("sectionSelect").value || "scout";
-    const gender = $("genderSelect").value || "M";
-    const heroStyle = $("heroStyleSelect").value || "bobo";
+    const charPreset = ($("charPresetSelect") && $("charPresetSelect").value) || "";
+    const cpObj = CHAR_PRESET_MAP[charPreset] || null;
+    const section = $("sectionSelect").value || (cpObj && cpObj.section) || "scout";
+    const gender = $("genderSelect").value || (cpObj && cpObj.gender) || "M";
+    const heroStyle = $("heroStyleSelect").value || (cpObj && cpObj.hero_style) || "bobo";
     const seriesBadge = ($("seriesBadge").value || "如果系列 · SCOUT 3D").trim();
     const toggles = [
       ($("toggle0").value || "世界會員章").trim(),
@@ -715,7 +747,7 @@ pip install -r requirements.txt</div>
       return item;
     });
 
-    return {
+    const out = {
       episode_id: epId,
       series_badge: seriesBadge,
       aspect: aspect,
@@ -729,6 +761,12 @@ pip install -r requirements.txt</div>
       },
       shots: cleanShots
     };
+    if (charPreset) {
+      out.char_preset = charPreset;
+      if (cpObj && typeof cpObj.show_sash === "number") out.show_sash = cpObj.show_sash;
+      if (cpObj && typeof cpObj.hat === "boolean") out.hat = cpObj.hat;
+    }
+    return out;
   }
 
   // ── 產生與 src/scout3d_runner.py 100% 相容嘅 Git 專用 Python 劇本（頂頭第 1 行即係 SUBTITLE_LINES）──
@@ -887,19 +925,25 @@ pip install -r requirements.txt</div>
     // Torso
     ctx.fillStyle = secCol.shirt;
     roundRect(ctx, cx - rHead * 0.95, cy - h * 0.08, rHead * 1.9, h * 0.36, 6, true, false);
-    // Shorts
-    ctx.fillStyle = "#1F3052";
+    // Shorts / Trousers (exact SCOUT3D bottom color!)
+    ctx.fillStyle = secCol.bottom || "#6E7D43";
     roundRect(ctx, cx - rHead * 0.85, cy + h * 0.24, rHead * 1.7, h * 0.16, 4, true, false);
-    // Sash
+    // Sash: Wearer's Left Shoulder (viewer right: cx + rHead*0.7) -> Wearer's Right Waist (viewer left: cx - rHead*0.7), UNDER necker!
     if (secCol.sash && !wrong) {
-      ctx.strokeStyle = "#2E7D4F";
-      ctx.lineWidth = Math.max(3, rHead * 0.35);
+      ctx.strokeStyle = "#D3262E";
+      ctx.lineWidth = Math.max(4.5, rHead * 0.44);
       ctx.beginPath();
-      ctx.moveTo(cx + rHead * 0.7, cy - h * 0.06);
-      ctx.lineTo(cx - rHead * 0.7, cy + h * 0.24);
+      ctx.moveTo(cx + rHead * 0.68, cy - h * 0.06);
+      ctx.lineTo(cx - rHead * 0.72, cy + h * 0.23);
+      ctx.stroke();
+      ctx.strokeStyle = "#1F8F45";
+      ctx.lineWidth = Math.max(3, rHead * 0.33);
+      ctx.beginPath();
+      ctx.moveTo(cx + rHead * 0.68, cy - h * 0.06);
+      ctx.lineTo(cx - rHead * 0.72, cy + h * 0.23);
       ctx.stroke();
     }
-    // Necker
+    // Necker (draped OVER sash!)
     ctx.strokeStyle = secCol.necker;
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -907,12 +951,16 @@ pip install -r requirements.txt</div>
     ctx.lineTo(cx, cy + h * 0.06);
     ctx.lineTo(cx + rHead * 0.6, cy - h * 0.07);
     ctx.stroke();
-    // Badges
+    // Badges: Wearer's Left chest pocket (+X, viewer right) = World Membership; Adult Leader also has HK badge on Right pocket (-X)!
     ctx.fillStyle = wrong ? "#E04848" : "#6A359C";
     ctx.beginPath();
-    ctx.arc(cx + (wrong ? -2 : rHead * 0.45), cy + (wrong ? h * 0.15 : h * 0.06), 3, 0, Math.PI * 2);
+    ctx.arc(cx + (wrong ? -2 : rHead * 0.48), cy + (wrong ? h * 0.15 : h * 0.07), 3, 0, Math.PI * 2);
     ctx.fill();
-    // Salute right arm
+    if (!wrong && secCol.leader) {
+      ctx.fillStyle = "#1F5A3A";
+      ctx.fillRect(cx - rHead * 0.62, cy + h * 0.04, 4.5, 6);
+    }
+    // Salute right arm (wearer's right = viewer left: cx - rHead)
     if (salute) {
       ctx.strokeStyle = "#FAD7B8";
       ctx.lineWidth = 3.5;
@@ -1235,6 +1283,7 @@ ${ghReadme ? `\n【GitHub 專案參考資料】：\n${ghReadme.slice(0, 2500)}` 
       const key = btn.getAttribute("data-tpl");
       const tpl = TEMPLATES[key];
       if (!tpl) return;
+      if ($("charPresetSelect")) $("charPresetSelect").value = "";
       $("episodeId").value = tpl.episode_id;
       $("seriesBadge").value = tpl.series_badge;
       $("aspectSelect").value = tpl.aspect;
@@ -1249,6 +1298,20 @@ ${ghReadme ? `\n【GitHub 專案參考資料】：\n${ghReadme.slice(0, 2500)}` 
       showToast("已載入劇本範本");
     });
   });
+
+  // 3D 角色設定庫一鍵套用
+  if ($("charPresetSelect")) {
+    $("charPresetSelect").addEventListener("change", () => {
+      const cp = CHAR_PRESET_MAP[$("charPresetSelect").value];
+      if (cp) {
+        $("sectionSelect").value = cp.section;
+        $("genderSelect").value = cp.gender;
+        $("heroStyleSelect").value = cp.hero_style;
+        showToast("🎭 已套用 3D 角色設定檔！");
+      }
+      refreshAllOutputs();
+    });
+  }
 
   // 全域欄位變更即時刷新
   ["episodeId","seriesBadge","aspectSelect","sectionSelect","genderSelect","heroStyleSelect","toggle0","toggle1","toggle2","toggle3","alsoWritePyChk"].forEach((id) => {

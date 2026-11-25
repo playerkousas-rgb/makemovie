@@ -1,0 +1,9 @@
+{
+  "name": "阿明（童軍・綠底紅邊專章帶 12 枚＋貝雷帽）",
+  "section": "scout",
+  "gender": "M",
+  "style_mode": "bobo",
+  "show_sash": 1.0,
+  "hat": true,
+  "notes": "可重用 3D 演員設定卡：直接喺劇本傳入 char_preset='presets/ming_scout_sash.json' 或 'ming_scout_sash' 即可無限拍新集數，比例、制服色同 SCOUT3D 程式徽章座標永久鎖定。"
+}

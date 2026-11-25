@@ -37,6 +37,7 @@ if str(SRC_DIR) not in sys.path:
 from camera import clamp, lerp, smoothstep
 from engine3d import Camera3D, Scene3D, hex_rgb01, v3
 from scout3d_characters import (
+    CHARACTER_PRESETS,
     COL,
     SECTION_STYLES,
     draw_camp_tent,
@@ -45,6 +46,7 @@ from scout3d_characters import (
     draw_mom_figure,
     draw_scout_figure,
     draw_turntable_pedestal,
+    resolve_character_preset,
 )
 from spec_loader import ensure_font_path
 
@@ -157,11 +159,14 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
     width, height = ASPECT_PRESETS[aspect]
 
     fps = int(clamp(int(raw.get("fps") or 24), 12, 60))
-    default_section = str(raw.get("section") or "scout")
+    ep_char_cfg = resolve_character_preset(raw.get("char_preset"))
+    default_section = str(raw.get("section") or ep_char_cfg.get("section") or "scout")
     if default_section not in SECTION_STYLES:
         default_section = "scout"
-    default_gender = "F" if str(raw.get("gender") or "M").upper() == "F" else "M"
-    hero_style = "blocky" if str(raw.get("hero_style") or "bobo") == "blocky" else "bobo"
+    default_gender = "F" if str(raw.get("gender") or ep_char_cfg.get("gender") or "M").upper() == "F" else "M"
+    hero_style = "blocky" if str(raw.get("hero_style") or ep_char_cfg.get("style_mode") or "bobo") == "blocky" else "bobo"
+    default_hat = raw.get("hat", ep_char_cfg.get("hat", None))
+    default_sash = raw.get("show_sash", ep_char_cfg.get("show_sash", None))
     bgm_mood = str(raw.get("bgm_mood") or "comedy_to_hero")
     series_badge = _sanitize_text_for_font(str(raw.get("series_badge") or "如果系列 · 如果你有 SCOUT 3D"))
 
@@ -188,13 +193,17 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
             preset = "scout3d_auto_snap"
         dur = float(clamp(float(sh.get("duration") or 3.0), 1.2, 12.0))
         n_frames = max(12, int(round(dur * fps)))
-        sec = str(sh.get("section") or default_section)
+        sh_char = resolve_character_preset(sh.get("char_preset"))
+        sec = str(sh.get("section") or sh_char.get("section") or default_section)
         if sec not in SECTION_STYLES:
             sec = default_section
-        gen = "F" if str(sh.get("gender") or default_gender).upper() == "F" else "M"
-        style_sh = str(sh.get("style_mode") or hero_style)
+        gen = "F" if str(sh.get("gender") or sh_char.get("gender") or default_gender).upper() == "F" else "M"
+        style_sh = str(sh.get("style_mode") or sh_char.get("style_mode") or hero_style)
         if style_sh not in ("bobo", "blocky", "morph"):
             style_sh = "morph" if preset == "scout3d_auto_snap" else hero_style
+        same_sec = (sec == default_section)
+        hat_sh = sh.get("hat", sh_char.get("hat", default_hat if same_sec else None))
+        sash_sh = sh.get("show_sash", sh_char.get("show_sash", default_sash if same_sec else None))
 
         sub_txt = str(sh.get("subtitle") or "")
         if subtitle_override and idx in subtitle_override:
@@ -216,6 +225,8 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
                 "section": sec,
                 "gender": gen,
                 "style_mode": style_sh,
+                "hat": hat_sh,
+                "show_sash": sash_sh,
                 "camera": str(sh.get("camera") or "auto"),
                 "show_ui_card": bool(sh.get("show_ui_card", preset == "scout3d_auto_snap")),
                 "trio_sections": trio_clean,
@@ -269,8 +280,12 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
     preset = sh["preset"]
     sec = sh["section"]
     gen = sh["gender"]
+    sh_hat = sh.get("hat")
     hero_style = "blocky" if sh["style_mode"] == "blocky" else "bobo"
-    sec_has_sash = 1.0 if sec in ("scout", "sea_scout", "air_scout") else 0.0
+    if sh.get("show_sash") is not None:
+        sec_has_sash = float(sh["show_sash"]) if sec in ("scout", "sea_scout", "air_scout") else 0.0
+    else:
+        sec_has_sash = 1.0 if sec == "scout" else 0.0
 
     t = frame_idx / float(fps)
     local_f = frame_idx - sh["start_frame"]
@@ -299,7 +314,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             yaw_deg=math.sin(t * 7.5) * 6.0, scale=0.90,
             style_mode=hero_style, expression="nervous",
             salute=0.0, badge_mode="wrong", show_sash=0.0,
-            section=sec, gender=gen, t_sec=t,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
         )
         draw_leader_figure(sc, v3(0.86, 0.0, -0.15), yaw_deg=-24.0, scale=0.92, mood="scold", t_sec=t)
         return sc.render()
@@ -349,7 +364,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             style_mode=mode, expression="happy",
             salute=0.0, badge_mode="animated",
             badge_progress=prog_map, show_sash=sash_vis,
-            section=sec, gender=gen, t_sec=t,
+            section=sec, gender=gen, hat=sh_hat, t_sec=t,
         )
         if do_morph and (morph_u - 0.06) <= u <= (morph_u + 0.08):
             ru = (u - (morph_u - 0.06)) / 0.14
