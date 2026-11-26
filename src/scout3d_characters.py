@@ -15,6 +15,7 @@ from __future__ import annotations
 import base64
 import json
 import math
+import re
 import urllib.request
 import zlib
 from pathlib import Path
@@ -78,6 +79,8 @@ SECTION_STYLES: Dict[str, Dict[str, Any]] = {
     "air_scout": {"zh": "空童軍", "sash_capable": True},
     "venture": {"zh": "深資童軍", "sash_capable": False},
     "leader": {"zh": "成年領袖", "sash_capable": False},
+    # 便服：唔著童軍制服（襯衫／褲由 outfit 決定），用 scout rig 嘅身形但冇領巾／帽／章
+    "casual": {"zh": "便服", "sash_capable": False},
 }
 
 # Reusable 3D Character Presets ('人物角色設定檔') — configure once, reuse across unlimited episodes!
@@ -634,6 +637,7 @@ def draw_scout_figure(
     highlight_slots: Optional[Sequence[str]] = None,
     s3d_custom: Optional[Dict[str, Any]] = None,
     actor_skin: str = "human",       # "human" | "ai_robot"
+    outfit: Optional[Dict[str, Any]] = None,   # 便服設定（section="casual" 時使用）
 ) -> None:
     """Draw an authentic 3D Hong Kong Scout character using exact SCOUT3D rules & RGBA badges."""
     if preset is not None:
@@ -675,6 +679,32 @@ def draw_scout_figure(
     base_variant, gen_entry, default_badges = _select_rig_bundle(sec, gender, use_sash_layout)
     variant = dict(base_variant)
     badges = default_badges
+
+    # 便服模式：換色、除帽、除領巾、除章（保留童軍 rig 嘅身形同表情）
+    casual_mode = (sec == "casual")
+    if casual_mode:
+        of = outfit if isinstance(outfit, dict) else {}
+        style = str(of.get("style") or "tee").lower().strip()
+        top = str(of.get("top") or of.get("color") or "").strip()
+        bottom = str(of.get("bottom") or "").strip()
+        accent = str(of.get("accent") or "").strip()
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", top):
+            top = "#5B8DEF"
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", bottom):
+            bottom = "#31456B" if style != "dress" else top
+        variant["shirt"] = top
+        variant["leg"] = bottom
+        variant["sock"] = "#F4F4F6"
+        variant["shoe"] = "#23262B"
+        variant["belt"] = None
+        variant["hat"] = None
+        variant["longPants"] = True
+        if re.fullmatch(r"#[0-9a-fA-F]{6}", accent):
+            variant["buckle"] = accent
+        hat = False
+        show_sash = 0.0
+        if badge_mode in ("correct", "animated"):
+            badge_mode = "none"
 
     custom_neck_border: Optional[str] = None
     if custom_cfg:
@@ -891,7 +921,7 @@ def draw_scout_figure(
                 roughness=0.52,
             )
 
-    if B.get("pocket"):
+    if B.get("pocket") and not casual_mode:
         pk = B["pocket"]
         flap_top_y = L["top"] - pk["top"]
         pk_bot_y = flap_top_y - pk["h"]
@@ -1001,37 +1031,38 @@ def draw_scout_figure(
     # 4. NECKERCHIEF ('領巾') & WOGGLE ('領巾圈') — Draped OVER Collar & Sash!
     # =========================================================================
     nk = B["necker"]
-    collar_y = L["top"] + 0.55
-    wog_y = L["top"] - float(nk["wogDrop"])
-    wog_z = tor_hd + 1.15
-    tip_y = wog_y - float(nk["tailLen"]) * 0.48
+    if not casual_mode:
+        collar_y = L["top"] + 0.55
+        wog_y = L["top"] - float(nk["wogDrop"])
+        wog_z = tor_hd + 1.15
+        tip_y = wog_y - float(nk["tailLen"]) * 0.48
 
-    for side in (-1.0, 1.0):
+        for side in (-1.0, 1.0):
+            if c_neck_trim is not None:
+                sc.add_capsule(W(side * 6.6, collar_y, 1.8), W(0.0, wog_y - 0.3, wog_z - 0.14), S_cm(1.62), c_neck_trim, roughness=0.52)
+            sc.add_capsule(W(side * 6.4, collar_y + 0.15, 1.9), W(0.0, wog_y, wog_z), S_cm(1.35), c_necker, roughness=0.50)
+
+        # Back triangular neckerchief bib
         if c_neck_trim is not None:
-            sc.add_capsule(W(side * 6.6, collar_y, 1.8), W(0.0, wog_y - 0.3, wog_z - 0.14), S_cm(1.62), c_neck_trim, roughness=0.52)
-        sc.add_capsule(W(side * 6.4, collar_y + 0.15, 1.9), W(0.0, wog_y, wog_z), S_cm(1.35), c_necker, roughness=0.50)
-
-    # Back triangular neckerchief bib
-    if c_neck_trim is not None:
+            sc.add_rounded_box(
+                W(0.0, L["top"] - float(nk["backH"]) * 0.45, -tor_hd - 0.38),
+                (S_cm(float(nk["backW"]) * 0.28), S_cm(float(nk["backH"]) * 0.44), S_cm(0.30)),
+                S_cm(0.42),
+                c_neck_trim,
+                rot=R,
+                roughness=0.52,
+            )
         sc.add_rounded_box(
-            W(0.0, L["top"] - float(nk["backH"]) * 0.45, -tor_hd - 0.38),
-            (S_cm(float(nk["backW"]) * 0.28), S_cm(float(nk["backH"]) * 0.44), S_cm(0.30)),
-            S_cm(0.42),
-            c_neck_trim,
+            W(0.0, L["top"] - float(nk["backH"]) * 0.43, -tor_hd - 0.48),
+            (S_cm(float(nk["backW"]) * 0.24), S_cm(float(nk["backH"]) * 0.38), S_cm(0.32)),
+            S_cm(0.38),
+            c_necker,
             rot=R,
-            roughness=0.52,
+            roughness=0.50,
         )
-    sc.add_rounded_box(
-        W(0.0, L["top"] - float(nk["backH"]) * 0.43, -tor_hd - 0.48),
-        (S_cm(float(nk["backW"]) * 0.24), S_cm(float(nk["backH"]) * 0.38), S_cm(0.32)),
-        S_cm(0.38),
-        c_necker,
-        rot=R,
-        roughness=0.50,
-    )
-    for side in (-1.0, 1.0):
-        sc.add_capsule(W(side * 0.35, wog_y - 0.8, wog_z - 0.05), W(side * 1.4, tip_y, tor_hd + 0.92), S_cm(0.92), c_necker, roughness=0.50)
-    sc.add_ellipsoid(W(0.0, wog_y, wog_z + 0.25), (S_cm(1.70), S_cm(1.30), S_cm(1.40)), c_woggle, rot=R, roughness=0.28)
+        for side in (-1.0, 1.0):
+            sc.add_capsule(W(side * 0.35, wog_y - 0.8, wog_z - 0.05), W(side * 1.4, tip_y, tor_hd + 0.92), S_cm(0.92), c_necker, roughness=0.50)
+        sc.add_ellipsoid(W(0.0, wog_y, wog_z + 0.25), (S_cm(1.70), S_cm(1.30), S_cm(1.40)), c_woggle, rot=R, roughness=0.28)
 
     # =========================================================================
     # 5. LEFT (+X) & RIGHT (-X) ARMS (Exact SCOUT3D `B.sleeve` + Rigid Badge Frame!)
