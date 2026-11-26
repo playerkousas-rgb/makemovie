@@ -823,7 +823,24 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         story_section = s3d_sec
     default_section = str(raw.get("section") or story_section or s3d_sec or ep_char_cfg.get("section") or "scout")
     if default_section not in SECTION_STYLES:
-        default_section = "scout"
+        # v3.4：以前呢度靜靜雞變 "scout"，令「選便服」出咗童軍制服（舊版 src 唔識 casual）。
+        # 而家一定出聲，而且有便服線索時退便服而唔係制服。
+        _sect_req = default_section
+        _storyish = bool(
+            raw.get("outfit") or raw.get("clothes") or raw.get("costume")
+            or raw.get("species") or raw.get("characters") or story_section
+        )
+        if "casual" in SECTION_STYLES and _storyish:
+            default_section = "casual"
+        elif "scout" in SECTION_STYLES:
+            default_section = "scout"
+        else:
+            default_section = next(iter(SECTION_STYLES))
+        print(
+            f"[scout3d-runner] \u26a0 code 寫住 section=\"{_sect_req}\"，但呢個引擎版本冇呢個支部設定。"
+            f"已改用「{default_section}」。\n"
+            f"                 如果係便服故事，請先喺 repo 執行： git pull origin main （v3.3+ 先支援 casual）"
+        )
     ep_actor_skin = _norm_actor_skin(raw.get("actor_skin"))
     default_gender = "F" if str(raw.get("gender") or s3d_gen or ep_char_cfg.get("gender") or "M").upper() == "F" else "M"
     hero_style = "blocky" if str(raw.get("hero_style") or s3d_style or ep_char_cfg.get("style_mode") or "bobo") == "blocky" else "bobo"
@@ -984,6 +1001,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         raise ValueError("Episode spec must contain at least 1 shot in `shots`.")
 
     shots_norm: List[Dict[str, Any]] = []
+    thin_scenes: List[int] = []
     cur_frame = 0
     for idx, sh in enumerate(shots_in, start=1):
         preset = str(sh.get("preset") or default_preset)
@@ -1053,6 +1071,11 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
                 }
         if sh_scene is None and ep_scene is not None:
             sh_scene = dict(ep_scene)
+        if isinstance(sh_scene, dict) and sh_scene.get("objects"):
+            _objs = sh_scene.get("objects") or []
+            _pal = sh_scene.get("palette") or {}
+            if len(_objs) < 6 or not (_pal.get("sky_top") or _pal.get("sky_bottom")):
+                thin_scenes.append(idx)
 
         trio = sh.get("trio_sections") or ["cub", "scout", "venture"]
         trio_clean = [s if s in SECTION_STYLES else "scout" for s in list(trio)[:3]]
@@ -1085,6 +1108,17 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         )
         cur_frame += n_frames
 
+    try:
+        target_sec = float(raw.get("target_sec") or raw.get("target_duration") or 0.0) or None
+    except Exception:
+        target_sec = None
+    if thin_scenes:
+        print(
+            f"[scout3d-runner] \u2139 有 {len(thin_scenes)}/{len(shots_norm)} 鏡場景偏單薄"
+            f"（第 {', '.join(str(i) for i in thin_scenes)} 鏡少過 6 件物件或者冇 scene.sky）。"
+            " 已自動按物件主色配天空色；想要更豐富嘅景，叫 AI 每鏡最少 6 件物件＋寫 sky。"
+        )
+
     return {
         "episode_id": ep_id,
         "series_badge": series_badge,
@@ -1093,6 +1127,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "height": height,
         "fps": fps,
         "total_frames": cur_frame,
+        "target_sec": target_sec,
         "section": default_section,
         "story_section": default_section,
         "actor_skin": ep_actor_skin,
@@ -1850,6 +1885,50 @@ def _draw_blueprint(sc: Scene3D, scene: Dict[str, Any], t_sec: float, floor_y: O
 
 
 
+def _rgb01_to_hex(rgb: Any) -> str:
+    r, g, b = [max(0.0, min(1.0, float(v))) for v in rgb]
+    return "#%02X%02X%02X" % (int(round(r * 255)), int(round(g * 255)), int(round(b * 255)))
+
+
+def _scene_palette_from_objects(objects: List[Dict[str, Any]]) -> Optional[Dict[str, str]]:
+    """v3.4：AI 冇寫 scene.sky 嘅時候，用該鏡物件嘅主色調出天空／環境色。
+
+    之前所有冇 `kind` 嘅鏡都跌落同一個深藍底 (#0B1224 → #1B2440)，
+    所以就算故事／物件唔同，成條片 8 鏡睇落都係「同一個場景、完全冇轉」。
+    """
+    acc_r = acc_g = acc_b = 0.0
+    acc_w = 0.0
+    for ob in objects or []:
+        if not isinstance(ob, dict):
+            continue
+        try:
+            r, g, b = hex_rgb01(str(ob.get("color") or ""))
+        except Exception:
+            continue
+        size = ob.get("size")
+        try:
+            span = float(size[0]) if isinstance(size, (list, tuple)) and size else float(size)
+        except Exception:
+            span = 0.5
+        rep = ob.get("repeat")
+        try:
+            count = float(rep.get("count") or 1) if isinstance(rep, dict) else 1.0
+        except Exception:
+            count = 1.0
+        w = max(0.05, min(4.0, abs(span))) * max(1.0, min(3.0, count))
+        acc_r += r * w
+        acc_g += g * w
+        acc_b += b * w
+        acc_w += w
+    if acc_w <= 0.0:
+        return None
+    r, g, b = acc_r / acc_w, acc_g / acc_w, acc_b / acc_w
+    # 天頂：壓暗、偏藍（有天空感）；地平線：提亮、保留物件色調（環境反光）
+    top = (min(1.0, r * 0.52 + 0.04), min(1.0, g * 0.56 + 0.05), min(1.0, b * 0.64 + 0.16))
+    bot = (min(1.0, r * 0.84 + 0.24), min(1.0, g * 0.86 + 0.24), min(1.0, b * 0.90 + 0.24))
+    return {"sky_top": _rgb01_to_hex(top), "sky_bottom": _rgb01_to_hex(bot)}
+
+
 def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: int) -> Image.Image:
     W_px: int = spec["width"]
     H_px: int = spec["height"]
@@ -1869,8 +1948,13 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
             "key": (-0.40, 0.72, 0.60),
             "rim": "#9CC4FF",
         }
-    palette = scene.get("palette") or {}
+    palette = dict(scene.get("palette") or {})
     light = scene.get("light") or {}
+    # v3.4：AI 冇指定天空色 → 用該鏡物件主色自動配（唔會全片同一個深藍底）
+    if objects and not palette.get("sky_top") and not palette.get("sky_bottom"):
+        auto_pal = _scene_palette_from_objects(objects)
+        if auto_pal:
+            palette.update(auto_pal)
 
     local_f = frame_idx - sh["start_frame"]
     u = local_f / float(max(1, sh["num_frames"] - 1))
@@ -2949,6 +3033,18 @@ def prepare_episode_voiceovers(spec: Dict[str, Any], force: bool = False) -> Dic
             sh["end_frame"] = cur_f + sh["num_frames"] - 1
             cur_f += sh["num_frames"]
         spec["total_frames"] = cur_f
+
+    # v3.4：同用戶對帳 —— 「我揀 30 秒」就應該真係 30 秒左右
+    total_sec = spec["total_frames"] / float(fps)
+    target_sec = spec.get("target_sec")
+    if target_sec:
+        if total_sec > float(target_sec) * 1.12:
+            print(
+                f"[scout3d-runner] ⚠️ 片長對帳：目標 {float(target_sec):.0f}s，但實際旁白要 {total_sec:.1f}s。"
+                f"（想貼返目標：刪一兩個鏡，或者縮短最長嗰句旁白再出片）"
+            )
+        else:
+            print(f"[scout3d-runner] ✓ 片長對帳：目標 {float(target_sec):.0f}s / 實際 {total_sec:.1f}s")
 
     if vo_clips:
         print(
