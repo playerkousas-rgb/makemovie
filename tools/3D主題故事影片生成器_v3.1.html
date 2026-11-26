@@ -434,6 +434,24 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
       </div>
     </div>
 
+    <!-- 2B. AI 場景測試（Canvas 內建 Gemini，免 key） -->
+    <div class="panel">
+      <div class="phead">
+        <span class="n">🧪</span>
+        <h2>AI 場景測試（唔出片）</h2>
+        <span class="hint">直接用 Canvas 內建 Gemini，唔使本機 key</span>
+      </div>
+      <div class="pbody">
+        <div class="field">
+          <label>打一句場景描述，睇 AI 係咪真係砌到 objects</label>
+          <input id="f_test_scene" placeholder="例：土星環上面有條發光冰跑道，遠處見到地球，仲有流星">
+          <div class="mini">呢個測試只會問 AI，唔會改你嘅劇本；會顯示 AI 原始回覆＋格式驗證，方便睇佢有冇偷懶用 preset。</div>
+        </div>
+        <button class="btn sm" id="btnTestScene">🧪 叫 AI 砌呢個場景</button>
+        <pre id="testSceneOut" hidden style="margin-top:10px;max-height:260px;overflow:auto;white-space:pre-wrap;font-size:11.5px;background:#f1ece1;border-radius:10px;padding:10px"></pre>
+      </div>
+    </div>
+
     <!-- 3. 3D 畫風 · 比例 · 廣東話聲線 -->
     <div class="panel">
       <div class="phead">
@@ -1229,7 +1247,7 @@ scene 層：
 · float：角色漂浮（無地面／太空建議 true）
 · cast：false＝純景物鏡（唔出角色），適合開場空鏡
 
-【完整例子：土星環上面嘅冰跑道 + 遠處地球】
+【格式示例（只示範點寫，唔准照抄內容）】
 {"objects":[
   {"shape":"ring","pos":[0,0.12,-5.0],"size":[2.6,0.1],"tube":0.055,"color":"#E8D5A8","count":64,"rot":[10,0,-6]},
   {"shape":"sphere","pos":[0,0.12,-5.0],"size":[0.75],"color":"#D6A26A"},
@@ -1314,6 +1332,11 @@ ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'
 
 · 場景要跟住主題走：講太空就出太空、講海底就出海底、講城市就出城市；唔好全片都留喺地球營地。
 · 每鏡自己用 scene.objects 砌景（唔係揀 preset、唔係揀 props 清單）；道具／建築／地形全部用基本形狀組合出嚟。
+· **場景多樣性硬性規則（唔准違反）**：
+  1. 每一鏡嘅 scene.objects 必須按嗰一鏡嘅剧情重新設計，唔可以複製上一鏡。
+  2. 相鄰兩鏡唔可以係同一個場景；全片至少要有 4 個明顯不同嘅場景／地點。
+  3. 下面 sceneDocBlock 嘅例子只示範「格式」，**絕對唔准照抄內容**（例如唔好每逢科幻就抄土星環）。
+  4. 唔准用 props 或 kind 代替 objects；每鏡 objects 至少 3 件。
 · 唔准加任何產品／App／網站介紹或「功能示範」字眼。`;
 
   const castSchema = (S.cast && S.cast.length)
@@ -1608,7 +1631,7 @@ function parseStoryJson(raw, allowUniform){
         duration: scene ? 3.0 : (PRESET_MAP[p] ? PRESET_MAP[p].defDur : 3.0),
         camera: cam,
         scene,
-        sceneKind: scene ? 'auto' : 'auto',
+        sceneFallback: !(scene && scene.objects && scene.objects.length),
         narration: nar || '故事開始，齊齊出發。',
         subtitle: sub || nar
       };
@@ -1690,6 +1713,9 @@ async function doStory(mode){
 
     S.shots = parsed.shots;
     S.aiCast = Array.isArray(parsed.characters) ? parsed.characters : [];
+    const missingScenes = S.shots.filter(sh => !(sh.scene && sh.scene.objects && sh.scene.objects.length)).length;
+    const sceneKinds = new Set(S.shots.map(sh => sh.scene && sh.scene.objects && sh.scene.objects.length ? JSON.stringify(sh.scene.objects) : 'none'));
+    S.sceneAudit = { missing: missingScenes, unique: sceneKinds.size - (sceneKinds.has('none') ? 1 : 0), total: S.shots.length };
     /* 用戶揀咗「我話事」：AI 嘅場景／運鏡唔可以蓋過用戶設定 */
     if(S.director === 'cam'){
       S.shots.forEach(sh => { sh.camera = 'auto'; });
@@ -1722,7 +1748,15 @@ async function doStory(mode){
     renderStaticPickers();
     renderShotsEditor();
     await refreshAllOutputs();
-    setStatus('ok', `✅ AI 已編排 ${S.shots.length} 鏡主題故事（${sectionZh(resolvedSection())}），場景由 AI 自由設計！右邊撳「複製 CMD 出片指令」即可本機生成 MP4。`);
+    if(missingScenes === S.shots.length){
+      setStatus('err', '⚠️ AI 回覆完全冇 scene.objects（全部鏡都係 preset）—— 多數係模型冇跟格式。請再撳一次，或者喺「AI 場景測試」睇下 AI 原始回覆。');
+      showToast('⚠️ AI 冇出場景，全部鏡用 preset');
+    }else if(missingScenes > 0){
+      setStatus('ok', `⚠️ AI 已編排 ${S.shots.length} 鏡，但有 ${missingScenes} 鏡冇 scene.objects（會用 preset）。可以逐鏡打描述撳「🎨 AI 重畫場景」。`);
+      showToast(`⚠️ ${missingScenes} 鏡未有 AI 場景`);
+    }else{
+      setStatus('ok', `✅ AI 已編排 ${S.shots.length} 鏡，全部有 AI 自由場景（${S.sceneAudit.unique} 種不同場景）！`);
+    }
     showToast(`✨ 已生成 ${S.shots.length} 鏡廣東話劇本！`);
   }catch(err){
     const msg = (err instanceof FriendlyError) ? err.message : ('⚠️ ' + (err && err.message ? err.message : '發生錯誤'));
@@ -2209,9 +2243,9 @@ function renderPreviewAndStats(spec){
     const p = PRESET_MAP[sh.preset] || PRESETS[0];
     const camId = (sh.camera && sh.camera !== 'auto') ? sh.camera : (S.director !== 'ai' ? S.camera : 'auto');
     const camObj = CAMERA_MAP[camId] || CAMERA_MAP.auto;
-    const sceneLabel = sh.scene
-      ? `${esc(sceneSummary(sh.scene))}`
-      : `${p.emoji} ${esc(p.name.split('：')[0])}（preset）`;
+    const sceneLabel = (sh.scene && sh.scene.objects && sh.scene.objects.length)
+      ? esc(sceneSummary(sh.scene))
+      : `⚠️ preset（AI 未出場景）`;
     return `
       <div class="shotpv">
         <div class="shotpv-top">
@@ -2405,6 +2439,28 @@ function bindEvents(){
     S.aiActor = detectActorFromText($('f_focus').value);
     updateContextHints();
     refreshAllOutputs();
+  });
+
+  $('btnTestScene').addEventListener('click', async () => {
+    const desc = ($('f_test_scene').value || '').trim();
+    const out = $('testSceneOut');
+    const btn = $('btnTestScene');
+    if(!desc){ showToast('請先打一句場景描述'); return; }
+    out.hidden = false;
+    out.textContent = '⏳ 問 AI 中…（Canvas 會自動用你嘅登入 Key）';
+    btn.disabled = true;
+    try{
+      const resp = await callText(buildScenePrompt(desc, { subtitle: '（AI 場景測試）' }));
+      const raw = pickText(resp);
+      const scene = parseSceneResponse(raw);
+      out.textContent = (scene
+        ? `✅ 格式有效：${sceneSummary(scene)}\n物件數：${(scene.objects || []).length}\n\n`
+        : `❌ AI 回覆唔符合格式（冇 objects / 形狀名錯）\n\n`) + String(raw).slice(0, 5000);
+    }catch(err){
+      out.textContent = '❌ 呼叫失敗：' + (err && err.message ? err.message : err);
+    }finally{
+      btn.disabled = false;
+    }
   });
 
   $('btnAddShot').addEventListener('click', async () => {
