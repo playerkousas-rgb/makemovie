@@ -88,6 +88,77 @@ PRESET_CATALOG: Dict[str, str] = {
     "dual_salute_praise": "方塊＋波波童軍齊敬三指禮・領袖豎拇指大讚（綠 ✓）",
 }
 
+# 運鏡（Camera move）目錄：可以交畀 AI 每鏡自己揀，也可以由用戶固定一個。
+# `auto` = 跟隨場景 preset 原本嘅運鏡；其餘會喺 preset 機位之上再加一層鏡頭運動。
+CAMERA_CATALOG: Dict[str, str] = {
+    "auto": "跟隨場景預設運鏡（AI／場景原生）",
+    "push_in": "慢推近：鏡頭慢慢靠近主角",
+    "pull_out": "慢拉遠：由近拉開，交代環境",
+    "pan_left": "向左橫移：鏡頭平移到左邊",
+    "pan_right": "向右橫移：鏡頭平移到右邊",
+    "tilt_up": "上搖：由身體慢慢搖上天空／臉",
+    "orbit_left": "環繞左轉：圍住主角轉向左",
+    "orbit_right": "環繞右轉：圍住主角轉向右",
+    "crane_up": "升高俯瞰：鏡頭慢慢升起",
+    "low_angle": "低角度仰拍：主角更有氣勢",
+    "handheld": "手持跟拍：微微震動，紀實感",
+}
+
+_CAMERA_ALIASES: Dict[str, str] = {
+    "none": "auto", "default": "auto", "preset": "auto", "自動": "auto", "跟場景": "auto",
+    "push": "push_in", "pushin": "push_in", "zoomin": "push_in", "dollyin": "push_in",
+    "推近": "push_in", "推鏡": "push_in", "前推": "push_in",
+    "pull": "pull_out", "pullout": "pull_out", "zoomout": "pull_out", "dollyout": "pull_out",
+    "拉遠": "pull_out", "後拉": "pull_out",
+    "panleft": "pan_left", "left": "pan_left", "左移": "pan_left", "左搖": "pan_left",
+    "panright": "pan_right", "right": "pan_right", "右移": "pan_right", "右搖": "pan_right",
+    "tiltup": "tilt_up", "up": "tilt_up", "上搖": "tilt_up", "仰": "tilt_up",
+    "orbitleft": "orbit_left", "circleleft": "orbit_left", "左環繞": "orbit_left",
+    "orbitright": "orbit_right", "circleright": "orbit_right", "右環繞": "orbit_right",
+    "crane": "crane_up", "rise": "crane_up", "升高": "crane_up", "俯瞰": "crane_up",
+    "low": "low_angle", "lowangle": "low_angle", "仰拍": "low_angle", "低角度": "low_angle",
+    "handheld": "handheld", "hand": "handheld", "shake": "handheld", "手持": "handheld",
+}
+
+
+def _norm_camera(value: Any) -> str:
+    """Map loose AI / user camera wording (e.g. '慢推近', 'push') to a camera key."""
+    if value is None:
+        return "auto"
+    key = re.sub(r"[\s\-]+", "_", str(value).strip().lower())
+    if not key:
+        return "auto"
+    if key in CAMERA_CATALOG:
+        return key
+    compact = key.replace("_", "")
+    if compact in CAMERA_CATALOG:
+        return compact
+    if key in _CAMERA_ALIASES:
+        return _CAMERA_ALIASES[key]
+    if compact in _CAMERA_ALIASES:
+        return _CAMERA_ALIASES[compact]
+    # 中文自由描述（例：「慢推近」「向左橫移」「升高俯瞰」）
+    if "推" in key or "push" in key or "dolly" in key and "out" not in key:
+        return "push_in"
+    if "拉" in key or "pull" in key:
+        return "pull_out"
+    if "環繞" in key or "orbit" in key:
+        return "orbit_left" if ("左" in key or "left" in key) else "orbit_right"
+    if "左" in key:
+        return "pan_left"
+    if "右" in key:
+        return "pan_right"
+    if "上搖" in key or "仰" in key:
+        return "tilt_up"
+    if "升高" in key or "crane" in key or "俯瞰" in key:
+        return "crane_up"
+    if "低角度" in key or "low" in key:
+        return "low_angle"
+    if "手持" in key or "hand" in key:
+        return "handheld"
+    return "auto"
+
+
 _STORY_SECTION_ALIASES: Dict[str, str] = {
     "grasshopper": "grasshopper", "grasshoppers": "grasshopper", "小童軍": "grasshopper", "gh": "grasshopper",
     "cub": "cub", "cubs": "cub", "幼童軍": "cub",
@@ -110,6 +181,21 @@ def _norm_story_section(value: Any) -> Optional[str]:
         return _STORY_SECTION_ALIASES[key]
     raw_key = str(value or "").strip().lower()
     return _STORY_SECTION_ALIASES.get(raw_key)
+
+
+def _section_from_s3d(code: Optional[Dict[str, Any]]) -> Optional[str]:
+    """Return the Scout section encoded inside a decoded S3D outfit code."""
+    if not code:
+        return None
+    rsec = str(code.get("rigSection") or code.get("section") or "").lower().strip()
+    rvar = str(code.get("variant") or "").lower().strip()
+    if rsec == "scout" and rvar == "sea":
+        return "sea_scout"
+    if rsec == "scout" and rvar == "air":
+        return "air_scout"
+    if rsec == "rover":
+        return "venture"
+    return rsec if rsec in SECTION_STYLES else None
 
 
 def _norm_actor_skin(value: Any) -> str:
@@ -289,6 +375,79 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "show_sash",
         (1.0 if s3d_custom.get("sash") else 0.0) if (s3d_custom and "sash" in s3d_custom) else ep_cfg_sash,
     )
+
+    # ------------------------------------------------------------------
+    # 角色陣容（1–5 人）：每個角色可以有自己的支部、真人／AI 機械人設定，
+    # 以及自己嘅 SCOUT 3D 制服穿搭碼（S3D1_... / JSON）。
+    # 冇 `characters` 嘅舊 spec 會自動變成單一主角，行為同以前完全一樣。
+    # ------------------------------------------------------------------
+    story_mode = bool(_norm_story_section(raw.get("story_section")) or raw.get("characters") or raw.get("cast"))
+    cast_raw = raw.get("characters") or raw.get("cast")
+    explicit_cast = isinstance(cast_raw, list) and len(cast_raw) > 0
+    ep_cast: List[Dict[str, Any]] = []
+    if explicit_cast:
+        for i, item in enumerate(list(cast_raw)[:5]):
+            c = item if isinstance(item, dict) else {"section": item}
+            raw_ref = c.get("section") or c.get("story_section") or c.get("uniform")
+            code_raw = c.get("s3d_code") or c.get("s3d_custom")
+            uniform_code = c.get("uniform_code")
+            if code_raw is None and isinstance(uniform_code, str) and uniform_code.strip().upper().startswith(("S3D", "{")):
+                code_raw = uniform_code
+            code = decode_s3d_code(code_raw)
+            sec = (
+                _norm_story_section(raw_ref)
+                or _section_from_s3d(code)
+                or _norm_story_section(uniform_code)
+                or default_section
+            )
+            if sec not in SECTION_STYLES:
+                sec = "scout"
+            if "actor_skin" in c or "skin" in c:
+                skin = _norm_actor_skin(c.get("actor_skin") or c.get("skin"))
+            else:
+                skin = ep_actor_skin if i == 0 else "human"
+            c_gen = c.get("gender")
+            if not c_gen and code and code.get("gender"):
+                c_gen = code["gender"]
+            if c_gen:
+                gen_i = "F" if str(c_gen).upper().startswith(("F", "G")) else "M"
+            elif sec == "leader":
+                gen_i = "M"
+            else:
+                gen_i = default_gender if i == 0 else ("F" if i % 2 == 1 else "M")
+            if "hat" in c:
+                hat_i = bool(c["hat"])
+            elif code and "hat" in code and code["hat"] is not None:
+                hat_i = bool(code["hat"])
+            elif i == 0 and default_hat is not None:
+                hat_i = default_hat
+            else:
+                hat_i = True if story_mode else None
+            if "show_sash" in c:
+                sash_i = float(c["show_sash"])
+            elif code and "sash" in code and code["sash"] is not None:
+                sash_i = 1.0 if code["sash"] else 0.0
+            else:
+                sash_i = default_sash if i == 0 else None
+            style_i = str(c.get("style_mode") or hero_style)
+            ep_cast.append(_make_actor(
+                sec, skin, gen_i, hat_i, sash_i, style_i, code,
+                _sanitize_text_for_font(str(c.get("name") or f"角色{i + 1}"))[:12],
+            ))
+        hero0 = ep_cast[0]
+        default_section = hero0["section"]
+        ep_actor_skin = hero0["skin"]
+        default_gender = hero0["gender"]
+        hero_style = hero0["style_mode"] if hero0["style_mode"] in ("bobo", "blocky") else hero_style
+        default_hat = hero0["hat"]
+        default_sash = hero0["show_sash"]
+    else:
+        ep_cast = [_make_actor(
+            default_section, ep_actor_skin, default_gender, default_hat, default_sash,
+            hero_style, s3d_custom, "主角",
+        )]
+
+    default_camera = _norm_camera(raw.get("camera") or raw.get("camera_move") or raw.get("default_camera"))
     bgm_mood = str(raw.get("bgm_mood") or "comedy_to_hero")
     voice_raw = str(raw.get("voice") if raw.get("voice") is not None else "zh-HK-HiuMaanNeural").strip()
     if voice_raw.lower() in ("", "none", "off", "false", "mute"):
@@ -362,10 +521,33 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         style_sh = str(sh.get("style_mode") or sh_char.get("style_mode") or hero_style)
         if style_sh not in ("bobo", "blocky", "morph"):
             style_sh = "morph" if preset == "scout3d_auto_snap" else hero_style
-        same_sec = (sec == default_section)
-        sh_char_ok = bool(sh.get("char_preset")) and str(sh_char.get("section") or "") == sec
-        hat_sh = sh.get("hat", sh_char.get("hat", default_hat) if sh_char_ok else (default_hat if same_sec else None))
-        sash_sh = sh.get("show_sash", sh_char.get("show_sash", default_sash) if sh_char_ok else (default_sash if same_sec else None))
+        # 每鏡一份角色陣容副本；鏡頭層級嘅 section / actor_skin / hat / show_sash 只覆蓋主角。
+        cast_sh = [dict(c) for c in ep_cast]
+        if sh_sec and sh_sec != cast_sh[0]["section"]:
+            cast_sh[0]["section"] = sh_sec
+            if "show_sash" not in sh:
+                cast_sh[0]["show_sash"] = 1.0 if sh_sec == "scout" else 0.0
+            if "hat" not in sh:
+                cast_sh[0]["hat"] = None
+        if "actor_skin" in sh:
+            cast_sh[0]["skin"] = sh_skin
+        cast_sh[0]["gender"] = gen
+        cast_sh[0]["style_mode"] = style_sh
+        if "hat" in sh:
+            cast_sh[0]["hat"] = bool(sh["hat"])
+        if "show_sash" in sh:
+            cast_sh[0]["show_sash"] = float(sh["show_sash"] or 0.0)
+        if sh.get("char_preset"):
+            sh_char_ok = str(sh_char.get("section") or "") == cast_sh[0]["section"]
+            if sh_char_ok:
+                if "hat" not in sh and "hat" in sh_char:
+                    cast_sh[0]["hat"] = bool(sh_char["hat"])
+                if "show_sash" not in sh and "show_sash" in sh_char:
+                    cast_sh[0]["show_sash"] = float(sh_char["show_sash"])
+        if cast_sh[0]["section"] not in _ACTOR_SASH_SECTIONS:
+            cast_sh[0]["show_sash"] = 0.0
+        hat_sh = cast_sh[0]["hat"]
+        sash_sh = cast_sh[0]["show_sash"]
 
         sub_txt = str(sh.get("subtitle") if sh.get("subtitle") is not None else (sh.get("narration") or ""))
         if subtitle_override and idx in subtitle_override:
@@ -392,7 +574,8 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
                 "style_mode": style_sh,
                 "hat": hat_sh,
                 "show_sash": sash_sh,
-                "camera": str(sh.get("camera") or "auto"),
+                "camera": _norm_camera(sh.get("camera") if "camera" in sh else default_camera),
+                "cast": cast_sh,
                 "show_ui_card": bool(sh.get("show_ui_card", preset in ("scout3d_auto_snap", "disaster_wrong_badges"))),
                 "trio_sections": trio_clean,
                 "subtitle": _sanitize_text_for_font(sub_txt),
@@ -414,6 +597,8 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "actor_skin": ep_actor_skin,
         "gender": default_gender,
         "hero_style": hero_style,
+        "characters": ep_cast,
+        "camera": default_camera,
         "s3d_custom": s3d_custom,
         "bgm_mood": bgm_mood,
         "voice": voice,
@@ -438,6 +623,199 @@ def _cam_framing_scale(aspect: str) -> Tuple[float, float]:
     if aspect == "1:1":
         return (0.88, 0.92)
     return (1.0, 1.0)
+
+
+def _apply_camera_move(cam: Camera3D, move: Any, u: float, lt: float) -> Camera3D:
+    """Layer a user/AI camera move on top of a preset's native camera.
+
+    `auto` keeps the preset's own camera. Every other move is a relative offset that
+    ramps in with the shot timeline, so the first frame always matches the preset framing.
+    """
+    key = _norm_camera(move)
+    if key == "auto":
+        return cam
+
+    k = smoothstep(clamp(float(u), 0.0, 1.0))
+    rel = cam.target - cam.pos
+    dist = float(np.linalg.norm(rel))
+    if dist < 1e-5:
+        return cam
+    fwd = rel / dist
+    right = np.cross(fwd, v3(0.0, 1.0, 0.0))
+    rn = float(np.linalg.norm(right))
+    right = v3(0.0, 0.0, 0.0) + (right / rn if rn > 1e-5 else v3(1.0, 0.0, 0.0))
+    up = np.cross(right, fwd)
+    up = up / max(1e-5, float(np.linalg.norm(up)))
+
+    pos = cam.pos.copy()
+    target = cam.target.copy()
+    roll = float(cam.roll_deg)
+
+    if key == "push_in":
+        pos = pos + fwd * (0.62 * k)
+    elif key == "pull_out":
+        pos = pos - fwd * (0.78 * k)
+    elif key in ("pan_left", "pan_right"):
+        sign = -1.0 if key == "pan_left" else 1.0
+        off = right * (0.55 * sign * k)
+        pos = pos + off
+        target = target + off * 0.92
+    elif key == "tilt_up":
+        pos = pos + up * (0.28 * k)
+        target = target + up * (0.80 * k)
+    elif key in ("orbit_left", "orbit_right"):
+        sign = -1.0 if key == "orbit_left" else 1.0
+        ang = math.radians(14.0 * sign * k)
+        ca, sa = math.cos(ang), math.sin(ang)
+        rx, rz = float(pos[0] - target[0]), float(pos[2] - target[2])
+        pos = v3(float(target[0]) + rx * ca - rz * sa, float(pos[1]), float(target[2]) + rx * sa + rz * ca)
+    elif key == "crane_up":
+        pos = pos + v3(0.0, 0.78 * k, 0.0) - fwd * (0.28 * k)
+        target = target + v3(0.0, 0.10 * k, 0.0)
+    elif key == "low_angle":
+        pos = pos + v3(0.0, -0.58, 0.0) + fwd * 0.18
+        target = target + v3(0.0, 0.22, 0.0)
+    elif key == "handheld":
+        pos = pos + v3(math.sin(lt * 7.1) * 0.030, math.sin(lt * 8.7 + 1.3) * 0.022, 0.0)
+        roll += math.sin(lt * 5.3) * 0.6
+
+    return Camera3D(pos=pos, target=target, fov_deg=float(cam.fov_deg), roll_deg=roll)
+
+
+_ACTOR_SASH_SECTIONS = ("scout", "sea_scout", "air_scout")
+
+
+def _make_actor(
+    section: str = "scout",
+    skin: str = "human",
+    gender: str = "M",
+    hat: Optional[bool] = None,
+    show_sash: Optional[float] = None,
+    style_mode: str = "bobo",
+    s3d_custom: Optional[Dict[str, Any]] = None,
+    name: str = "",
+) -> Dict[str, Any]:
+    """Build a normalized cast member dict used by the story scene renderer."""
+    sec = section if section in SECTION_STYLES else "scout"
+    if show_sash is None:
+        sash = 1.0 if sec == "scout" else 0.0
+    else:
+        sash = float(max(0.0, min(1.0, float(show_sash))))
+    return {
+        "name": name,
+        "section": sec,
+        "skin": _norm_actor_skin(skin),
+        "gender": "F" if str(gender).upper().startswith(("F", "G")) else "M",
+        "hat": hat,
+        "show_sash": sash if sec in _ACTOR_SASH_SECTIONS else 0.0,
+        "style_mode": style_mode if style_mode in ("bobo", "blocky", "morph") else "bobo",
+        "s3d_custom": s3d_custom,
+    }
+
+
+def _slot_actor(sh: Dict[str, Any], kind: str) -> Dict[str, Any]:
+    """Pick the character for a scene slot (hero / buddy / third / leader)."""
+    cast: List[Dict[str, Any]] = list(sh.get("cast") or [])
+    if cast:
+        hero = cast[0]
+    else:
+        hero = _make_actor(
+            str(sh.get("section") or "scout"),
+            str(sh.get("actor_skin") or "human"),
+            str(sh.get("gender") or "M"),
+            sh.get("hat"),
+            sh.get("show_sash"),
+            str(sh.get("style_mode") or "bobo"),
+        )
+    if kind == "hero":
+        return hero
+
+    non_leaders = [c for c in cast[1:] if str(c.get("section")) != "leader"]
+    if kind == "buddy" and non_leaders:
+        return non_leaders[0]
+    if kind == "third" and len(non_leaders) > 1:
+        return non_leaders[1]
+    if kind == "leader":
+        leaders = [c for c in cast if str(c.get("section")) == "leader"]
+        if leaders:
+            return leaders[0]
+
+    mate_sec = "scout" if hero.get("section") == "leader" else str(hero.get("section") or "scout")
+    if kind == "buddy":
+        return _make_actor(
+            mate_sec, "human", "F" if hero.get("gender") == "M" else "M",
+            hero.get("hat"), 0.0, "bobo",
+        )
+    if kind == "third":
+        return _make_actor(mate_sec, "human", str(hero.get("gender") or "M"), hero.get("hat"), 0.0, "bobo")
+    return _make_actor("leader", "human", "M", True, 0.0, "bobo")
+
+
+def _draw_actor(
+    sc: Scene3D,
+    actor: Dict[str, Any],
+    base_pos: np.ndarray,
+    yaw_deg: float = 0.0,
+    scale: float = 1.0,
+    style_mode: Optional[str] = None,
+    expression: str = "happy",
+    salute: float = 0.0,
+    wave: float = 0.0,
+    t_sec: float = 0.0,
+) -> None:
+    draw_scout_figure(
+        sc, base_pos, yaw_deg=yaw_deg, scale=scale,
+        style_mode=str(style_mode or actor.get("style_mode") or "bobo"),
+        expression=expression,
+        salute=salute, wave=wave, badge_mode="correct",
+        show_sash=float(actor.get("show_sash") or 0.0),
+        section=str(actor.get("section") or "scout"),
+        gender=str(actor.get("gender") or "M"),
+        hat=actor.get("hat"),
+        t_sec=t_sec,
+        s3d_custom=actor.get("s3d_custom"),
+        actor_skin=str(actor.get("skin") or "human"),
+    )
+
+
+def _draw_slot(
+    sc: Scene3D,
+    sh: Dict[str, Any],
+    kind: str,
+    base_pos: np.ndarray,
+    yaw_deg: float = 0.0,
+    scale: float = 1.0,
+    style_mode: Optional[str] = None,
+    expression: str = "happy",
+    salute: float = 0.0,
+    wave: float = 0.0,
+    t_sec: float = 0.0,
+) -> Dict[str, Any]:
+    actor = _slot_actor(sh, kind)
+    _draw_actor(
+        sc, actor, base_pos, yaw_deg=yaw_deg, scale=scale, style_mode=style_mode,
+        expression=expression, salute=salute, wave=wave, t_sec=t_sec,
+    )
+    return actor
+
+
+def _draw_remaining_cast(
+    sc: Scene3D,
+    sh: Dict[str, Any],
+    used: Sequence[Dict[str, Any]],
+    t_sec: float,
+    back_z: float = -1.55,
+) -> None:
+    """Draw cast members that the preset's main slots did not use (up to 3) as a back row."""
+    rest = [c for c in (sh.get("cast") or []) if not any(c is a for a in used)]
+    slots = ((-1.15, -0.95, 12.0), (1.15, -0.95, -12.0), (0.0, back_z, 0.0))
+    scales = (0.70, 0.70, 0.66)
+    for i, actor in enumerate(rest[:3]):
+        x, z, yaw = slots[i]
+        _draw_actor(
+            sc, actor, v3(x, 0.0, z), yaw_deg=yaw, scale=scales[i],
+            expression="happy", wave=0.0, t_sec=t_sec + 0.25 * i,
+        )
 
 
 def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
@@ -471,8 +849,6 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
     # =====================================================================
     if preset.startswith("story_"):
         act = str(sh.get("actor_skin") or "human")
-        buddy_gen = "F" if gen == "M" else "M"
-        buddy_sec = sec if sec != "leader" else "scout"
 
         if preset == "story_arrival_meet":
             wave_u = smoothstep(lt / 0.55)
@@ -482,7 +858,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 fov_deg=38.0 * fov_s,
             )
             sc = Scene3D(
-                W_px, H_px, cam,
+                W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
                 bg_top=hex_rgb01("#8FD4F5"), bg_bot=hex_rgb01("#EAF9DE"),
                 floor_y=0.0, floor_color=hex_rgb01("#A8D894"),
                 key_dir=(-0.42, 0.78, 0.60), rim_color=hex_rgb01("#FFF7CC"),
@@ -490,21 +866,13 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             draw_pine_tree(sc, v3(-1.72, 0.0, -1.55), scale=1.55)
             draw_pine_tree(sc, v3(1.66, 0.0, -1.85), scale=1.30)
             draw_camp_tent(sc, v3(-1.35, 0.0, -1.05), yaw_deg=24.0, scale=0.86)
-            draw_scout_figure(
-                sc, v3(lerp(-0.86, -0.38, e), 0.0, 0.26),
-                yaw_deg=12.0, scale=0.88,
-                style_mode=hero_style, expression="happy",
-                salute=0.0, wave=wave_u, badge_mode="correct", show_sash=sec_has_sash,
-                section=sec, gender=gen, hat=sh_hat, t_sec=t,
-                s3d_custom=s3d_custom, actor_skin=act,
-            )
-            draw_scout_figure(
-                sc, v3(0.52, 0.0, -0.10),
-                yaw_deg=-20.0, scale=0.86,
-                style_mode="bobo", expression="happy",
-                salute=0.0, wave=1.0, badge_mode="correct", show_sash=0.0,
-                section=buddy_sec, gender=buddy_gen, hat=sh_hat, t_sec=t + 0.7,
-            )
+            a1 = _draw_slot(sc, sh, "hero", v3(lerp(-0.86, -0.38, e), 0.0, 0.26),
+                            yaw_deg=12.0, scale=0.88, style_mode=hero_style,
+                            expression="happy", wave=wave_u, t_sec=t)
+            a2 = _draw_slot(sc, sh, "buddy", v3(0.52, 0.0, -0.10),
+                            yaw_deg=-20.0, scale=0.86, expression="happy",
+                            wave=1.0, t_sec=t + 0.7)
+            _draw_remaining_cast(sc, sh, [a1, a2], t)
             return sc.render()
 
         if preset == "story_group_chat":
@@ -514,7 +882,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 fov_deg=37.5 * fov_s,
             )
             sc = Scene3D(
-                W_px, H_px, cam,
+                W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
                 bg_top=hex_rgb01("#9BD8F0"), bg_bot=hex_rgb01("#F1FBE6"),
                 floor_y=0.0, floor_color=hex_rgb01("#B3DDA1"),
                 key_dir=(-0.46, 0.76, 0.58), rim_color=hex_rgb01("#FFF8DA"),
@@ -523,28 +891,17 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             draw_pine_tree(sc, v3(-1.92, 0.0, -2.05), scale=1.25)
             sway_a = math.sin(t * 1.9) * 4.0
             sway_b = math.sin(t * 1.6 + 1.7) * 4.0
-            draw_scout_figure(
-                sc, v3(-0.72, 0.0, 0.34),
-                yaw_deg=26.0 + sway_a, scale=0.86,
-                style_mode=hero_style, expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=sec_has_sash,
-                section=sec, gender=gen, hat=sh_hat, t_sec=t,
-                s3d_custom=s3d_custom, actor_skin=act,
-            )
-            draw_scout_figure(
-                sc, v3(0.68, 0.0, 0.30),
-                yaw_deg=-26.0 + sway_b, scale=0.85,
-                style_mode="bobo", expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=0.0,
-                section=buddy_sec, gender=buddy_gen, hat=sh_hat, t_sec=t + 0.5,
-            )
-            draw_scout_figure(
-                sc, v3(0.02, 0.0, -0.72),
-                yaw_deg=2.0, scale=0.80,
-                style_mode="bobo", expression="proud" if act != "ai_robot" else "happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=0.0,
-                section=buddy_sec, gender=gen, hat=sh_hat, t_sec=t + 1.1,
-            )
+            a1 = _draw_slot(sc, sh, "hero", v3(-0.72, 0.0, 0.34),
+                            yaw_deg=26.0 + sway_a, scale=0.86, style_mode=hero_style,
+                            expression="happy", t_sec=t)
+            a2 = _draw_slot(sc, sh, "buddy", v3(0.68, 0.0, 0.30),
+                            yaw_deg=-26.0 + sway_b, scale=0.85, expression="happy",
+                            t_sec=t + 0.5)
+            a3 = _draw_slot(sc, sh, "third", v3(0.02, 0.0, -0.72),
+                            yaw_deg=2.0, scale=0.80,
+                            expression="proud" if act != "ai_robot" else "happy",
+                            t_sec=t + 1.1)
+            _draw_remaining_cast(sc, sh, [a1, a2, a3], t, back_z=-1.35)
             return sc.render()
 
         if preset == "story_leader_briefing":
@@ -554,28 +911,20 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 fov_deg=37.5 * fov_s,
             )
             sc = Scene3D(
-                W_px, H_px, cam,
+                W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
                 bg_top=hex_rgb01("#8ECBEE"), bg_bot=hex_rgb01("#EDF9F1"),
                 floor_y=0.0, floor_color=hex_rgb01("#CFE7D2"),
                 key_dir=(-0.44, 0.77, 0.60), rim_color=hex_rgb01("#FFF6D2"),
             )
             draw_pine_tree(sc, v3(-1.85, 0.0, -1.95), scale=1.35)
             draw_camp_tent(sc, v3(1.62, 0.0, -1.35), yaw_deg=-22.0, scale=0.82)
-            draw_scout_figure(
-                sc, v3(0.62, 0.0, 0.10),
-                yaw_deg=-24.0, scale=0.94,
-                style_mode="bobo", expression="happy",
-                salute=0.0, wave=1.0, badge_mode="correct", show_sash=0.0,
-                section="leader", gender="M", hat=True, t_sec=t,
-            )
-            draw_scout_figure(
-                sc, v3(-0.52, 0.0, 0.30),
-                yaw_deg=16.0, scale=0.86,
-                style_mode=hero_style, expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=sec_has_sash,
-                section=sec, gender=gen, hat=sh_hat, t_sec=t + 0.4,
-                s3d_custom=s3d_custom, actor_skin=act,
-            )
+            a1 = _draw_slot(sc, sh, "leader", v3(0.62, 0.0, 0.10),
+                            yaw_deg=-24.0, scale=0.94, expression="happy",
+                            wave=1.0, t_sec=t)
+            a2 = _draw_slot(sc, sh, "hero", v3(-0.52, 0.0, 0.30),
+                            yaw_deg=16.0, scale=0.86, style_mode=hero_style,
+                            expression="happy", t_sec=t + 0.4)
+            _draw_remaining_cast(sc, sh, [a1, a2], t, back_z=-1.40)
             return sc.render()
 
         if preset == "story_challenge_oops":
@@ -587,27 +936,19 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 roll_deg=math.sin(t * 8.0) * 0.7,
             )
             sc = Scene3D(
-                W_px, H_px, cam,
+                W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
                 bg_top=hex_rgb01("#A9A0C4"), bg_bot=hex_rgb01("#F2EAD8"),
                 floor_y=0.0, floor_color=hex_rgb01("#C6BBA4"),
                 key_dir=(-0.45, 0.76, 0.58), rim_color=hex_rgb01("#FFD9A8"),
             )
             draw_handbook_stack(sc, v3(-0.86, 0.0, 0.62), yaw_deg=22.0, scale=0.80)
-            draw_scout_figure(
-                sc, v3(-0.20, 0.0, 0.24),
-                yaw_deg=math.sin(t * 5.0) * 8.0, scale=0.88,
-                style_mode=hero_style, expression="nervous",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=sec_has_sash,
-                section=sec, gender=gen, hat=sh_hat, t_sec=t,
-                s3d_custom=s3d_custom, actor_skin=act,
-            )
-            draw_scout_figure(
-                sc, v3(0.70, 0.0, -0.14),
-                yaw_deg=-22.0, scale=0.86,
-                style_mode="bobo", expression="surprised",
-                salute=0.0, wave=1.0, badge_mode="correct", show_sash=0.0,
-                section=buddy_sec, gender=buddy_gen, hat=sh_hat, t_sec=t + 0.6,
-            )
+            a1 = _draw_slot(sc, sh, "hero", v3(-0.20, 0.0, 0.24),
+                            yaw_deg=math.sin(t * 5.0) * 8.0, scale=0.88,
+                            style_mode=hero_style, expression="nervous", t_sec=t)
+            a2 = _draw_slot(sc, sh, "buddy", v3(0.70, 0.0, -0.14),
+                            yaw_deg=-22.0, scale=0.86, expression="surprised",
+                            wave=1.0, t_sec=t + 0.6)
+            _draw_remaining_cast(sc, sh, [a1, a2], t)
             return sc.render()
 
         if preset == "story_camp_outdoors":
@@ -617,7 +958,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 fov_deg=38.5 * fov_s,
             )
             sc = Scene3D(
-                W_px, H_px, cam,
+                W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
                 bg_top=hex_rgb01("#8CCFEF"), bg_bot=hex_rgb01("#E7F6D7"),
                 floor_y=0.0, floor_color=hex_rgb01("#9FD18C"),
                 key_dir=(-0.40, 0.79, 0.58), rim_color=hex_rgb01("#FFF6C8"),
@@ -626,21 +967,13 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             draw_pine_tree(sc, v3(1.78, 0.0, -2.05), scale=1.45)
             draw_pine_tree(sc, v3(0.15, 0.0, -2.75), scale=1.15)
             draw_camp_tent(sc, v3(-0.95, 0.0, -0.95), yaw_deg=18.0, scale=1.12)
-            draw_scout_figure(
-                sc, v3(0.42, 0.0, 0.30),
-                yaw_deg=-8.0, scale=0.88,
-                style_mode=hero_style, expression="happy",
-                salute=0.0, wave=1.0, badge_mode="correct", show_sash=sec_has_sash,
-                section=sec, gender=gen, hat=sh_hat, t_sec=t,
-                s3d_custom=s3d_custom, actor_skin=act,
-            )
-            draw_scout_figure(
-                sc, v3(1.10, 0.0, -0.42),
-                yaw_deg=-30.0, scale=0.82,
-                style_mode="bobo", expression="happy",
-                salute=0.0, wave=1.0, badge_mode="correct", show_sash=0.0,
-                section=buddy_sec, gender=buddy_gen, hat=sh_hat, t_sec=t + 0.6,
-            )
+            a1 = _draw_slot(sc, sh, "hero", v3(0.42, 0.0, 0.30),
+                            yaw_deg=-8.0, scale=0.88, style_mode=hero_style,
+                            expression="happy", wave=1.0, t_sec=t)
+            a2 = _draw_slot(sc, sh, "buddy", v3(1.10, 0.0, -0.42),
+                            yaw_deg=-30.0, scale=0.82, expression="happy",
+                            wave=1.0, t_sec=t + 0.6)
+            _draw_remaining_cast(sc, sh, [a1, a2], t)
             return sc.render()
 
         if preset == "story_team_task":
@@ -650,7 +983,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 fov_deg=37.0 * fov_s,
             )
             sc = Scene3D(
-                W_px, H_px, cam,
+                W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
                 bg_top=hex_rgb01("#93D2EE"), bg_bot=hex_rgb01("#EFFAE2"),
                 floor_y=0.0, floor_color=hex_rgb01("#AEDC9C"),
                 key_dir=(-0.44, 0.77, 0.60), rim_color=hex_rgb01("#FFF7D0"),
@@ -658,21 +991,13 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             draw_pine_tree(sc, v3(1.92, 0.0, -2.10), scale=1.30)
             draw_camp_tent(sc, v3(-1.55, 0.0, -1.60), yaw_deg=22.0, scale=0.82)
             draw_handbook_stack(sc, v3(0.02, 0.0, 0.30), yaw_deg=-12.0, scale=0.72)
-            draw_scout_figure(
-                sc, v3(-0.62, 0.0, 0.06),
-                yaw_deg=22.0, scale=0.86,
-                style_mode=hero_style, expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=sec_has_sash,
-                section=sec, gender=gen, hat=sh_hat, t_sec=t,
-                s3d_custom=s3d_custom, actor_skin=act,
-            )
-            draw_scout_figure(
-                sc, v3(0.68, 0.0, 0.06),
-                yaw_deg=-22.0, scale=0.84,
-                style_mode="bobo", expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=0.0,
-                section=buddy_sec, gender=buddy_gen, hat=sh_hat, t_sec=t + 0.5,
-            )
+            a1 = _draw_slot(sc, sh, "hero", v3(-0.62, 0.0, 0.06),
+                            yaw_deg=22.0, scale=0.86, style_mode=hero_style,
+                            expression="happy", t_sec=t)
+            a2 = _draw_slot(sc, sh, "buddy", v3(0.68, 0.0, 0.06),
+                            yaw_deg=-22.0, scale=0.84, expression="happy",
+                            t_sec=t + 0.5)
+            _draw_remaining_cast(sc, sh, [a1, a2], t, back_z=-1.45)
             return sc.render()
 
         if preset == "story_campfire_night":
@@ -682,7 +1007,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 fov_deg=38.0 * fov_s,
             )
             sc = Scene3D(
-                W_px, H_px, cam,
+                W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
                 bg_top=hex_rgb01("#141B33"), bg_bot=hex_rgb01("#3A2C3E"),
                 floor_y=0.0, floor_color=hex_rgb01("#2A2C33"),
                 key_dir=(-0.36, 0.62, 0.70), rim_color=hex_rgb01("#FFB15C"),
@@ -696,28 +1021,16 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                     v3(1.05 * math.cos(ang), 2.55 + 0.16 * math.sin(ang * 3.0), -0.95 + 1.05 * math.sin(ang)),
                     0.032, hex_rgb01("#FFE9A8"), roughness=0.1, emissive=(1.0, 0.9, 0.55),
                 )
-            draw_scout_figure(
-                sc, v3(-0.74, 0.0, 0.52),
-                yaw_deg=26.0, scale=0.86,
-                style_mode=hero_style, expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=sec_has_sash,
-                section=sec, gender=gen, hat=sh_hat, t_sec=t,
-                s3d_custom=s3d_custom, actor_skin=act,
-            )
-            draw_scout_figure(
-                sc, v3(0.78, 0.0, 0.46),
-                yaw_deg=-26.0, scale=0.85,
-                style_mode="bobo", expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=0.0,
-                section=buddy_sec, gender=buddy_gen, hat=sh_hat, t_sec=t + 0.6,
-            )
-            draw_scout_figure(
-                sc, v3(0.92, 0.0, -0.86),
-                yaw_deg=-14.0, scale=0.80,
-                style_mode="bobo", expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=0.0,
-                section="leader", gender="M", hat=True, t_sec=t + 1.2,
-            )
+            a1 = _draw_slot(sc, sh, "hero", v3(-0.74, 0.0, 0.52),
+                            yaw_deg=26.0, scale=0.86, style_mode=hero_style,
+                            expression="happy", t_sec=t)
+            a2 = _draw_slot(sc, sh, "buddy", v3(0.78, 0.0, 0.46),
+                            yaw_deg=-26.0, scale=0.85, expression="happy",
+                            t_sec=t + 0.6)
+            a3 = _draw_slot(sc, sh, "leader", v3(0.92, 0.0, -0.86),
+                            yaw_deg=-14.0, scale=0.80, expression="happy",
+                            t_sec=t + 1.2)
+            _draw_remaining_cast(sc, sh, [a1, a2, a3], t, back_z=-1.30)
             return sc.render()
 
         if preset == "story_hero_closeup":
@@ -727,20 +1040,15 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
                 fov_deg=33.0 * fov_s,
             )
             sc = Scene3D(
-                W_px, H_px, cam,
+                W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
                 bg_top=hex_rgb01("#8FD6F2"), bg_bot=hex_rgb01("#EDFBE4"),
                 floor_y=0.0, floor_color=hex_rgb01("#B6E0A4"),
                 key_dir=(-0.42, 0.76, 0.64), rim_color=hex_rgb01("#FFF9DE"),
             )
             draw_pine_tree(sc, v3(-1.55, 0.0, -2.10), scale=1.15)
-            draw_scout_figure(
-                sc, v3(0.0, 0.0, 0.10),
-                yaw_deg=lerp(-14.0, 14.0, e), scale=1.02,
-                style_mode=hero_style, expression="happy",
-                salute=0.0, wave=0.0, badge_mode="correct", show_sash=sec_has_sash,
-                section=sec, gender=gen, hat=sh_hat, t_sec=t,
-                s3d_custom=s3d_custom, actor_skin=act,
-            )
+            _draw_slot(sc, sh, "hero", v3(0.0, 0.0, 0.10),
+                       yaw_deg=lerp(-14.0, 14.0, e), scale=1.02,
+                       style_mode=hero_style, expression="happy", t_sec=t)
             return sc.render()
 
         # Default story preset: "story_happy_salute_end"
@@ -751,7 +1059,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=38.0 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#8AD2F4"), bg_bot=hex_rgb01("#EFFADD"),
             floor_y=0.0, floor_color=hex_rgb01("#ACD99A"),
             key_dir=(-0.42, 0.78, 0.60), rim_color=hex_rgb01("#FFF7CE"),
@@ -759,21 +1067,13 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
         draw_pine_tree(sc, v3(-1.85, 0.0, -2.05), scale=1.35)
         draw_pine_tree(sc, v3(1.82, 0.0, -2.00), scale=1.25)
         draw_camp_tent(sc, v3(-1.12, 0.0, -1.25), yaw_deg=22.0, scale=0.86)
-        draw_scout_figure(
-            sc, v3(-0.52, 0.0, 0.28),
-            yaw_deg=12.0, scale=0.88,
-            style_mode=hero_style, expression="happy",
-            salute=sal_u, wave=1.0 - sal_u, badge_mode="correct", show_sash=sec_has_sash,
-            section=sec, gender=gen, hat=sh_hat, t_sec=t,
-            s3d_custom=s3d_custom, actor_skin=act,
-        )
-        draw_scout_figure(
-            sc, v3(0.60, 0.0, 0.12),
-            yaw_deg=-16.0, scale=0.86,
-            style_mode="bobo", expression="happy",
-            salute=sal_u, wave=1.0 - sal_u, badge_mode="correct", show_sash=0.0,
-            section=buddy_sec, gender=buddy_gen, hat=sh_hat, t_sec=t + 0.4,
-        )
+        a1 = _draw_slot(sc, sh, "hero", v3(-0.52, 0.0, 0.28),
+                        yaw_deg=12.0, scale=0.88, style_mode=hero_style,
+                        expression="happy", salute=sal_u, wave=1.0 - sal_u, t_sec=t)
+        a2 = _draw_slot(sc, sh, "buddy", v3(0.60, 0.0, 0.12),
+                        yaw_deg=-16.0, scale=0.86, expression="happy",
+                        salute=sal_u, wave=1.0 - sal_u, t_sec=t + 0.4)
+        _draw_remaining_cast(sc, sh, [a1, a2], t)
         for k_sp in range(7):
             ang = t * 1.15 + k_sp * (2.0 * math.pi / 7.0)
             sc.add_sphere(
@@ -791,7 +1091,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             roll_deg=math.sin(t * 9.0) * 0.9 * (1.0 - 0.5 * u),
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#3B3348"), bg_bot=hex_rgb01("#63566E"),
             floor_y=0.0, floor_color=hex_rgb01("#574D63"),
             key_dir=(-0.45, 0.78, 0.55), rim_color=hex_rgb01("#FF9E9E"),
@@ -817,7 +1117,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=36.0 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#8AC6F2"), bg_bot=hex_rgb01("#DCF0FC"),
             floor_y=0.0, floor_color=hex_rgb01("#CBE6F8"),
             key_dir=(-0.50, 0.72, 0.65), rim_color=hex_rgb01("#FFFFFF"),
@@ -875,7 +1175,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=33.0 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#8AC6F2"), bg_bot=hex_rgb01("#EAF6FE"),
             floor_y=0.0, floor_color=hex_rgb01("#CFE8FA"),
             key_dir=(-0.42, 0.72, 0.68), rim_color=hex_rgb01("#FFFFFF"),
@@ -900,7 +1200,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=32.5 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#88C8EE"), bg_bot=hex_rgb01("#EEF8FD"),
             floor_y=0.0, floor_color=hex_rgb01("#D2EAF9"),
             key_dir=(-0.38, 0.74, 0.68), rim_color=hex_rgb01("#FFFBE6"),
@@ -925,7 +1225,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=33.0 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#8AC6F2"), bg_bot=hex_rgb01("#EDF8FE"),
             floor_y=0.0, floor_color=hex_rgb01("#D1EAF9"),
             key_dir=(0.38, 0.74, 0.68), rim_color=hex_rgb01("#FFFBE6"),
@@ -948,7 +1248,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=37.0 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#84C5DC"), bg_bot=hex_rgb01("#EEF9F6"),
             floor_y=0.0, floor_color=hex_rgb01("#D2ECE6"),
             key_dir=(-0.45, 0.76, 0.62), rim_color=hex_rgb01("#FFF8DC"),
@@ -972,7 +1272,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=37.0 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#FCE6C9"), bg_bot=hex_rgb01("#FFF7EA"),
             floor_y=0.0, floor_color=hex_rgb01("#F2DEC0"),
             key_dir=(-0.48, 0.75, 0.60), rim_color=hex_rgb01("#FFF6D6"),
@@ -1005,7 +1305,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=38.5 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#8AC6F2"), bg_bot=hex_rgb01("#EEF7FD"),
             floor_y=0.0, floor_color=hex_rgb01("#D5E9F8"),
             key_dir=(-0.45, 0.76, 0.62), rim_color=hex_rgb01("#FFF8DC"),
@@ -1039,7 +1339,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=38.0 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#7CC5E8"), bg_bot=hex_rgb01("#E9F7D9"),
             floor_y=0.0, floor_color=hex_rgb01("#9ED18B"),
             key_dir=(-0.42, 0.78, 0.58), rim_color=hex_rgb01("#FFF6CC"),
@@ -1064,7 +1364,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=35.0 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#8AC6F2"), bg_bot=hex_rgb01("#DCF0FC"),
             floor_y=0.0, floor_color=hex_rgb01("#CBE6F8"),
             key_dir=(-0.50, 0.72, 0.65), rim_color=hex_rgb01("#FFFFFF"),
@@ -1088,7 +1388,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
             fov_deg=37.5 * fov_s,
         )
         sc = Scene3D(
-            W_px, H_px, cam,
+            W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
             bg_top=hex_rgb01("#FDE2B8"), bg_bot=hex_rgb01("#FFF8EC"),
             floor_y=0.0, floor_color=hex_rgb01("#F1DCB8"),
             key_dir=(-0.46, 0.76, 0.60), rim_color=hex_rgb01("#FFF7D6"),
@@ -1113,7 +1413,7 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
         fov_deg=38.5 * fov_s,
     )
     sc = Scene3D(
-        W_px, H_px, cam,
+        W_px, H_px, _apply_camera_move(cam, sh.get("camera"), u, lt),
         bg_top=hex_rgb01("#7EC4CF"), bg_bot=hex_rgb01("#E8F8F5"),
         floor_y=0.0, floor_color=hex_rgb01("#CDEAE5"),
         key_dir=(-0.45, 0.76, 0.62), rim_color=hex_rgb01("#FFF8DC"),
@@ -1643,6 +1943,8 @@ def _compute_clean_plate_hash(spec: Dict[str, Any]) -> str:
         "s3d_custom": spec.get("s3d_custom"),
         "actor_skin": spec.get("actor_skin"),
         "story_section": spec.get("story_section"),
+        "characters": spec.get("characters"),
+        "camera": spec.get("camera"),
         "shots": [
             {
                 "preset": s["preset"],
@@ -1656,6 +1958,8 @@ def _compute_clean_plate_hash(spec: Dict[str, Any]) -> str:
                 "style_mode": s["style_mode"],
                 "show_ui_card": s["show_ui_card"],
                 "trio_sections": s["trio_sections"],
+                "camera": s.get("camera"),
+                "cast": s.get("cast"),
             }
             for s in spec["shots"]
         ],
@@ -1911,11 +2215,17 @@ def main() -> None:
     parser.add_argument("--fast-sub-only", action="store_true", help="Skip contact sheet generation.")
     parser.add_argument("--out", type=str, default="", help="Optional custom output MP4 path.")
     parser.add_argument("--list-presets", action="store_true", help="List available 3D shot presets and exit.")
+    parser.add_argument("--list-cameras", action="store_true", help="List available camera moves and exit.")
     args = parser.parse_args()
 
     if args.list_presets:
         for k, desc in PRESET_CATALOG.items():
             print(f"  {k:24s} — {desc}")
+        return
+
+    if args.list_cameras:
+        for k, desc in CAMERA_CATALOG.items():
+            print(f"  {k:12s} — {desc}")
         return
 
     if args.b64:
