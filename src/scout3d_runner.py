@@ -53,6 +53,7 @@ from scout3d_characters import (
     draw_mom_figure,
     draw_scout_figure,
     draw_animal_figure,
+    draw_animal_quadruped,
     ANIMAL_FUR,
     ANIMAL_SPECIES,
     draw_turntable_pedestal,
@@ -845,6 +846,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
     # 冇 `characters` 嘅舊 spec 會自動變成單一主角，行為同以前完全一樣。
     # ------------------------------------------------------------------
     default_species = _norm_species(raw.get("species") or raw.get("animal"))
+    default_posture = _norm_posture(raw.get("posture") or raw.get("pose") or raw.get("gait"))
     default_outfit = _norm_outfit(raw.get("outfit") or raw.get("clothes") or raw.get("costume"))
     default_fur = str(raw.get("fur") or raw.get("fur_color") or "").strip()
     story_mode = bool(_norm_story_section(raw.get("story_section")) or raw.get("characters") or raw.get("cast"))
@@ -901,10 +903,11 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
             if outfit_i is None and i == 0:
                 outfit_i = default_outfit
             fur_i = c.get("fur") or c.get("fur_color") or (default_fur if i == 0 else None)
+            posture_i = _norm_posture(c.get("posture") or c.get("pose") or c.get("gait") or (default_posture if i == 0 else "biped"))
             ep_cast.append(_make_actor(
                 sec, skin, gen_i, hat_i, sash_i, style_i, code,
                 _sanitize_text_for_font(str(c.get("name") or f"角色{i + 1}"))[:12],
-                species=sp_i, outfit=outfit_i, fur=fur_i,
+                species=sp_i, outfit=outfit_i, fur=fur_i, posture=posture_i,
             ))
         hero0 = ep_cast[0]
         default_section = hero0["section"]
@@ -918,6 +921,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
             default_section, ep_actor_skin, default_gender, default_hat, default_sash,
             hero_style, s3d_custom, "主角",
             species=default_species, outfit=default_outfit, fur=default_fur,
+            posture=default_posture,
         )]
 
     default_camera = _norm_camera(raw.get("camera") or raw.get("camera_move") or raw.get("default_camera"))
@@ -1195,6 +1199,7 @@ def _make_actor(
     species: str = "",
     outfit: Optional[Dict[str, str]] = None,
     fur: Optional[str] = None,
+    posture: str = "biped",
 ) -> Dict[str, Any]:
     """Build a normalized cast member dict used by the story scene renderer."""
     sec = section if section in SECTION_STYLES else "scout"
@@ -1212,6 +1217,7 @@ def _make_actor(
         "style_mode": style_mode if style_mode in ("bobo", "blocky", "morph") else "bobo",
         "s3d_custom": s3d_custom,
         "species": _norm_species(species),
+        "posture": _norm_posture(posture),
         "outfit": outfit,
         "fur": _species_fur_hex(_norm_species(species), fur) if _norm_species(species) else "",
     }
@@ -1240,6 +1246,13 @@ _OUTFIT_STYLE_ALIASES = {
     "cloak": "cape", "斗篷": "cape", "披風": "cape",
     "coat": "raincoat", "雨衣": "raincoat",
 }
+
+
+def _norm_posture(value: Any) -> str:
+    key = str(value or "").strip().lower()
+    if key in ("quadruped", "quad", "four-leg", "four_legged", "walk", "walking", "四足", "四腳", "四脚", "爬地"):
+        return "quadruped"
+    return "biped"
 
 
 def _norm_species(value: Any) -> str:
@@ -1343,6 +1356,14 @@ def _draw_actor(
     t_sec: float = 0.0,
 ) -> None:
     species = _norm_species(actor.get("species"))
+    if species and _norm_posture(actor.get("posture")) == "quadruped":
+        draw_animal_quadruped(
+            sc, base_pos, yaw_deg=yaw_deg + 32.0, scale=scale * 1.00, species=species,
+            fur=actor.get("fur") or ANIMAL_FUR.get(species),
+            outfit=actor.get("outfit"), expression=expression,
+            t_sec=t_sec,
+        )
+        return
     if species:
         draw_animal_figure(
             sc, base_pos, yaw_deg=yaw_deg, scale=scale, species=species,
@@ -1853,6 +1874,23 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
         base_z, fov_deg, cam_y, target_y = 8.70, 38.5, 1.98, 1.36
     else:
         base_z, fov_deg, cam_y, target_y = 7.15, 37.5, 1.92, 1.36
+    cast_now = sh.get("cast") or []
+    quad_count = sum(
+        1 for c in cast_now
+        if _norm_species(c.get("species")) and _norm_posture(c.get("posture")) == "quadruped"
+    )
+    if quad_count and quad_count < len(cast_now):
+        # 人＋四足混合：動物身體會向後伸，鏡頭退後少少免得 cut 腳
+        base_z *= 1.10
+        target_y = min(target_y, 1.20)
+    if cast_now and all(
+        _norm_species(c.get("species")) and _norm_posture(c.get("posture")) == "quadruped"
+        for c in cast_now
+    ):
+        # 四足角色矮一大截：鏡頭要拉低，唔好影住天空
+        base_z, fov_deg, cam_y, target_y = 7.90, 37.5, 1.55, 1.02
+        if framing == "closeup":
+            base_z, cam_y, target_y = 4.40, 1.35, 1.05
 
     cam = Camera3D(
         pos=v3(math.sin(lt * 0.55) * 0.06, cam_y, base_z * z_s),

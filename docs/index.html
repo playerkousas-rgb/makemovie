@@ -377,6 +377,15 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
             </select>
             <div class="mini">唔止童軍制服：AI 會按故事配顏色，亦可以喺度鎖定款式。</div>
           </div>
+          <div class="field" style="margin-bottom:0">
+            <label>🐾 動物姿勢</label>
+            <select id="f_posture">
+              <option value="">由 AI 決定</option>
+              <option value="biped">雙足站立（講嘢、著衫）</option>
+              <option value="quadruped">四足行走（跑步、爬行）</option>
+            </select>
+            <div class="mini">四足會自動用 3/4 鏡頭＋步行步態；唔係動物就冇影響。</div>
+          </div>
         </div>
 
         <!-- 1E. 場景 ＆ 運鏡（AI 導演 / 自己話事） -->
@@ -1351,13 +1360,13 @@ function buildStoryPrompt(mode){
 
   const charBlock = (s3dSummary
     ? `【主角真實穿搭與徽章（由 SCOUT 3D 穿搭碼精準載入 —— 最高準則）】\n${s3dSummary}\n★ 主角喺 3D 畫面入面只會戴住上面列出嘅徽章同旅團設定；旁白提到徽章／旅號時要對應，唔好講主角冇戴嘅章。`
-    : `【主角外觀（只影響畫風，唔限制故事）】\n· 制服支部：${sectionZh(heroSec)}\n· 制服：${SECTION_UNIFORM_ZH[heroSec] || SECTION_UNIFORM_ZH.grasshopper}\n· 角色類型：${actor === 'ai_robot' ? 'AI 機械人（白銀機械外殼＋3D 制服）' : '真人角色（童軍制服 3D 人仔）'}`)
+    : `【主角外觀（只影響畫風，唔限制故事）】\n· 制服支部：${sectionZh(heroSec)}\n· 制服（如果故事係童軍）：${SECTION_UNIFORM_ZH[heroSec] || SECTION_UNIFORM_ZH.grasshopper}\n· 角色類型：${actor === 'ai_robot' ? 'AI 機械人（白銀機械外殼＋3D 制服）' : '真人角色'}\n· 如果故事唔係童軍，species／outfit 由你按故事決定，唔一定要用制服。`)
     + (castPromptBlock(heroSec, actor) ? '\n\n' + castPromptBlock(heroSec, actor) : '');
 
   const common = `你係一位香港廣東話 3D 短片編劇兼美術指導。
 
 【最重要嘅設定】
-· 角色會由 SCOUT 3D 引擎畫成「童軍制服 3D 人仔」，呢個只係美術來源。
+· 角色會由 3D 引擎畫成 chibi 3D 角色：可以係人，亦可以係動物（貓／羊／狗／兔／熊／狐狸／熊貓）。\n· 童軍故事先用真實童軍制服；其他故事嘅服裝由你按世界觀設計（T 裇／衛衣／裙／太空衣／盔甲／斗篷／雨衣）。
 · 故事、世界觀、場景、道具、氣氛全部由你自由創作 —— 唔一定要講童軍，可以係太空、海底、城市、魔法、恐龍、校園、體育……
 · 絕對唔准介紹 SCOUT 3D／任何 App／網站／軟件／功能，亦唔准賣廣告。
 
@@ -1368,14 +1377,14 @@ function buildStoryPrompt(mode){
 
 ${charBlock}
 
-【廣東話與故事節奏】
-· 地道香港口語（唔使、搞掂、我哋、齊齊、好正），唔好書面語。
-· 每鏡都要推進劇情，有起承轉合；唔好一鏡到底。
-· 如果主題真係童軍活動，先用真實童軍細節（小隊、領袖、繩結、露營、營火）；其他主題就自由發揮，唔好夾硬拉返營地。
+【劇本工藝（最重要，唔好求其）】\n1. 開頭 2 秒就要有 hook：一句反常對白、一個問題、或者一個意外；唔好由「今日天氣好好」開始。\n2. 用「想要 → 阻礙 → 轉折 → 主角自己解決 → 回味」推進；唔可以靠天降好運或者旁白一句「最後成功咗」。\n3. 每鏡要有一個睇得到嘅動作／反應／笑點（跌、搶、誤會、讓步、發現），唔好只係企定定講道理。\n4. 角色要有性格差異：一個衝動、一個謹慎、一個愛吐槽；要有對話感，似角色心聲。\n5. 廣東話要地道：語氣詞（咩、囉、喎、喇、㗎、啦、吓、咪），句子短，每句 ≤ 14 字；唔好書面語。\n6. 唔准重複句式：唔准每鏡都用「突然」、「原來」、「大家」、「最後」開頭；唔准「今集我哋會…」。\n7. 結尾用畫面或一句反差收尾，唔好講大道理，唔好加「所以我哋要學識…」。\n8. 笑點要貼地：香港人日常會明嘅情境（排隊、趕時間、打機、食飯、落雨、搭車）。\n9. 如果主題真係童軍活動，先用真實童軍細節（小隊、領袖、繩結、露營、營火）；其他主題就自由發揮，唔好夾硬拉返營地。
+
+
+
 
 【配音與字幕格式】每一鏡輸出：
   1. "narration"：畀香港廣東話語音引擎讀出嚟，唔好寫「旁白：」前綴，亦唔好加表情符號。
-  2. "subtitle"：片底大字字幕（12–26 字，可用 \\n 分兩行）。
+  2. "subtitle"：片底大字字幕，係金句／笑點，同 narration 唔同；每行 ≤ 12 字，最多兩行（用 \\n 分行）。
 
 ${sceneDocBlock()}
 
@@ -1394,12 +1403,13 @@ ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'
   3. 下面 sceneDocBlock 嘅例子只示範「格式」，**絕對唔准照抄內容**（例如唔好每逢科幻就抄土星環）。
   4. 唔准用 props 或 kind 代替 objects；每鏡 objects 至少 3 件。
 · 角色可以係人，亦可以係動物：故事講動物就用 characters[].species（cat／sheep／dog／rabbit／bear／fox／panda）；人類就填 human。
+· 動物識行：要佢跑／爬／跟住行就用 posture: quadruped；企喺度講嘢、著衫就用 biped。
 · 服裝由你按故事設計（outfit.style 七選一 ＋ 三個顏色）。除非故事明確講童軍，唔好預設童軍制服；太空故事可以太空衣、魔法故事可以斗篷。
 · 唔准加任何產品／App／網站介紹或「功能示範」字眼。`;
 
   const castSchema = `,
   "characters": [
-    {"section": "${heroSec}", "actor_skin": "${actor}", "species": "human 或 cat/sheep/dog/rabbit/bear/fox/panda", "outfit": {"style": "tee/hoodie/dress/spacesuit/armor/cape/raincoat", "top": "#RRGGBB", "bottom": "#RRGGBB", "accent": "#RRGGBB"}}${(S.cast && S.cast.length) ? `,
+    {"section": "${heroSec}", "actor_skin": "${actor}", "species": "human 或 cat/sheep/dog/rabbit/bear/fox/panda", "posture": "biped 或 quadruped（動物先用）", "outfit": {"style": "tee/hoodie/dress/spacesuit/armor/cape/raincoat", "top": "#RRGGBB", "bottom": "#RRGGBB", "accent": "#RRGGBB"}}${(S.cast && S.cast.length) ? `,
     {"section": "由你決定嘅角色請填真實支部 key", "actor_skin": "human 或 ai_robot", "species": "同上", "outfit": {"style": "...", "top": "#RRGGBB"}}` : ''}
   ]`;
 
@@ -1701,7 +1711,8 @@ function parseStoryJson(raw, allowUniform){
             section: sec,
             skin,
             species: normSpecies(obj.species || obj.animal),
-            outfit: normOutfit(obj.outfit || obj.clothes || obj.costume)
+            outfit: normOutfit(obj.outfit || obj.clothes || obj.costume),
+            posture: normPosture(obj.posture || obj.pose || obj.gait)
           };
         })
       : [];
@@ -1845,6 +1856,17 @@ function outfitOptions(cur){
   const v = String(cur || '');
   return list.map(([val, label]) => `<option value="${val}"${val === v ? ' selected' : ''}>${label}</option>`).join('');
 }
+function postureOptions(cur){
+  const list = [['', '由 AI 決定'], ['biped', '雙足'], ['quadruped', '四足']];
+  const v = String(cur || '');
+  return list.map(([val, label]) => `<option value="${val}"${val === v ? ' selected' : ''}>${label}</option>`).join('');
+}
+function normPosture(v){
+  const k = String(v || '').trim().toLowerCase();
+  if(['quadruped', 'quad', 'walk', 'walking', 'four-leg', '四足', '四腳', '四脚'].indexOf(k) >= 0) return 'quadruped';
+  if(['biped', 'stand', 'standing', '雙足', '站立'].indexOf(k) >= 0) return 'biped';
+  return '';
+}
 function normSpecies(v){
   const k = String(v || '').trim().toLowerCase();
   if(!k) return '';
@@ -1866,6 +1888,18 @@ function normOutfit(v){
   }
   const st = String(v || '').trim().toLowerCase();
   return OUTFIT_KEYS.indexOf(st) >= 0 ? { style: st } : null;
+}
+function castPickPosture(c, i){
+  const manual = normPosture(c.posture);
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
+  return ai ? normPosture(ai.posture || ai.pose || ai.gait) : '';
+}
+function heroPosture(){
+  const manual = normPosture(($('f_posture') || {}).value || '');
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[0]) ? S.aiCast[0] : null;
+  return ai ? normPosture(ai.posture || ai.pose || ai.gait) : '';
 }
 function castPickSpecies(c, i){
   const manual = normSpecies(c.species);
@@ -1911,6 +1945,7 @@ function buildCharacters(sec, actor){
   const list = [{ section: sec, actor_skin: actor, name: '主角' }];
   if(heroSp) list[0].species = heroSp;
   if(heroFo) list[0].outfit = heroFo;
+  if(heroPosture()) list[0].posture = heroPosture();
   (S.cast || []).forEach((c, i) => {
     const entry = {
       section: castPickSection(c, i),
@@ -1919,8 +1954,10 @@ function buildCharacters(sec, actor){
     };
     const sp = castPickSpecies(c, i);
     const fo = castPickOutfit(c, i);
+    const po = castPickPosture(c, i);
     if(sp && sp !== 'human') entry.species = sp;
     if(fo) entry.outfit = fo;
+    if(po) entry.posture = po;
     const code = String(c.code || '').trim();
     if(code) entry.uniform_code = code;
     list.push(entry);
@@ -1947,6 +1984,7 @@ function buildEpisodeSpec(){
     voice_rate: $('f_rate').value || '+6%',
     ...(heroSpecies() ? { species: heroSpecies() } : {}),
     ...(heroOutfit() ? { outfit: heroOutfit() } : {}),
+    ...(heroPosture() ? { posture: heroPosture() } : {}),
     voice_engine: ($('f_tts_engine') && $('f_tts_engine').value) || 'edge',
     ...(($('f_tts_model') && $('f_tts_model').value.trim()) ? { voice_model: $('f_tts_model').value.trim() } : {}),
     ...(($('f_tts_cmd') && $('f_tts_cmd').value.trim()) ? { tts_command: $('f_tts_cmd').value.trim() } : {}),
@@ -2138,6 +2176,7 @@ function renderCastEditor(){
           <div class="cfield"><span>角色類型</span><select class="js-cskin">${skinOptions(c.skin)}</select></div>
           <div class="cfield"><span>物種</span><select class="js-cspecies">${speciesOptions(c.species)}</select></div>
           <div class="cfield"><span>服裝</span><select class="js-coutfit">${outfitOptions(c.outfit)}</select></div>
+          <div class="cfield"><span>姿勢</span><select class="js-cposture">${postureOptions(c.posture)}</select></div>
           <div class="cfield full"><span>制服碼（選填 · S3D1_...）</span><input class="js-ccode" placeholder="貼呢位角色自己嘅 SCOUT 3D 穿搭碼，留空＝用支部快速制服" value="${esc(c.code || '')}"></div>
         </div>
       </div>`).join('');
@@ -2165,6 +2204,10 @@ function renderCastEditor(){
     });
     row.querySelector('.js-coutfit').addEventListener('change', async e => {
       S.cast[i].outfit = e.target.value;
+      await refreshAllOutputs();
+    });
+    row.querySelector('.js-cposture').addEventListener('change', async e => {
+      S.cast[i].posture = e.target.value;
       await refreshAllOutputs();
     });
     row.querySelector('.js-ccode').addEventListener('input', async e => {

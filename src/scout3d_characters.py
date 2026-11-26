@@ -1752,6 +1752,301 @@ def _as_hex(value: Any, fallback: str) -> RGBf:
     return hex_rgb01(fallback)
 
 
+def _draw_animal_head(
+    sc: Scene3D,
+    W_base,
+    S,
+    R: np.ndarray,
+    sp: str,
+    c_fur: RGBf,
+    c_soft: RGBf,
+    ox: float = 0.0,
+    oy: float = 0.0,
+    oz: float = 0.0,
+    dy: float = 0.0,
+    expression: str = "happy",
+    t_sec: float = 0.0,
+    head_scale: float = 0.80,
+) -> None:
+    """Shared species head (muzzle, nose, eyes, ears, whiskers, markings).
+
+    Coordinates are the same as the biped rig, offset by (ox, oy+dy, oz) and scaled
+    about the head centre so the chibi head still leaves room for the body.
+    """
+    k = float(head_scale)
+    centre_y = 1.68
+
+    def W(x: float, y: float, z: float) -> np.ndarray:
+        return W_base(x * k + ox, (y - centre_y) * k + centre_y + oy + dy, z * k + oz)
+
+    head_cy = 1.68
+    head_rx, head_ry, head_rz = 0.44, 0.40, 0.40
+    if sp == "bear":
+        head_rx, head_ry, head_rz = 0.47, 0.41, 0.42
+    elif sp == "rabbit":
+        head_rx, head_ry, head_rz = 0.40, 0.38, 0.37
+    elif sp == "sheep":
+        head_rx, head_ry, head_rz = 0.40, 0.37, 0.38
+    sc.add_ellipsoid(W(0.0, head_cy, 0.0), (S(head_rx * k), S(head_ry * k), S(head_rz * k)), c_fur, roughness=0.52)
+
+    # 吻部（每種動物唔同 size / 長度，唔會全部似熊）
+    muzzle_y = head_cy - 0.10
+    mz = 0.30
+    if sp == "cat":
+        m_rx, m_ry, m_rz = 0.165, 0.115, 0.12
+    elif sp == "fox":
+        m_rx, m_ry, m_rz = 0.145, 0.115, 0.19
+        mz = 0.315
+        muzzle_y = head_cy - 0.13
+    elif sp == "rabbit":
+        m_rx, m_ry, m_rz = 0.150, 0.105, 0.115
+        muzzle_y = head_cy - 0.12
+    elif sp == "sheep":
+        m_rx, m_ry, m_rz = 0.165, 0.120, 0.125
+        muzzle_y = head_cy - 0.13
+    elif sp in ("dog", "bear"):
+        m_rx, m_ry, m_rz = 0.215, 0.150, 0.16
+        muzzle_y = head_cy - 0.12
+    else:  # panda
+        m_rx, m_ry, m_rz = 0.185, 0.130, 0.135
+        muzzle_y = head_cy - 0.12
+    muzzle_col = c_soft
+    if sp == "panda":
+        muzzle_col = hex_rgb01("#F7F7F5")
+    elif sp == "fox":
+        muzzle_col = hex_rgb01("#FFF6EA")
+    elif sp == "rabbit":
+        muzzle_col = hex_rgb01("#F9F2F2")
+    sc.add_ellipsoid(W(0.0, muzzle_y, mz), (S(m_rx), S(m_ry), S(m_rz)), muzzle_col, roughness=0.55)
+
+    # 鼻（貓／兔細，狗／熊大）
+    nose_r = 0.046 if sp in ("cat", "rabbit", "sheep") else (0.050 if sp == "fox" else 0.058)
+    nose_col = hex_rgb01("#F29BA6") if sp == "rabbit" else hex_rgb01("#2A1E1A")
+    sc.add_sphere(W(0.0, muzzle_y + 0.055, mz + m_rz * 0.86), S(nose_r), nose_col, roughness=0.30)
+    # 嘴
+    if expression == "surprised":
+        sc.add_sphere(W(0.0, muzzle_y - 0.065, mz + m_rz * 0.72), S(0.052), hex_rgb01("#5A2B2B"), roughness=0.40)
+    else:
+        sc.add_ellipsoid(W(0.0, muzzle_y - 0.055, mz + m_rz * 0.74), (S(0.058), S(0.024), S(0.02)), hex_rgb01("#5A2B2B"), roughness=0.40)
+    # 兔牙
+    if sp == "rabbit":
+        sc.add_rounded_box(W(0.0, muzzle_y - 0.105, mz + m_rz * 0.78), (S(0.050), S(0.055), S(0.018)), S(0.012), hex_rgb01("#FFFFFF"), roughness=0.35)
+    # 狐狸白面頰（貼住面側，唔好橫跨鼻樑）
+    if sp == "fox":
+        for side in (-1.0, 1.0):
+            sc.add_ellipsoid(W(side * 0.245, muzzle_y - 0.04, mz + 0.02), (S(0.105), S(0.085), S(0.095)), hex_rgb01("#FFF6EA"), roughness=0.55)
+
+    # 眼
+    eye_y = head_cy + 0.075
+    eye_z = 0.315
+    eye_x = 0.185
+    if sp == "rabbit":
+        eye_x = 0.165
+    blink = math.sin(t_sec * 2.15 + 0.9) > 0.986
+    for side in (-1.0, 1.0):
+        if sp == "panda":
+            sc.add_ellipsoid(W(side * (eye_x + 0.01), eye_y, eye_z - 0.01), (S(0.145), S(0.155), S(0.105)), hex_rgb01("#222222"), roughness=0.55)
+        if blink:
+            sc.add_ellipsoid(W(side * eye_x, eye_y, eye_z + 0.01), (S(0.085), S(0.018), S(0.05)), hex_rgb01("#241815"), roughness=0.25)
+            continue
+        sc.add_sphere(W(side * eye_x, eye_y, eye_z), S(0.088 if expression != "surprised" else 0.10), hex_rgb01("#241815"), roughness=0.18)
+        sc.add_sphere(W(side * (eye_x - 0.02), eye_y + 0.03, eye_z + 0.055), S(0.030), hex_rgb01("#FFFFFF"), roughness=0.10)
+        sc.add_sphere(W(side * (eye_x + 0.03), eye_y - 0.03, eye_z + 0.05), S(0.014), hex_rgb01("#FFFFFF"), roughness=0.10)
+    # 緊張眉毛
+    if expression == "nervous":
+        for side in (-1.0, 1.0):
+            sc.add_capsule(W(side * (eye_x - 0.06), eye_y + 0.14, eye_z + 0.03), W(side * (eye_x + 0.07), eye_y + 0.18, eye_z + 0.02), S(0.016), hex_rgb01("#3A2A22"), roughness=0.5)
+
+    if sp in ("cat", "fox"):
+        ear_rx, ear_ry = (0.15, 0.22) if sp == "cat" else (0.17, 0.27)
+        ear_y = head_cy + head_ry * 0.62
+        for side in (-1.0, 1.0):
+            rot = R @ rot_z(side * -18.0)
+            sc.add_ellipsoid(W(side * (head_rx * 0.60), ear_y, -0.01), (S(ear_rx), S(ear_ry), S(0.075)), c_fur, rot=rot, roughness=0.50)
+            sc.add_ellipsoid(W(side * (head_rx * 0.60), ear_y + 0.01, 0.035), (S(ear_rx * 0.58), S(ear_ry * 0.62), S(0.04)), hex_rgb01("#F2A9A2") if sp == "cat" else hex_rgb01("#3A2A22"), rot=rot, roughness=0.55)
+    elif sp == "rabbit":
+        ear_y = head_cy + head_ry * 0.62
+        for side in (-1.0, 1.0):
+            sc.add_capsule(W(side * 0.16, ear_y, -0.02), W(side * 0.28, ear_y + 0.44, -0.06), S(0.105), c_fur, roughness=0.55)
+            sc.add_capsule(W(side * 0.17, ear_y + 0.02, 0.045), W(side * 0.27, ear_y + 0.38, 0.0), S(0.058), hex_rgb01("#F5B9BE"), roughness=0.55)
+    elif sp == "dog":
+        for side in (-1.0, 1.0):
+            rot = R @ rot_z(side * 10.0)
+            sc.add_ellipsoid(W(side * (head_rx * 0.92), head_cy - 0.02, 0.02), (S(0.10), S(0.23), S(0.14)), _shade(c_fur, 0.78), rot=rot, roughness=0.58)
+    elif sp == "sheep":
+        # 羊毛冠：一圈波波
+        crown_y = head_cy + head_ry * 0.72
+        for i in range(9):
+            ang = (i / 9.0) * math.tau
+            rr = 0.30 if i % 2 == 0 else 0.26
+            sc.add_sphere(W(math.cos(ang) * rr, crown_y + math.sin(ang) * 0.10 + 0.04, -0.04 + math.sin(ang) * 0.20), S(0.155), hex_rgb01("#FBF7EE"), roughness=0.70)
+        for i in range(12):
+            ang = (i / 12.0) * math.tau
+            sc.add_sphere(
+                W(math.cos(ang) * 0.44, head_cy + math.sin(ang) * 0.40, 0.0),
+                S(0.122) if i % 2 == 0 else S(0.104),
+                hex_rgb01("#FBF7EE"), roughness=0.70,
+            )
+        for side in (-1.0, 1.0):
+            sc.add_ellipsoid(W(side * (head_rx * 1.06), head_cy + 0.02, 0.02), (S(0.10), S(0.055), S(0.15)), c_soft, roughness=0.60)
+    elif sp in ("bear", "panda"):
+        ear_col = c_fur if sp == "bear" else hex_rgb01("#222222")
+        inner_col = c_soft if sp == "bear" else hex_rgb01("#4A4A4A")
+        ear_y = head_cy + head_ry * 0.80
+        for side in (-1.0, 1.0):
+            sc.add_sphere(W(side * (head_rx * 0.66), ear_y, 0.0), S(0.145), ear_col, roughness=0.55)
+            sc.add_sphere(W(side * (head_rx * 0.66), ear_y + 0.01, 0.075), S(0.085), inner_col, roughness=0.58)
+
+    # 貓鬚
+    if sp == "cat":
+        for side in (-1.0, 1.0):
+            for dy in (-0.02, 0.02):
+                sc.add_capsule(W(side * 0.10, muzzle_y + dy, 0.36), W(side * 0.34, muzzle_y + dy + 0.05, 0.30), S(0.008), hex_rgb01("#4A382E"), roughness=0.4)
+
+
+    # ---- 花紋（每種動物唔同）--------------------------------------------
+    dark = _shade(c_fur, 0.55)
+    eye_y_m = head_cy + 0.075
+    if sp == "cat":
+        # 額頭虎斑：兩邊斜紋，唔好連成一條粗眉
+        for side in (-1.0, 1.0):
+            for k in range(2):
+                sc.add_capsule(
+                    W(side * 0.050, head_cy + 0.340 - k * 0.070, 0.330 - k * 0.02),
+                    W(side * 0.175, head_cy + 0.315 - k * 0.070, 0.290 - k * 0.02),
+                    S(0.015), dark, roughness=0.55,
+                )
+    elif sp == "dog":
+        # 一邊眼罩斑，另一邊乾淨 → 一眼認得
+        sc.add_ellipsoid(
+            W(-0.200, eye_y_m + 0.005, 0.255),
+            (S(0.165), S(0.155), S(0.085)),
+            _shade(c_fur, 0.45), roughness=0.55,
+        )
+        for side in (-1.0, 1.0):
+            sc.add_sphere(W(side * (head_rx * 0.92), head_cy - 0.24, 0.02), S(0.085), _shade(c_fur, 0.70), roughness=0.58)
+    elif sp == "fox":
+        for side in (-1.0, 1.0):
+            sc.add_ellipsoid(
+                W(side * (head_rx * 0.60), head_cy + head_ry * 0.74, -0.015),
+                (S(0.10), S(0.12), S(0.06)),
+                hex_rgb01("#3A2A22"), roughness=0.55,
+            )
+    # 腮紅（兔／羊／貓最可愛）
+    if sp in ("rabbit", "sheep", "cat"):
+        for side in (-1.0, 1.0):
+            sc.add_ellipsoid(
+                W(side * 0.285, head_cy - 0.135, 0.275),
+                (S(0.065), S(0.042), S(0.028)),
+                hex_rgb01("#F9BFC0"), roughness=0.62,
+            )
+
+
+def draw_animal_quadruped(
+    sc: Scene3D,
+    base_pos: np.ndarray,
+    yaw_deg: float = 0.0,
+    scale: float = 1.0,
+    species: str = "cat",
+    fur: Optional[str] = None,
+    outfit: Optional[Dict[str, Any]] = None,
+    expression: str = "happy",
+    t_sec: float = 0.0,
+    walking: bool = True,
+) -> None:
+    """Four-legged animal with a trotting gait (same head kit as the biped rig)."""
+    sp = str(species or "cat").lower().strip()
+    if sp not in ANIMAL_FUR:
+        sp = "cat"
+    outfit = outfit if isinstance(outfit, dict) else {}
+    style = str(outfit.get("style") or "").lower().strip()
+
+    R = rot_y(yaw_deg)
+
+    def W(x: float, y: float, z: float) -> np.ndarray:
+        return base_pos + (R @ v3(x * scale, y * scale, z * scale))
+
+    S = lambda v: float(v) * scale
+
+    c_fur = _as_hex(fur, ANIMAL_FUR[sp])
+    c_soft = _as_hex(ANIMAL_ACCENT.get(sp, "#FFFFFF"), ANIMAL_FUR[sp])
+    c_top = _as_hex(outfit.get("top"), "#E8553E")
+    c_accent = _as_hex(outfit.get("accent"), "#FFD24A")
+    dark = _shade(c_fur, 0.55)
+
+    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(0.62), strength=0.26)
+
+    gait = math.sin(t_sec * 7.0) * 0.16 if walking else 0.0
+    bob = math.sin(t_sec * 14.0) * 0.012 if walking else 0.0
+    body_y = 0.74 + bob
+
+    # ---- 身體 -----------------------------------------------------------
+    sc.add_ellipsoid(W(0.0, body_y, 0.0), (S(0.295), S(0.285), S(0.56)), c_fur, roughness=0.55)
+    sc.add_sphere(W(0.0, body_y + 0.04, 0.40), S(0.285), c_fur, roughness=0.55)
+    sc.add_sphere(W(0.0, body_y + 0.02, -0.38), S(0.265), c_fur, roughness=0.55)
+    sc.add_ellipsoid(W(0.0, body_y - 0.12, 0.06), (S(0.22), S(0.13), S(0.40)), c_soft, roughness=0.60)
+
+    # ---- 四條腿（對角同步，細細步咁行）---------------------------------
+    leg_col = _as_hex(ANIMAL_LIMB.get(sp), fur or ANIMAL_FUR[sp])
+    for side in (-1.0, 1.0):
+        for front, swing in ((1.0, gait), (-1.0, -gait)):
+            z_hip = 0.32 * front
+            z_knee = z_hip + swing * 0.35
+            z_foot = z_hip + swing * 0.62
+            sc.add_capsule(W(side * 0.215, 0.64 + bob, z_hip), W(side * 0.225, 0.38, z_knee), S(0.105), leg_col, roughness=0.55)
+            sc.add_capsule(W(side * 0.225, 0.38, z_knee), W(side * 0.225, 0.10, z_foot), S(0.088), leg_col, roughness=0.55)
+            sc.add_ellipsoid(W(side * 0.225, 0.09, z_foot + 0.045), (S(0.105), S(0.065), S(0.135)), leg_col, roughness=0.55)
+    if sp == "panda":
+        for side in (-1.0, 1.0):
+            for front in (1.0, -1.0):
+                sc.add_capsule(W(side * 0.215, 0.66 + bob, 0.30 * front), W(side * 0.225, 0.42, 0.30 * front), S(0.10), hex_rgb01("#222222"), roughness=0.55)
+
+    # ---- 背部花紋 --------------------------------------------------------
+    if sp == "cat":
+        for k in range(3):
+            sc.add_ellipsoid(W(0.0, body_y + 0.25 - k * 0.02, 0.16 - k * 0.20), (S(0.20), S(0.035), S(0.055)), dark, roughness=0.58)
+    elif sp == "dog":
+        for px, pz in ((-0.14, 0.10), (0.12, -0.18)):
+            sc.add_sphere(W(px, body_y + 0.24, pz), S(0.085), dark, roughness=0.58)
+    elif sp == "sheep":
+        sc.add_ellipsoid(W(0.0, body_y + 0.08, 0.0), (S(0.325), S(0.315), S(0.545)), hex_rgb01("#FBF7EE"), roughness=0.72)
+        for i in range(5):
+            sc.add_sphere(
+                W((-0.06 if i % 2 == 0 else 0.06), body_y + 0.40, -0.36 + i * 0.19),
+                S(0.155), hex_rgb01("#FBF7EE"), roughness=0.74,
+            )
+
+    # ---- 頸 / 頭（同一套頭部元件）---------------------------------------
+    sc.add_capsule(W(0.0, body_y + 0.16, 0.42), W(0.0, 1.06, 0.80), S(0.165), c_fur, roughness=0.55)
+    _draw_animal_head(sc, W, S, R, sp, c_fur, c_soft, oy=-0.62, oz=0.84, expression=expression, t_sec=t_sec, head_scale=0.78)
+
+    # ---- 背心 / 披風（四足動物嘅衫）-------------------------------------
+    if style in ("cape", "armor", "spacesuit", "hoodie", "tee", "raincoat", "dress"):
+        sc.add_ellipsoid(W(0.0, body_y + 0.235, 0.0), (S(0.285), S(0.055), S(0.38)), c_top, roughness=0.55)
+        sc.add_ellipsoid(W(0.0, body_y + 0.255, 0.0), (S(0.20), S(0.02), S(0.075)), c_accent, roughness=0.55)
+        if style in ("cape", "armor"):
+            sc.add_rounded_box(W(0.0, body_y + 0.12, -0.44), (S(0.30), S(0.26), S(0.035)), S(0.06), _shade(c_top, 0.9), rot=R @ rot_x(8.0), roughness=0.58)
+
+    # ---- 尾巴 -----------------------------------------------------------
+    base_tail = (0.0, body_y + 0.16, -0.50)
+    if sp == "cat":
+        pts = [base_tail, (0.10, body_y + 0.34, -0.70), (0.05, body_y + 0.50, -0.82)]
+        for a, b in zip(pts, pts[1:]):
+            sc.add_capsule(W(*a), W(*b), S(0.055), c_fur, roughness=0.55)
+        sc.add_sphere(W(*pts[-1]), S(0.055), c_soft, roughness=0.55)
+    elif sp == "fox":
+        sc.add_capsule(W(*base_tail), W(0.10, body_y + 0.42, -0.78), S(0.135), c_fur, roughness=0.62)
+        sc.add_sphere(W(0.13, body_y + 0.50, -0.88), S(0.135), hex_rgb01("#FFF6EA"), roughness=0.62)
+    elif sp == "sheep":
+        sc.add_sphere(W(0.0, body_y + 0.14, -0.56), S(0.12), hex_rgb01("#FBF7EE"), roughness=0.72)
+    elif sp == "rabbit":
+        sc.add_sphere(W(0.0, body_y + 0.10, -0.56), S(0.115), hex_rgb01("#FFFFFF"), roughness=0.65)
+    elif sp in ("bear", "panda"):
+        sc.add_sphere(W(0.0, body_y + 0.10, -0.55), S(0.095), c_fur if sp == "bear" else hex_rgb01("#222222"), roughness=0.60)
+    else:
+        sc.add_capsule(W(*base_tail), W(0.14 + 0.05 * math.sin(t_sec * 9.0), body_y + 0.36, -0.70), S(0.065), c_fur, roughness=0.58)
+
+
 def draw_animal_figure(
     sc: Scene3D,
     base_pos: np.ndarray,
@@ -1809,7 +2104,7 @@ def draw_animal_figure(
         sc.add_ellipsoid(W(side * 0.21, 0.10, 0.10), (S(0.155), S(0.10), S(0.23)), c_limb, roughness=0.52)
 
     # ---- 下身 / 上身 ----------------------------------------------------
-    sc.add_ellipsoid(W(0.0, 0.70 + bob, 0.0), (S(0.34), S(0.24), S(0.27)), c_bottom, roughness=0.55)
+    sc.add_ellipsoid(W(0.0, 0.68 + bob, 0.0), (S(0.325), S(0.205), S(0.245)), c_bottom, roughness=0.55)
     if style in ("dress", "raincoat"):
         flare = 0.42 if style == "dress" else 0.37
         tiers = ((0.98, 0.84, flare * 0.68), (0.84, 0.70, flare * 0.82), (0.70, 0.56, flare))
@@ -1861,129 +2156,9 @@ def draw_animal_figure(
         sc.add_ellipsoid(W(0.0, 1.235 + bob, 0.0), (S(0.22), S(0.055), S(0.20)), c_accent, roughness=0.50)
         sc.add_ellipsoid(W(0.0, 0.70 + bob, 0.0), (S(0.345), S(0.045), S(0.275)), c_accent, roughness=0.55)
 
-    # ---- 頸 / 頭 --------------------------------------------------------
+    # ---- 頸 / 頭（由 _draw_animal_head 畫）------------------------------
     sc.add_capsule(W(0.0, 1.22 + bob, 0.0), W(0.0, 1.40 + bob, 0.0), S(0.14), c_fur, roughness=0.55)
-
-    head_cy = 1.68 + bob
-    head_rx, head_ry, head_rz = 0.44, 0.40, 0.40
-    if sp == "bear":
-        head_rx, head_ry, head_rz = 0.47, 0.41, 0.42
-    elif sp == "rabbit":
-        head_rx, head_ry, head_rz = 0.40, 0.38, 0.37
-    elif sp == "sheep":
-        head_rx, head_ry, head_rz = 0.40, 0.37, 0.38
-    sc.add_ellipsoid(W(0.0, head_cy, 0.0), (S(head_rx), S(head_ry), S(head_rz)), c_fur, roughness=0.52)
-
-    # 吻部（每種動物唔同 size / 長度，唔會全部似熊）
-    muzzle_y = head_cy - 0.10
-    mz = 0.30
-    if sp == "cat":
-        m_rx, m_ry, m_rz = 0.165, 0.115, 0.12
-    elif sp == "fox":
-        m_rx, m_ry, m_rz = 0.145, 0.115, 0.19
-        mz = 0.315
-        muzzle_y = head_cy - 0.13
-    elif sp == "rabbit":
-        m_rx, m_ry, m_rz = 0.150, 0.105, 0.115
-        muzzle_y = head_cy - 0.12
-    elif sp == "sheep":
-        m_rx, m_ry, m_rz = 0.165, 0.120, 0.125
-        muzzle_y = head_cy - 0.13
-    elif sp in ("dog", "bear"):
-        m_rx, m_ry, m_rz = 0.215, 0.150, 0.16
-        muzzle_y = head_cy - 0.12
-    else:  # panda
-        m_rx, m_ry, m_rz = 0.185, 0.130, 0.135
-        muzzle_y = head_cy - 0.12
-    muzzle_col = c_soft
-    if sp == "panda":
-        muzzle_col = hex_rgb01("#F7F7F5")
-    elif sp == "fox":
-        muzzle_col = hex_rgb01("#FFF6EA")
-    elif sp == "rabbit":
-        muzzle_col = hex_rgb01("#F9F2F2")
-    sc.add_ellipsoid(W(0.0, muzzle_y, mz), (S(m_rx), S(m_ry), S(m_rz)), muzzle_col, roughness=0.55)
-
-    # 鼻（貓／兔細，狗／熊大）
-    nose_r = 0.046 if sp in ("cat", "rabbit", "sheep") else (0.050 if sp == "fox" else 0.058)
-    nose_col = hex_rgb01("#F29BA6") if sp == "rabbit" else hex_rgb01("#2A1E1A")
-    sc.add_sphere(W(0.0, muzzle_y + 0.055, mz + m_rz * 0.86), S(nose_r), nose_col, roughness=0.30)
-    # 嘴
-    if expression == "surprised":
-        sc.add_sphere(W(0.0, muzzle_y - 0.065, mz + m_rz * 0.72), S(0.052), hex_rgb01("#5A2B2B"), roughness=0.40)
-    else:
-        sc.add_ellipsoid(W(0.0, muzzle_y - 0.055, mz + m_rz * 0.74), (S(0.058), S(0.024), S(0.02)), hex_rgb01("#5A2B2B"), roughness=0.40)
-    # 兔牙
-    if sp == "rabbit":
-        sc.add_rounded_box(W(0.0, muzzle_y - 0.105, mz + m_rz * 0.78), (S(0.050), S(0.055), S(0.018)), S(0.012), hex_rgb01("#FFFFFF"), roughness=0.35)
-    # 狐狸白面頰（貼住面側，唔好橫跨鼻樑）
-    if sp == "fox":
-        for side in (-1.0, 1.0):
-            sc.add_ellipsoid(W(side * 0.245, muzzle_y - 0.04, mz + 0.02), (S(0.105), S(0.085), S(0.095)), hex_rgb01("#FFF6EA"), roughness=0.55)
-
-    # 眼
-    eye_y = head_cy + 0.075
-    eye_z = 0.315
-    eye_x = 0.185
-    if sp == "rabbit":
-        eye_x = 0.165
-    for side in (-1.0, 1.0):
-        if sp == "panda":
-            sc.add_ellipsoid(W(side * (eye_x + 0.01), eye_y, eye_z - 0.01), (S(0.145), S(0.155), S(0.105)), hex_rgb01("#222222"), roughness=0.55)
-        sc.add_sphere(W(side * eye_x, eye_y, eye_z), S(0.088 if expression != "surprised" else 0.10), hex_rgb01("#241815"), roughness=0.18)
-        sc.add_sphere(W(side * (eye_x - 0.02), eye_y + 0.03, eye_z + 0.055), S(0.030), hex_rgb01("#FFFFFF"), roughness=0.10)
-        sc.add_sphere(W(side * (eye_x + 0.03), eye_y - 0.03, eye_z + 0.05), S(0.014), hex_rgb01("#FFFFFF"), roughness=0.10)
-    # 緊張眉毛
-    if expression == "nervous":
-        for side in (-1.0, 1.0):
-            sc.add_capsule(W(side * (eye_x - 0.06), eye_y + 0.14, eye_z + 0.03), W(side * (eye_x + 0.07), eye_y + 0.18, eye_z + 0.02), S(0.016), hex_rgb01("#3A2A22"), roughness=0.5)
-
-    # ---- 耳朵（每種動物自己一套）----------------------------------------
-    if sp in ("cat", "fox"):
-        ear_rx, ear_ry = (0.15, 0.22) if sp == "cat" else (0.17, 0.27)
-        ear_y = head_cy + head_ry * 0.62
-        for side in (-1.0, 1.0):
-            rot = R @ rot_z(side * -18.0)
-            sc.add_ellipsoid(W(side * (head_rx * 0.60), ear_y, -0.01), (S(ear_rx), S(ear_ry), S(0.075)), c_fur, rot=rot, roughness=0.50)
-            sc.add_ellipsoid(W(side * (head_rx * 0.60), ear_y + 0.01, 0.035), (S(ear_rx * 0.58), S(ear_ry * 0.62), S(0.04)), hex_rgb01("#F2A9A2") if sp == "cat" else hex_rgb01("#3A2A22"), rot=rot, roughness=0.55)
-    elif sp == "rabbit":
-        ear_y = head_cy + head_ry * 0.62
-        for side in (-1.0, 1.0):
-            sc.add_capsule(W(side * 0.16, ear_y, -0.02), W(side * 0.28, ear_y + 0.44, -0.06), S(0.105), c_fur, roughness=0.55)
-            sc.add_capsule(W(side * 0.17, ear_y + 0.02, 0.045), W(side * 0.27, ear_y + 0.38, 0.0), S(0.058), hex_rgb01("#F5B9BE"), roughness=0.55)
-    elif sp == "dog":
-        for side in (-1.0, 1.0):
-            rot = R @ rot_z(side * 10.0)
-            sc.add_ellipsoid(W(side * (head_rx * 0.92), head_cy - 0.02, 0.02), (S(0.10), S(0.23), S(0.14)), _shade(c_fur, 0.78), rot=rot, roughness=0.58)
-    elif sp == "sheep":
-        # 羊毛冠：一圈波波
-        crown_y = head_cy + head_ry * 0.72
-        for i in range(9):
-            ang = (i / 9.0) * math.tau
-            rr = 0.30 if i % 2 == 0 else 0.26
-            sc.add_sphere(W(math.cos(ang) * rr, crown_y + math.sin(ang) * 0.10 + 0.04, -0.04 + math.sin(ang) * 0.20), S(0.155), hex_rgb01("#FBF7EE"), roughness=0.70)
-        for i in range(12):
-            ang = (i / 12.0) * math.tau
-            sc.add_sphere(
-                W(math.cos(ang) * 0.44, head_cy + math.sin(ang) * 0.40, 0.0),
-                S(0.122) if i % 2 == 0 else S(0.104),
-                hex_rgb01("#FBF7EE"), roughness=0.70,
-            )
-        for side in (-1.0, 1.0):
-            sc.add_ellipsoid(W(side * (head_rx * 1.06), head_cy + 0.02, 0.02), (S(0.10), S(0.055), S(0.15)), c_soft, roughness=0.60)
-    elif sp in ("bear", "panda"):
-        ear_col = c_fur if sp == "bear" else hex_rgb01("#222222")
-        inner_col = c_soft if sp == "bear" else hex_rgb01("#4A4A4A")
-        ear_y = head_cy + head_ry * 0.80
-        for side in (-1.0, 1.0):
-            sc.add_sphere(W(side * (head_rx * 0.66), ear_y, 0.0), S(0.145), ear_col, roughness=0.55)
-            sc.add_sphere(W(side * (head_rx * 0.66), ear_y + 0.01, 0.075), S(0.085), inner_col, roughness=0.58)
-
-    # 貓鬚
-    if sp == "cat":
-        for side in (-1.0, 1.0):
-            for dy in (-0.02, 0.02):
-                sc.add_capsule(W(side * 0.10, muzzle_y + dy, 0.36), W(side * 0.34, muzzle_y + dy + 0.05, 0.30), S(0.008), hex_rgb01("#4A382E"), roughness=0.4)
+    _draw_animal_head(sc, W, S, R, sp, c_fur, c_soft, dy=bob, expression=expression, t_sec=t_sec)
 
     # ---- 尾巴 -----------------------------------------------------------
     base_tail = (0.0, 0.76 + bob, -0.28)
