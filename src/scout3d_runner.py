@@ -52,6 +52,9 @@ from scout3d_characters import (
     draw_leader_figure,
     draw_mom_figure,
     draw_scout_figure,
+    draw_animal_figure,
+    ANIMAL_FUR,
+    ANIMAL_SPECIES,
     draw_turntable_pedestal,
     resolve_character_preset,
 )
@@ -841,6 +844,9 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
     # 以及自己嘅 SCOUT 3D 制服穿搭碼（S3D1_... / JSON）。
     # 冇 `characters` 嘅舊 spec 會自動變成單一主角，行為同以前完全一樣。
     # ------------------------------------------------------------------
+    default_species = _norm_species(raw.get("species") or raw.get("animal"))
+    default_outfit = _norm_outfit(raw.get("outfit") or raw.get("clothes") or raw.get("costume"))
+    default_fur = str(raw.get("fur") or raw.get("fur_color") or "").strip()
     story_mode = bool(_norm_story_section(raw.get("story_section")) or raw.get("characters") or raw.get("cast"))
     cast_raw = raw.get("characters") or raw.get("cast")
     explicit_cast = isinstance(cast_raw, list) and len(cast_raw) > 0
@@ -890,9 +896,15 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
             else:
                 sash_i = default_sash if i == 0 else None
             style_i = str(c.get("style_mode") or hero_style)
+            sp_i = _norm_species(c.get("species") or c.get("animal")) or (default_species if i == 0 else "")
+            outfit_i = _norm_outfit(c.get("outfit") or c.get("clothes") or c.get("costume"))
+            if outfit_i is None and i == 0:
+                outfit_i = default_outfit
+            fur_i = c.get("fur") or c.get("fur_color") or (default_fur if i == 0 else None)
             ep_cast.append(_make_actor(
                 sec, skin, gen_i, hat_i, sash_i, style_i, code,
                 _sanitize_text_for_font(str(c.get("name") or f"角色{i + 1}"))[:12],
+                species=sp_i, outfit=outfit_i, fur=fur_i,
             ))
         hero0 = ep_cast[0]
         default_section = hero0["section"]
@@ -905,6 +917,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         ep_cast = [_make_actor(
             default_section, ep_actor_skin, default_gender, default_hat, default_sash,
             hero_style, s3d_custom, "主角",
+            species=default_species, outfit=default_outfit, fur=default_fur,
         )]
 
     default_camera = _norm_camera(raw.get("camera") or raw.get("camera_move") or raw.get("default_camera"))
@@ -1179,6 +1192,9 @@ def _make_actor(
     style_mode: str = "bobo",
     s3d_custom: Optional[Dict[str, Any]] = None,
     name: str = "",
+    species: str = "",
+    outfit: Optional[Dict[str, str]] = None,
+    fur: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Build a normalized cast member dict used by the story scene renderer."""
     sec = section if section in SECTION_STYLES else "scout"
@@ -1195,7 +1211,85 @@ def _make_actor(
         "show_sash": sash if sec in _ACTOR_SASH_SECTIONS else 0.0,
         "style_mode": style_mode if style_mode in ("bobo", "blocky", "morph") else "bobo",
         "s3d_custom": s3d_custom,
+        "species": _norm_species(species),
+        "outfit": outfit,
+        "fur": _species_fur_hex(_norm_species(species), fur) if _norm_species(species) else "",
     }
+
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 動物角色 ＋ AI 自訂服裝（species / outfit）
+# ═══════════════════════════════════════════════════════════════════
+_SPECIES_ALIASES = {
+    "cat": "cat", "貓": "cat", "小猫": "cat", "kitten": "cat",
+    "sheep": "sheep", "羊": "sheep", "綿羊": "sheep", "绵羊": "sheep", "lamb": "sheep",
+    "dog": "dog", "狗": "dog", "小狗": "dog", "puppy": "dog",
+    "rabbit": "rabbit", "兔": "rabbit", "兔子": "rabbit", "bunny": "rabbit",
+    "bear": "bear", "熊": "bear", "小熊": "bear",
+    "fox": "fox", "狐狸": "fox",
+    "panda": "panda", "熊貓": "panda", "熊猫": "panda",
+}
+_OUTFIT_STYLES = {"tee", "hoodie", "dress", "spacesuit", "armor", "cape", "raincoat"}
+_OUTFIT_STYLE_ALIASES = {
+    "t-shirt": "tee", "tshirt": "tee", "shirt": "tee", "t恤": "tee",
+    "hoody": "hoodie", "衛衣": "hoodie", "卫衣": "hoodie",
+    "skirt": "dress", "裙": "dress", "連身裙": "dress",
+    "space": "spacesuit", "太空衣": "spacesuit", "宇航服": "spacesuit",
+    "armour": "armor", "盔甲": "armor", "鎧甲": "armor",
+    "cloak": "cape", "斗篷": "cape", "披風": "cape",
+    "coat": "raincoat", "雨衣": "raincoat",
+}
+
+
+def _norm_species(value: Any) -> str:
+    """Return a supported species key, or '' for human."""
+    key = str(value or "").strip().lower()
+    if not key or key in ("human", "humanoid", "人", "人類"):
+        return ""
+    return _SPECIES_ALIASES.get(key, "")
+
+
+def _hex_or_default(value: Any, fallback: str) -> str:
+    txt = str(value or "").strip()
+    if not txt:
+        return fallback
+    if not txt.startswith("#"):
+        txt = "#" + txt
+    if re.match(r"^#[0-9a-fA-F]{6}$", txt):
+        return txt.lower()
+    return fallback
+
+
+def _norm_outfit(value: Any) -> Optional[Dict[str, str]]:
+    """Normalise an AI-designed outfit: 'hoodie' or {"style":..., "top":"#hex", ...}."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return {"style": _OUTFIT_STYLE_ALIASES.get(value.strip().lower(), value.strip().lower())}
+    if not isinstance(value, dict):
+        return None
+    style_raw = str(value.get("style") or value.get("type") or "").strip().lower()
+    style = _OUTFIT_STYLE_ALIASES.get(style_raw, style_raw)
+    if not style:
+        style = "tee"
+    if style not in _OUTFIT_STYLES:
+        style = "tee"
+    out: Dict[str, str] = {"style": style}
+    if value.get("top") or value.get("color") or value.get("shirt"):
+        out["top"] = _hex_or_default(value.get("top") or value.get("color") or value.get("shirt"), "#E8553E")
+    if value.get("bottom") or value.get("pants") or value.get("leg"):
+        out["bottom"] = _hex_or_default(value.get("bottom") or value.get("pants") or value.get("leg"), "#31456B")
+    if value.get("accent") or value.get("trim"):
+        out["accent"] = _hex_or_default(value.get("accent") or value.get("trim"), "#FFD24A")
+    return out
+
+
+def _species_fur_hex(species: str, explicit: Any = None) -> str:
+    txt = str(explicit or "").strip()
+    if txt:
+        return _hex_or_default(txt, ANIMAL_FUR.get(species, "#F0A45C"))
+    return ANIMAL_FUR.get(species, "#F0A45C")
 
 
 def _slot_actor(sh: Dict[str, Any], kind: str) -> Dict[str, Any]:
@@ -1248,6 +1342,15 @@ def _draw_actor(
     wave: float = 0.0,
     t_sec: float = 0.0,
 ) -> None:
+    species = _norm_species(actor.get("species"))
+    if species:
+        draw_animal_figure(
+            sc, base_pos, yaw_deg=yaw_deg, scale=scale, species=species,
+            fur=actor.get("fur") or ANIMAL_FUR.get(species),
+            outfit=actor.get("outfit"), expression=expression,
+            t_sec=t_sec, wave=wave,
+        )
+        return
     draw_scout_figure(
         sc, base_pos, yaw_deg=yaw_deg, scale=scale,
         style_mode=str(style_mode or actor.get("style_mode") or "bobo"),

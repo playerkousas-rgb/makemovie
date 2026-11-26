@@ -195,8 +195,27 @@ HTML 第 3 步有 **「🔊 語音引擎（進階）」** 摺疊欄：填一次�
 }
 ```
 
-- `characters`：最多 5 位；第一位係主角。每項可加 `section`（7 個支部）、`actor_skin`（`human`／`ai_robot`）同 `uniform_code`（`S3D1_...`，貼咗就以碼為準）。舊 spec 冇 `characters` 會自動當單一主角。
+- `characters`：最多 5 位；第一位係主角。每項可加 `section`（7 個支部）、`actor_skin`（`human`／`ai_robot`）、`uniform_code`（`S3D1_...`，貼咗就以碼為準）、`species`（動物）同 `outfit`（AI 設計服裝）。舊 spec 冇 `characters` 會自動當單一主角。
 - `camera`：`auto`（跟場景原有運鏡）／`push_in`／`pull_out`／`pan_left`／`pan_right`／`tilt_up`／`orbit_left`／`orbit_right`／`crane_up`／`low_angle`／`handheld`。可以寫喺 episode 做預設，亦可以每鏡覆蓋。
+
+### 6b. 動物角色 ＋ AI 自訂服裝（`species` / `outfit`）
+
+動物角色係**由零砌**（頭、吻、耳、尾、手腳都係自己嗰套），**唔係喺人類頭上貼耳仔**，所以任何角度都唔會有人頭穿崩。
+
+```json
+{
+  "characters": [
+    {"name": "阿貓", "species": "cat", "outfit": {"style": "hoodie", "top": "#E8553E", "bottom": "#31456B", "accent": "#FFD24A"}},
+    {"name": "羊羊", "species": "sheep", "outfit": {"style": "dress", "top": "#7FB2E5", "accent": "#FFF2B8"}},
+    {"name": "汪汪", "species": "dog", "outfit": {"style": "spacesuit", "top": "#EDEFF4", "accent": "#59E0FF"}}
+  ]
+}
+```
+
+- `species`：`cat`／`sheep`／`dog`／`rabbit`／`bear`／`fox`／`panda`（亦接受中文「貓」等）；留空或 `human` 就照舊出童軍制服人仔。可以寫喺 episode 頂層（主角用）或每個角色自己嗰項。
+- `outfit.style`：`tee`／`hoodie`／`dress`／`spacesuit`／`armor`／`cape`／`raincoat`；`top`／`bottom`／`accent` 係 `#RRGGBB`，留空就用該物種嘅預設配色。
+- 動物同真人可以同一鏡混合出場（最多 5 位），制服片完全唔受影響。
+- HTML 第 1 步有 **「🐾 主角物種」** 同 **「👕 主角服裝」**；每位配角亦有自己嘅物種／服裝 dropdown。留空＝由 AI 按故事決定。
 
 ```bat
 python src/scout3d_runner.py --spec episodes/story_example.json

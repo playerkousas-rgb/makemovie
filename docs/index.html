@@ -346,6 +346,39 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
           </div>
         </div>
 
+        <!-- 1D2. 動物角色 ＋ AI 自訂服裝 -->
+        <div class="row2" style="margin-top:12px">
+          <div class="field" style="margin-bottom:0">
+            <label>🐾 主角物種</label>
+            <select id="f_species">
+              <option value="">由 AI 決定（人／動物）</option>
+              <option value="human">人類（童軍制服）</option>
+              <option value="cat">貓</option>
+              <option value="sheep">綿羊</option>
+              <option value="dog">狗</option>
+              <option value="rabbit">兔</option>
+              <option value="bear">熊</option>
+              <option value="fox">狐狸</option>
+              <option value="panda">熊貓</option>
+            </select>
+            <div class="mini">揀動物會用<b>由零畫嘅動物角色</b>（冇人頭穿崩），一樣跟故事換場景。</div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>👕 主角服裝（AI 可自由設計）</label>
+            <select id="f_outfit">
+              <option value="">由 AI 按故事設計</option>
+              <option value="tee">T 裇</option>
+              <option value="hoodie">衛衣</option>
+              <option value="dress">裙</option>
+              <option value="spacesuit">太空衣</option>
+              <option value="armor">盔甲</option>
+              <option value="cape">斗篷</option>
+              <option value="raincoat">雨衣</option>
+            </select>
+            <div class="mini">唔止童軍制服：AI 會按故事配顏色，亦可以喺度鎖定款式。</div>
+          </div>
+        </div>
+
         <!-- 1E. 場景 ＆ 運鏡（AI 導演 / 自己話事） -->
         <div class="field">
           <label>🎥 場景 ＆ 運鏡（想 AI 做導演，定自己話事？）</label>
@@ -1294,7 +1327,7 @@ function castPromptBlock(heroSec, actor){
       : (c.skin === 'human' ? '真人角色' : '由你決定真人／AI 機械人');
     return `· 角色 ${i + 2}：${secTxt}，${skinTxt}${c.code ? '，已有指定 SCOUT 3D 制服碼（旁白唔准講錯佢戴嘅徽章）' : ''}`;
   });
-  return `【角色陣容（全片固定 ${extras.length + 1} 位角色，3D 畫面每一鏡都會全部出場）】\n· 主角：${sectionZh(heroSec)}，${actor === 'ai_robot' ? 'AI 機械人' : '真人角色'}\n${lines.join('\n')}\n★ 旁白只可以寫呢 ${extras.length + 1} 位角色之間嘅互動，唔好再作其他人。\n★ 輸出時必須回傳 "characters" 陣列（長度 ${extras.length + 1}，第一位係主角）；「由你決定」嘅角色請填真實支部 key（grasshopper／cub／scout／sea_scout／air_scout／venture／leader）同 actor_skin（human／ai_robot）。`;
+  return `【角色陣容（全片固定 ${extras.length + 1} 位角色，3D 畫面每一鏡都會全部出場）】\n· 主角：${sectionZh(heroSec)}，${actor === 'ai_robot' ? 'AI 機械人' : '真人角色'}\n${lines.join('\n')}\n★ 旁白只可以寫呢 ${extras.length + 1} 位角色之間嘅互動，唔好再作其他人。\n★ 輸出時必須回傳 "characters" 陣列（長度 ${extras.length + 1}，第一位係主角）；「由你決定」嘅角色請填真實支部 key（grasshopper／cub／scout／sea_scout／air_scout／venture／leader）同 actor_skin（human／ai_robot）。\n★ 每位角色都要有 species（human 或 cat／sheep／dog／rabbit／bear／fox／panda）同 outfit（style＋顏色）：動物故事全部填動物，服裝按故事設計。`;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1360,15 +1393,15 @@ ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'
   2. 相鄰兩鏡唔可以係同一個場景；全片至少要有 4 個明顯不同嘅場景／地點。
   3. 下面 sceneDocBlock 嘅例子只示範「格式」，**絕對唔准照抄內容**（例如唔好每逢科幻就抄土星環）。
   4. 唔准用 props 或 kind 代替 objects；每鏡 objects 至少 3 件。
+· 角色可以係人，亦可以係動物：故事講動物就用 characters[].species（cat／sheep／dog／rabbit／bear／fox／panda）；人類就填 human。
+· 服裝由你按故事設計（outfit.style 七選一 ＋ 三個顏色）。除非故事明確講童軍，唔好預設童軍制服；太空故事可以太空衣、魔法故事可以斗篷。
 · 唔准加任何產品／App／網站介紹或「功能示範」字眼。`;
 
-  const castSchema = (S.cast && S.cast.length)
-    ? `,
+  const castSchema = `,
   "characters": [
-    {"section": "${heroSec}", "actor_skin": "${actor}"},
-    {"section": "由你決定嘅角色請填真實支部 key", "actor_skin": "human 或 ai_robot"}
-  ]`
-    : '';
+    {"section": "${heroSec}", "actor_skin": "${actor}", "species": "human 或 cat/sheep/dog/rabbit/bear/fox/panda", "outfit": {"style": "tee/hoodie/dress/spacesuit/armor/cape/raincoat", "top": "#RRGGBB", "bottom": "#RRGGBB", "accent": "#RRGGBB"}}${(S.cast && S.cast.length) ? `,
+    {"section": "由你決定嘅角色請填真實支部 key", "actor_skin": "human 或 ai_robot", "species": "同上", "outfit": {"style": "...", "top": "#RRGGBB"}}` : ''}
+  ]`;
 
   const shotSchema = (S.director === 'full')
     ? `    {
@@ -1664,7 +1697,12 @@ function parseStoryJson(raw, allowUniform){
           const obj = (c && typeof c === 'object') ? c : { section: c };
           const sec = detectSectionFromText(String(obj.section || obj.story_section || '')) || '';
           const skin = /robot|機械|机械|ai/i.test(String(obj.actor_skin || obj.skin || '')) ? 'ai_robot' : 'human';
-          return { section: sec, skin };
+          return {
+            section: sec,
+            skin,
+            species: normSpecies(obj.species || obj.animal),
+            outfit: normOutfit(obj.outfit || obj.clothes || obj.costume)
+          };
         })
       : [];
     return {
@@ -1795,6 +1833,52 @@ async function doStory(mode){
 /* ══════════════════════════════════════════════════════════════════
    組裝 Episode JSON + 壓縮成方法 A CMD 指令（連埋 s3d_custom 穿搭資料！）
    ══════════════════════════════════════════════════════════════════ */
+const SPECIES_KEYS = ['cat', 'sheep', 'dog', 'rabbit', 'bear', 'fox', 'panda'];
+const OUTFIT_KEYS = ['tee', 'hoodie', 'dress', 'spacesuit', 'armor', 'cape', 'raincoat'];
+function speciesOptions(cur){
+  const list = [['', '由 AI 決定'], ['human', '人類'], ['cat', '貓'], ['sheep', '綿羊'], ['dog', '狗'], ['rabbit', '兔'], ['bear', '熊'], ['fox', '狐狸'], ['panda', '熊貓']];
+  const v = String(cur || '');
+  return list.map(([val, label]) => `<option value="${val}"${val === v ? ' selected' : ''}>${label}</option>`).join('');
+}
+function outfitOptions(cur){
+  const list = [['', '由 AI 設計'], ['tee', 'T 裇'], ['hoodie', '衛衣'], ['dress', '裙'], ['spacesuit', '太空衣'], ['armor', '盔甲'], ['cape', '斗篷'], ['raincoat', '雨衣']];
+  const v = String(cur || '');
+  return list.map(([val, label]) => `<option value="${val}"${val === v ? ' selected' : ''}>${label}</option>`).join('');
+}
+function normSpecies(v){
+  const k = String(v || '').trim().toLowerCase();
+  if(!k) return '';
+  if(k === 'human' || k === '人' || k === '人類' || k === '人类') return 'human';
+  const alias = { '貓': 'cat', '猫': 'cat', '羊': 'sheep', '綿羊': 'sheep', '狗': 'dog', '兔': 'rabbit', '兔子': 'rabbit', '熊': 'bear', '狐狸': 'fox', '熊貓': 'panda', '熊猫': 'panda' };
+  const key = alias[k] || k;
+  return SPECIES_KEYS.indexOf(key) >= 0 ? key : '';
+}
+function normOutfit(v){
+  if(v && typeof v === 'object'){
+    const out = {};
+    const st = String(v.style || v.type || '').trim().toLowerCase();
+    if(OUTFIT_KEYS.indexOf(st) >= 0) out.style = st;
+    ['top', 'bottom', 'accent'].forEach(k => {
+      const hex = String(v[k] || '').trim();
+      if(/^#?[0-9a-fA-F]{6}$/.test(hex)) out[k] = hex[0] === '#' ? hex : '#' + hex;
+    });
+    return Object.keys(out).length ? out : null;
+  }
+  const st = String(v || '').trim().toLowerCase();
+  return OUTFIT_KEYS.indexOf(st) >= 0 ? { style: st } : null;
+}
+function castPickSpecies(c, i){
+  const manual = normSpecies(c.species);
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
+  return ai ? normSpecies(ai.species || ai.animal) : '';
+}
+function castPickOutfit(c, i){
+  const manual = normOutfit(c.outfit);
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
+  return ai ? normOutfit(ai.outfit || ai.clothes || ai.costume) : null;
+}
 function castPickSection(c, i){
   if(c.section && c.section !== 'auto' && SECTION_MAP[c.section]) return c.section;
   const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
@@ -1808,14 +1892,35 @@ function castPickSkin(c, i){
   const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
   return (ai && ai.skin === 'ai_robot') ? 'ai_robot' : 'human';
 }
+function heroSpecies(){
+  const manual = normSpecies(($('f_species') || {}).value || '');
+  if(manual) return manual === 'human' ? '' : manual;
+  const ai = (S.aiCast && S.aiCast[0]) ? S.aiCast[0] : null;
+  const sp = ai ? normSpecies(ai.species || ai.animal) : '';
+  return sp === 'human' ? '' : sp;
+}
+function heroOutfit(){
+  const manual = normOutfit(($('f_outfit') || {}).value || '');
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[0]) ? S.aiCast[0] : null;
+  return ai ? normOutfit(ai.outfit || ai.clothes || ai.costume) : null;
+}
 function buildCharacters(sec, actor){
+  const heroSp = heroSpecies();
+  const heroFo = heroOutfit();
   const list = [{ section: sec, actor_skin: actor, name: '主角' }];
+  if(heroSp) list[0].species = heroSp;
+  if(heroFo) list[0].outfit = heroFo;
   (S.cast || []).forEach((c, i) => {
     const entry = {
       section: castPickSection(c, i),
       actor_skin: castPickSkin(c, i),
       name: '角色' + (i + 2)
     };
+    const sp = castPickSpecies(c, i);
+    const fo = castPickOutfit(c, i);
+    if(sp && sp !== 'human') entry.species = sp;
+    if(fo) entry.outfit = fo;
     const code = String(c.code || '').trim();
     if(code) entry.uniform_code = code;
     list.push(entry);
@@ -1840,6 +1945,8 @@ function buildEpisodeSpec(){
     hero_style: S.heroStyle,
     voice: S.voice,
     voice_rate: $('f_rate').value || '+6%',
+    ...(heroSpecies() ? { species: heroSpecies() } : {}),
+    ...(heroOutfit() ? { outfit: heroOutfit() } : {}),
     voice_engine: ($('f_tts_engine') && $('f_tts_engine').value) || 'edge',
     ...(($('f_tts_model') && $('f_tts_model').value.trim()) ? { voice_model: $('f_tts_model').value.trim() } : {}),
     ...(($('f_tts_cmd') && $('f_tts_cmd').value.trim()) ? { tts_command: $('f_tts_cmd').value.trim() } : {}),
@@ -2029,6 +2136,8 @@ function renderCastEditor(){
         <div class="cgrid">
           <div class="cfield"><span>支部制服</span><select class="js-csec">${sectionOptions(c.section)}</select></div>
           <div class="cfield"><span>角色類型</span><select class="js-cskin">${skinOptions(c.skin)}</select></div>
+          <div class="cfield"><span>物種</span><select class="js-cspecies">${speciesOptions(c.species)}</select></div>
+          <div class="cfield"><span>服裝</span><select class="js-coutfit">${outfitOptions(c.outfit)}</select></div>
           <div class="cfield full"><span>制服碼（選填 · S3D1_...）</span><input class="js-ccode" placeholder="貼呢位角色自己嘅 SCOUT 3D 穿搭碼，留空＝用支部快速制服" value="${esc(c.code || '')}"></div>
         </div>
       </div>`).join('');
@@ -2048,6 +2157,14 @@ function renderCastEditor(){
     row.querySelector('.js-cskin').addEventListener('change', async e => {
       S.cast[i].skin = e.target.value;
       updateContextHints();
+      await refreshAllOutputs();
+    });
+    row.querySelector('.js-cspecies').addEventListener('change', async e => {
+      S.cast[i].species = e.target.value;
+      await refreshAllOutputs();
+    });
+    row.querySelector('.js-coutfit').addEventListener('change', async e => {
+      S.cast[i].outfit = e.target.value;
       await refreshAllOutputs();
     });
     row.querySelector('.js-ccode').addEventListener('input', async e => {
