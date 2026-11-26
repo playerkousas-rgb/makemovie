@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCOUT 3D 故事預覽 · © SCOUT SYSTEM</title>
+<style>
+  :root{--brand:#1f6b4a;--paper:#f6f1e7;--card:#fffdf9;--line:#e6ddc9;--ink:#21302a;--muted:#5c6b62}
+  *{box-sizing:border-box}
+  body{margin:0;padding:24px;background:var(--paper);color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Microsoft JhengHei",sans-serif;line-height:1.6}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 8px 24px rgba(33,48,42,.07)}
+  video{display:block;width:min(360px,80vw);border-radius:12px;background:#000}
+  img{display:block;max-width:100%;border-radius:10px}
+  .wide{flex:1 1 520px;min-width:300px}
+  .tag{display:inline-block;font-size:12px;font-weight:700;color:var(--brand);background:#e8f3ed;border:1px solid #cbe3d6;
+       border-radius:999px;padding:3px 10px;margin-bottom:8px}
+  code{background:#f1ece1;padding:1px 6px;border-radius:6px;font-size:12.5px}
+  .foot{margin-top:18px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+  <h1>AI 加入小童軍 · 3D 故事預覽</h1>
+  <div class="sub">小童軍支部（橙色活動服＋棗紅領巾）＋ AI 機械人主角 · 7 鏡 · 21 秒 · 純原創童軍故事模式（GitHub 留空）</div>
+
+  <div class="wrap">
+    <div class="card">
+      <span class="tag">▶ 影片（無聲預覽）</span>
+      <video src="story_ai_joins_grasshopper_preview.mp4" poster="contact_sheet_story_ai_joins_grasshopper.jpg" controls autoplay muted loop playsinline></video>
+      <div class="foot">有聲版喺你部機用 <code>edge-tts</code> 生成（廣東話配音＋BGM）。</div>
+    </div>
+
+    <div class="card wide">
+      <span class="tag">🖼 24 格分鏡表</span>
+      <img src="contact_sheet_story_ai_joins_grasshopper.jpg" alt="contact sheet">
+    </div>
+  </div>
+
+  <div class="foot">
+    © SCOUT SYSTEM · 片中中間 3 秒右下角有超小水印。動態 GIF：<code>preview/story_preview.gif</code>（270px 輕量版）。
+  </div>
+</body>
+</html>
