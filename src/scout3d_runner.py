@@ -18,6 +18,7 @@ import json
 import math
 import multiprocessing as mp
 import os
+import random
 import re
 import subprocess
 import sys
@@ -38,7 +39,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from camera import clamp, lerp, smoothstep
-from engine3d import Camera3D, Scene3D, hex_rgb01, v3
+from engine3d import Camera3D, Scene3D, hex_rgb01, rot_x, rot_y, rot_z, v3
 from scout3d_characters import (
     CHARACTER_PRESETS,
     COL,
@@ -157,6 +158,178 @@ def _norm_camera(value: Any) -> str:
     if "手持" in key or "hand" in key:
         return "handheld"
     return "auto"
+
+
+# ─────────────────────────────────────────────────────────────────────
+# AI 自由場景積木（Scene kit）
+# AI 可以唔止揀現成 preset，而係用「背景 kind ＋ 道具 props ＋ 色盤」自己砌場景。
+# 例：飛出太空 → kind="space" + props=["stars","planet","rocket"] + float=true
+# ─────────────────────────────────────────────────────────────────────
+SCENE_KIND_CATALOG: Dict[str, str] = {
+    "space": "太空：深色星空，角色可以漂浮",
+    "sky": "高空／藍天白雲，角色可以飛翔",
+    "sunset": "黃昏：橙紫天空、剪影感",
+    "night": "夜晚：深藍星空、草地",
+    "forest": "森林／營地：綠地松樹",
+    "beach": "海灘：藍天、沙地、海邊",
+    "snow": "雪地：白雪、松樹、飄雪",
+    "city": "城市：黃昏天空、高樓霓虹",
+    "indoor": "室內：暖色牆、木地板",
+    "underwater": "海底：藍綠水色、珊瑚石、氣泡",
+    "void": "虛空：純黑背景、聚光燈",
+}
+
+_SCENE_KIND_ALIASES: Dict[str, str] = {
+    "outer_space": "space", "galaxy": "space", "宇宙": "space", "太空": "space", "星際": "space",
+    "cloud": "sky", "clouds": "sky", "天空": "sky", "高空": "sky", "飛天": "sky",
+    "sunset": "sunset", "dusk": "sunset", "黃昏": "sunset", "日落": "sunset",
+    "night": "night", "夜晚": "night", "晚上": "night", "夜景": "night",
+    "forest": "forest", "woods": "forest", "camp": "forest", "森林": "forest", "營地": "forest",
+    "beach": "beach", "sea": "beach", "ocean": "beach", "海灘": "beach", "沙灘": "beach", "海邊": "beach",
+    "snow": "snow", "snowy": "snow", "雪地": "snow", "雪山": "snow", "下雪": "snow",
+    "city": "city", "urban": "city", "城市": "city", "都市": "city", "街頭": "city",
+    "indoor": "indoor", "room": "indoor", "室內": "indoor", "房間": "indoor", "屋企": "indoor",
+    "underwater": "underwater", "sea_floor": "underwater", "海底": "underwater", "水下": "underwater",
+    "void": "void", "black": "void", "虛空": "void", "黑暗": "void",
+}
+
+PROP_CATALOG: Dict[str, str] = {
+    "stars": "星星（閃爍）",
+    "moon": "月亮",
+    "planet": "有光環的行星",
+    "rocket": "火箭（可以升空）",
+    "satellite": "人造衛星",
+    "asteroid": "隕石",
+    "cloud": "雲朵",
+    "tent": "露營帳篷",
+    "campfire": "營火",
+    "pine": "松樹",
+    "palm": "棕櫚樹",
+    "rock": "岩石",
+    "crystal": "發光水晶",
+    "snowman": "雪人",
+    "balloon": "氣球",
+    "building": "城市大樓",
+    "streetlamp": "街燈",
+    "book": "書本",
+    "flag": "旗幟",
+    "bubble": "氣泡",
+}
+
+_PROP_ALIASES: Dict[str, str] = {
+    "star": "stars", "星空": "stars", "星": "stars",
+    "月": "moon", "月球": "moon",
+    "行星": "planet", "星球": "planet", "土星": "planet",
+    "火箭": "rocket", "飛船": "rocket", "太空船": "rocket",
+    "衛星": "satellite",
+    "隕石": "asteroid", "流星": "asteroid",
+    "雲": "cloud", "白雲": "cloud",
+    "帳篷": "tent", "營": "tent",
+    "營火": "campfire", "火": "campfire",
+    "松樹": "pine", "樹": "pine",
+    "棕櫚": "palm", "棕櫚樹": "palm", "椰子樹": "palm",
+    "石": "rock", "岩石": "rock",
+    "水晶": "crystal", "寶石": "crystal",
+    "雪人": "snowman",
+    "氣球": "balloon",
+    "大樓": "building", "樓": "building", "建築": "building",
+    "街燈": "streetlamp", "路燈": "streetlamp",
+    "書": "book", "書本": "book",
+    "旗": "flag", "旗幟": "flag",
+    "氣泡": "bubble", "泡泡": "bubble",
+}
+
+_DEFAULT_SCENE_PROPS: Dict[str, List[str]] = {
+    "space": ["stars", "planet"],
+    "night": ["stars", "campfire"],
+    "sky": ["cloud"],
+    "forest": ["pine", "tent"],
+    "beach": ["palm", "rock"],
+    "snow": ["snowman", "pine"],
+    "city": ["building", "streetlamp"],
+    "underwater": ["bubble", "rock"],
+}
+
+_SCENE_STYLES: Dict[str, Dict[str, Any]] = {
+    "space":       {"bg_top": "#05081A", "bg_bot": "#241A46", "floor": None,   "key": (-0.35, 0.70, 0.60), "rim": "#9CC4FF"},
+    "sky":         {"bg_top": "#63ACE6", "bg_bot": "#EAF7FF", "floor": None,   "key": (-0.45, 0.78, 0.55), "rim": "#FFF8D8"},
+    "sunset":      {"bg_top": "#F07A4E", "bg_bot": "#FFD9A0", "floor": "#7A5747", "key": (-0.55, 0.60, 0.55), "rim": "#FFB36B"},
+    "night":       {"bg_top": "#101A38", "bg_bot": "#2C3350", "floor": "#26301F", "key": (-0.35, 0.62, 0.70), "rim": "#FFD08A"},
+    "forest":      {"bg_top": "#8FD4F5", "bg_bot": "#EAF9DE", "floor": "#A8D894", "key": (-0.42, 0.78, 0.60), "rim": "#FFF7CC"},
+    "beach":       {"bg_top": "#7CCBF0", "bg_bot": "#E8FBFF", "floor": "#E8D3A4", "key": (-0.40, 0.80, 0.55), "rim": "#FFF3C4"},
+    "snow":        {"bg_top": "#B9DDF4", "bg_bot": "#F4FBFF", "floor": "#EAF3FA", "key": (-0.42, 0.74, 0.62), "rim": "#FFFFFF"},
+    "city":        {"bg_top": "#2B2C55", "bg_bot": "#E58A6A", "floor": "#4C4A56", "key": (-0.48, 0.66, 0.58), "rim": "#FFB36B"},
+    "indoor":      {"bg_top": "#F3E2C8", "bg_bot": "#E7CFAF", "floor": "#9C6B44", "key": (-0.45, 0.72, 0.60), "rim": "#FFE2A8"},
+    "underwater":  {"bg_top": "#0C4E63", "bg_bot": "#2A9DB0", "floor": "#2E7D82", "key": (-0.30, 0.82, 0.55), "rim": "#7FF0E0"},
+    "void":        {"bg_top": "#020204", "bg_bot": "#0B0B12", "floor": None,   "key": (-0.30, 0.70, 0.65), "rim": "#B9C6FF"},
+}
+
+_FRAMING_ALIASES = {
+    "wide": "wide", "long": "wide", "far": "wide", "遠景": "wide", "全景": "wide", "大景": "wide",
+    "medium": "medium", "mid": "medium", "中景": "medium", "半身": "medium",
+    "closeup": "closeup", "close": "closeup", "near": "closeup", "特寫": "closeup", "近鏡": "closeup", "大特寫": "closeup",
+}
+
+
+def _norm_scene_kind(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    key = re.sub(r"[\s\-]+", "_", str(value).strip().lower())
+    if not key:
+        return None
+    if key in SCENE_KIND_CATALOG:
+        return key
+    return _SCENE_KIND_ALIASES.get(key) or _SCENE_KIND_ALIASES.get(key.replace("_", ""))
+
+
+def _norm_prop(value: Any) -> Optional[str]:
+    key = re.sub(r"[\s\-]+", "_", str(value or "").strip().lower())
+    if not key:
+        return None
+    key = key.split(":")[0]
+    if key in PROP_CATALOG:
+        return key
+    return _PROP_ALIASES.get(key)
+
+
+def _norm_scene(value: Any) -> Optional[Dict[str, Any]]:
+    """Normalize an AI-designed scene dict (kind + props + framing + palette)."""
+    if isinstance(value, str):
+        kind = _norm_scene_kind(value)
+        return {"kind": kind, "props": list(_DEFAULT_SCENE_PROPS.get(kind or "", []))} if kind else None
+    if not isinstance(value, dict):
+        return None
+    kind = _norm_scene_kind(value.get("kind") or value.get("type") or value.get("backdrop") or value.get("place"))
+    props_raw = value.get("props") or value.get("objects") or value.get("items") or []
+    if isinstance(props_raw, str):
+        props_raw = re.split(r"[,、/|]+", props_raw)
+    props: List[str] = []
+    for item in list(props_raw)[:10]:
+        p = _norm_prop(item)
+        if p and p not in props:
+            props.append(p)
+    if not props and kind:
+        props = list(_DEFAULT_SCENE_PROPS.get(kind, []))
+    if not kind and not props:
+        return None
+    if not kind:
+        kind = "sky"
+    framing_raw = str(value.get("framing") or value.get("shot_size") or "").strip().lower()
+    framing = _FRAMING_ALIASES.get(framing_raw, "medium")
+    palette_raw = value.get("palette") or value.get("colors") or {}
+    palette: Dict[str, str] = {}
+    if isinstance(palette_raw, dict):
+        for src, dst in (("sky_top", "sky_top"), ("sky_bottom", "sky_bottom"), ("floor", "floor")):
+            col = str(palette_raw.get(src) or "").strip()
+            if re.match(r"^#[0-9a-fA-F]{6}$", col):
+                palette[dst] = col
+    return {
+        "kind": kind,
+        "props": props,
+        "framing": framing,
+        "float": bool(value.get("float", value.get("floating", kind in ("space", "void", "sky")))),
+        "palette": palette,
+    }
 
 
 _STORY_SECTION_ALIASES: Dict[str, str] = {
@@ -448,6 +621,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         )]
 
     default_camera = _norm_camera(raw.get("camera") or raw.get("camera_move") or raw.get("default_camera"))
+    ep_scene = _norm_scene(raw.get("scene") or raw.get("world") or raw.get("set"))
     bgm_mood = str(raw.get("bgm_mood") or "comedy_to_hero")
     voice_raw = str(raw.get("voice") if raw.get("voice") is not None else "zh-HK-HiuMaanNeural").strip()
     if voice_raw.lower() in ("", "none", "off", "false", "mute"):
@@ -554,6 +728,22 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
             sub_txt = str(subtitle_override[idx])
         vo_raw = str(sh.get("narration") if sh.get("narration") is not None else sub_txt)
 
+        sh_scene = _norm_scene(sh.get("scene") or sh.get("set"))
+        if sh.get("scene_kind"):
+            kind_override = _norm_scene_kind(sh.get("scene_kind"))
+            if kind_override:
+                base_scene = dict(sh_scene or ep_scene or {})
+                sh_scene = {
+                    **base_scene,
+                    "kind": kind_override,
+                    "props": base_scene.get("props") or list(_DEFAULT_SCENE_PROPS.get(kind_override, [])),
+                    "framing": base_scene.get("framing", "medium"),
+                    "float": base_scene.get("float", kind_override in ("space", "void", "sky")),
+                    "palette": base_scene.get("palette", {}),
+                }
+        if sh_scene is None and ep_scene is not None:
+            sh_scene = dict(ep_scene)
+
         trio = sh.get("trio_sections") or ["cub", "scout", "venture"]
         trio_clean = [s if s in SECTION_STYLES else "scout" for s in list(trio)[:3]]
         while len(trio_clean) < 3:
@@ -575,6 +765,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
                 "hat": hat_sh,
                 "show_sash": sash_sh,
                 "camera": _norm_camera(sh.get("camera") if "camera" in sh else default_camera),
+                "scene": sh_scene,
                 "cast": cast_sh,
                 "show_ui_card": bool(sh.get("show_ui_card", preset in ("scout3d_auto_snap", "disaster_wrong_badges"))),
                 "trio_sections": trio_clean,
@@ -599,6 +790,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "hero_style": hero_style,
         "characters": ep_cast,
         "camera": default_camera,
+        "scene": ep_scene,
         "s3d_custom": s3d_custom,
         "bgm_mood": bgm_mood,
         "voice": voice,
@@ -818,6 +1010,356 @@ def _draw_remaining_cast(
         )
 
 
+# ═══════════════════════════════════════════════════════════════════
+# AI 自由場景：用幾何積木砌出太空、海底、城市、雪地、室內……
+# ═══════════════════════════════════════════════════════════════════
+
+_PROP_LAYOUT: Dict[str, Tuple[float, float, float, float]] = {
+    "rocket":     (1.25, 0.00, -2.35, 0.95),
+    "satellite":  (1.55, 2.55, -4.20, 1.00),
+    "planet":     (-2.20, 2.90, -5.00, 0.95),
+    "moon":       (2.05, 3.30, -4.90, 1.00),
+    "cloud":      (-1.90, 3.10, -4.40, 1.00),
+    "tent":       (-1.45, 0.00, -1.25, 0.95),
+    "campfire":   (0.00, 0.00, -0.85, 1.00),
+    "pine":       (-1.80, 0.00, -1.95, 1.35),
+    "palm":       (1.25, 0.00, -1.70, 0.85),
+    "rock":       (-1.35, 0.00, -0.90, 1.00),
+    "crystal":    (1.20, 0.00, -0.85, 1.00),
+    "snowman":    (1.20, 0.00, -0.90, 0.95),
+    "balloon":    (1.35, 1.60, -1.40, 1.00),
+    "building":   (1.70, 0.00, -3.60, 1.00),
+    "streetlamp": (1.40, 0.00, -1.10, 1.00),
+    "book":       (-1.05, 0.00, 0.35, 0.80),
+    "flag":       (1.20, 0.00, -0.70, 1.00),
+    "asteroid":   (-2.10, 1.40, -3.40, 1.00),
+}
+
+
+def _draw_stars(sc: Scene3D, t_sec: float, count: int = 46) -> None:
+    rng = random.Random(7)
+    for i in range(count):
+        x = rng.uniform(-6.5, 6.5)
+        y = rng.uniform(0.7, 6.9)
+        z = rng.uniform(-7.0, -3.0)
+        base = rng.uniform(0.30, 0.88)
+        r = rng.uniform(0.016, 0.045)
+        tw = base * (0.72 + 0.28 * math.sin(t_sec * 2.1 + i * 1.7))
+        sc.add_sphere(v3(x, y, z), r, (1.0, 1.0, 0.94), emissive=(tw, tw, tw * 0.88))
+
+
+def _draw_moon(sc: Scene3D, pos: np.ndarray, scale: float = 1.0) -> None:
+    sc.add_sphere(pos, 0.56 * scale, hex_rgb01("#FFF6D8"), roughness=0.45, emissive=(0.30, 0.29, 0.22))
+    sc.add_sphere(pos + v3(-0.18 * scale, 0.12 * scale, 0.46 * scale), 0.12 * scale, hex_rgb01("#E8DDBB"), roughness=0.7)
+
+
+def _draw_planet(sc: Scene3D, pos: np.ndarray, scale: float = 1.0) -> None:
+    radius = 1.15 * scale
+    sc.add_sphere(pos, radius, hex_rgb01("#D9885C"), roughness=0.62)
+    sc.add_sphere(pos + v3(0.35 * scale, 0.30 * scale, 0.72 * scale), 0.55 * scale, hex_rgb01("#C4714A"), roughness=0.65)
+    rot = rot_x(math.radians(16.0)) @ rot_z(math.radians(-13.0))
+    ring_r = radius * 1.55
+    for i in range(26):
+        ang = i * (2.0 * math.pi / 26.0)
+        p = pos + rot @ v3(math.cos(ang) * ring_r, 0.0, math.sin(ang) * ring_r)
+        sc.add_ellipsoid(p, v3(0.20 * scale, 0.032 * scale, 0.085 * scale), hex_rgb01("#F0C98C"), rot=rot, roughness=0.55)
+
+
+def _draw_rocket(sc: Scene3D, base: np.ndarray, scale: float = 1.0, t_sec: float = 0.0) -> None:
+    k = scale
+    body_bot = base + v3(0.0, 0.55 * k, 0.0)
+    body_top = base + v3(0.0, 2.42 * k, 0.0)
+    sc.add_cylinder(body_bot, body_top, 0.33 * k, hex_rgb01("#F2F3F8"), roughness=0.34)
+    sc.add_ellipsoid(base + v3(0.0, 2.42 * k, 0.0), v3(0.33 * k, 0.50 * k, 0.33 * k), hex_rgb01("#E2493F"), roughness=0.42)
+    sc.add_sphere(base + v3(0.0, 1.62 * k, 0.28 * k), 0.15 * k, hex_rgb01("#9AD8FF"), roughness=0.12, emissive=(0.30, 0.55, 0.80))
+    for sx in (-1.0, 1.0):
+        sc.add_rounded_box(
+            base + v3(sx * 0.38 * k, 0.86 * k, 0.0),
+            v3(0.20 * k, 0.33 * k, 0.055 * k), 0.045 * k,
+            hex_rgb01("#E2493F"), rot=rot_y(math.radians(sx * 8.0)),
+        )
+    flame = 0.58 + 0.20 * math.sin(t_sec * 19.0)
+    sc.add_ellipsoid(
+        base + v3(0.0, 0.55 * k - 0.34 * k, 0.0),
+        v3(0.19 * k, 0.42 * k * flame, 0.19 * k),
+        hex_rgb01("#FFB13C"), roughness=0.2, emissive=(1.0, 0.55, 0.12),
+    )
+
+
+def _draw_satellite(sc: Scene3D, pos: np.ndarray, scale: float = 1.0, t_sec: float = 0.0) -> None:
+    k = scale
+    sc.add_rounded_box(pos, v3(0.26 * k, 0.16 * k, 0.16 * k), 0.05 * k, hex_rgb01("#D9DEE8"), rot=rot_y(math.radians(18.0)))
+    for sx in (-1.0, 1.0):
+        sc.add_rounded_box(pos + v3(sx * 0.62 * k, 0.0, 0.0), v3(0.33 * k, 0.015 * k, 0.20 * k), 0.012 * k,
+                           hex_rgb01("#2C5AA0"), rot=rot_y(math.radians(18.0)), roughness=0.3)
+    sc.add_sphere(pos + v3(0.0, 0.22 * k, 0.0), 0.055 * k, hex_rgb01("#FFD66B"), emissive=(0.9, 0.7, 0.2))
+    blink = 0.5 + 0.5 * math.sin(t_sec * 3.0)
+    sc.add_sphere(pos + v3(0.0, -0.24 * k, 0.0), 0.05 * k, hex_rgb01("#FF6B6B"), emissive=(blink, 0.1, 0.1))
+
+
+def _draw_cloud(sc: Scene3D, pos: np.ndarray, scale: float = 1.0) -> None:
+    k = scale
+    for dx, dy, r in ((-0.42, 0.0, 0.34), (0.0, 0.14, 0.46), (0.44, -0.02, 0.32), (0.12, -0.14, 0.30)):
+        sc.add_sphere(pos + v3(dx * k, dy * k, 0.0), r * k, hex_rgb01("#F7FBFF"), roughness=0.95)
+
+
+def _draw_palm(sc: Scene3D, base: np.ndarray, scale: float = 1.0) -> None:
+    k = scale
+    trunk_col = hex_rgb01("#8A5A32")
+    p0 = base
+    p1 = base + v3(0.12 * k, 1.10 * k, 0.0)
+    p2 = base + v3(0.20 * k, 2.10 * k, 0.0)
+    sc.add_cylinder(p0, p1, 0.085 * k, trunk_col, roughness=0.8)
+    sc.add_cylinder(p1, p2, 0.075 * k, trunk_col, roughness=0.8)
+    top = p2
+    leaf_col = hex_rgb01("#2E9E5B")
+    for i in range(6):
+        ang = i * (2.0 * math.pi / 6.0) + 0.3
+        tip = top + v3(math.cos(ang) * 0.95 * k, 0.30 * k + 0.18 * math.sin(i * 1.4), math.sin(ang) * 0.95 * k)
+        mid = 0.5 * (top + tip)
+        d = tip - top
+        yaw = math.degrees(math.atan2(float(d[0]), float(d[2])))
+        sc.add_ellipsoid(mid, v3(0.16 * k, 0.075 * k, 0.62 * k), leaf_col, rot=rot_y(math.radians(yaw)), roughness=0.8)
+    for dx in (-0.10, 0.08):
+        sc.add_sphere(top + v3(dx * k, -0.12 * k, 0.10 * k), 0.085 * k, hex_rgb01("#6B4A2A"), roughness=0.7)
+
+
+def _draw_rock(sc: Scene3D, base: np.ndarray, scale: float = 1.0) -> None:
+    k = scale
+    col = hex_rgb01("#7C8088")
+    sc.add_ellipsoid(base + v3(0.0, 0.24 * k, 0.0), v3(0.42 * k, 0.30 * k, 0.36 * k), col, roughness=0.9)
+    sc.add_ellipsoid(base + v3(0.34 * k, 0.15 * k, 0.12 * k), v3(0.24 * k, 0.20 * k, 0.20 * k), col, roughness=0.9)
+    sc.add_ellipsoid(base + v3(-0.30 * k, 0.12 * k, 0.16 * k), v3(0.18 * k, 0.15 * k, 0.17 * k), col, roughness=0.9)
+
+
+def _draw_crystal(sc: Scene3D, base: np.ndarray, scale: float = 1.0) -> None:
+    k = scale
+    col = hex_rgb01("#8FE8FF")
+    for dx, dz, h, tilt in ((-0.18, 0.0, 0.85, -8.0), (0.10, 0.08, 1.15, 5.0), (0.26, -0.10, 0.62, 12.0)):
+        sc.add_ellipsoid(
+            base + v3(dx * k, h * 0.5 * k, dz * k),
+            v3(0.14 * k, h * 0.5 * k, 0.14 * k),
+            col, rot=rot_z(math.radians(tilt)), roughness=0.18,
+            emissive=(0.28, 0.55, 0.65),
+        )
+
+
+def _draw_snowman(sc: Scene3D, base: np.ndarray, scale: float = 1.0) -> None:
+    k = scale
+    white = hex_rgb01("#F7FBFF")
+    sc.add_sphere(base + v3(0.0, 0.38 * k, 0.0), 0.40 * k, white, roughness=0.85)
+    sc.add_sphere(base + v3(0.0, 0.98 * k, 0.0), 0.28 * k, white, roughness=0.85)
+    sc.add_sphere(base + v3(0.0, 1.38 * k, 0.0), 0.20 * k, white, roughness=0.85)
+    sc.add_sphere(base + v3(0.0, 1.58 * k, 0.0), 0.12 * k, white, roughness=0.85)
+    sc.add_sphere(base + v3(0.0, 1.40 * k, 0.19 * k), 0.05 * k, hex_rgb01("#E8802F"), roughness=0.6)
+    for dx in (-0.07, 0.07):
+        sc.add_sphere(base + v3(dx * k, 1.46 * k, 0.16 * k), 0.025 * k, hex_rgb01("#22252A"), roughness=0.4)
+
+
+def _draw_balloon(sc: Scene3D, pos: np.ndarray, scale: float = 1.0) -> None:
+    k = scale
+    sc.add_ellipsoid(pos, v3(0.30 * k, 0.36 * k, 0.30 * k), hex_rgb01("#F26B7A"), roughness=0.28)
+    sc.add_cylinder(pos + v3(0.0, -0.35 * k, 0.0), pos + v3(0.0, -1.15 * k, 0.0), 0.01 * k, hex_rgb01("#DDDDE3"))
+
+
+def _draw_building(sc: Scene3D, base: np.ndarray, scale: float = 1.0) -> None:
+    k = scale
+    for i in range(3):
+        bx = base[0] + i * 0.92 * k
+        h = (2.1 + 0.55 * (i % 2)) * k
+        z = base[2] - 0.30 * i * k
+        sc.add_rounded_box(v3(bx, h * 0.5, z), v3(0.42 * k, h * 0.5, 0.40 * k), 0.03 * k,
+                           hex_rgb01("#3B3F52"), roughness=0.7)
+        for row in range(3):
+            for col in range(2):
+                lit = 0.5 + 0.5 * math.sin(row * 2.1 + col * 1.7 + i)
+                sc.add_sphere(
+                    v3(bx + (-0.16 + 0.32 * col) * k, (0.55 + row * 0.55) * k, z + 0.43 * k),
+                    0.06 * k, hex_rgb01("#FFD27A"), roughness=0.2,
+                    emissive=(0.75 * lit, 0.58 * lit, 0.18 * lit),
+                )
+
+
+def _draw_streetlamp(sc: Scene3D, base: np.ndarray, scale: float = 1.0) -> None:
+    k = scale
+    sc.add_cylinder(base, base + v3(0.0, 2.45 * k, 0.0), 0.045 * k, hex_rgb01("#2F3440"))
+    sc.add_sphere(base + v3(0.0, 2.52 * k, 0.0), 0.16 * k, hex_rgb01("#FFE7A6"), roughness=0.2, emissive=(0.85, 0.72, 0.35))
+
+
+def _draw_flag(sc: Scene3D, base: np.ndarray, scale: float = 1.0, t_sec: float = 0.0) -> None:
+    k = scale
+    sc.add_cylinder(base, base + v3(0.0, 2.15 * k, 0.0), 0.035 * k, hex_rgb01("#C9CCD4"))
+    wave = 0.10 * math.sin(t_sec * 4.2)
+    sc.add_rounded_box(base + v3(0.36 * k, 1.80 * k, wave * k), v3(0.34 * k, 0.22 * k, 0.02 * k), 0.015 * k,
+                       hex_rgb01("#E04A57"), rot=rot_y(math.radians(wave * 24.0)))
+
+
+def _draw_weather(sc: Scene3D, kind: str, t_sec: float) -> None:
+    if kind == "snow":
+        for i in range(34):
+            seed = i * 0.618
+            y = 4.2 - ((t_sec * 0.45 + seed * 3.1) % 4.6)
+            x = -5.0 + (seed * 10.0) % 10.0
+            z = -3.4 - (seed * 4.3) % 2.6
+            sc.add_sphere(v3(x, y, z), 0.028, hex_rgb01("#FFFFFF"), emissive=(0.35, 0.38, 0.42))
+    elif kind == "underwater":
+        for i in range(22):
+            seed = i * 0.731
+            y = 0.2 + ((t_sec * 0.32 + seed * 3.7) % 4.2)
+            x = -3.6 + (seed * 7.0) % 7.2
+            z = -2.2 - (seed * 2.2) % 1.6
+            sc.add_sphere(v3(x, y, z), 0.035 + 0.02 * ((i % 3) / 2.0), hex_rgb01("#BFF7FF"), roughness=0.1, emissive=(0.25, 0.45, 0.48))
+
+
+def _draw_clouds_backdrop(sc: Scene3D, t_sec: float) -> None:
+    for i, (x, y, z, s) in enumerate(((-2.4, 3.2, -4.8, 1.1), (1.9, 3.8, -5.2, 0.9), (0.2, 2.7, -5.6, 0.75))):
+        _draw_cloud(sc, v3(x + 0.15 * math.sin(t_sec * 0.4 + i), y, z), s)
+
+
+def _draw_scene_props(sc: Scene3D, scene: Dict[str, Any], t_sec: float) -> None:
+    kind = str(scene.get("kind") or "sky")
+    framing = str(scene.get("framing") or "medium")
+    # 特寫鏡以角色表情為主：大型側邊道具會變成半截雜物，直接略過。
+    skip_closeup = {"rocket", "building", "tent", "palm", "satellite", "streetlamp", "snowman", "flag"}
+    counts: Dict[str, int] = {}
+    for name in (scene.get("props") or []):
+        if framing == "closeup" and name in skip_closeup:
+            continue
+        n = counts.get(name, 0)
+        counts[name] = n + 1
+        if name == "stars":
+            _draw_stars(sc, t_sec)
+        elif name == "bubble":
+            _draw_weather(sc, "underwater", t_sec)
+        elif name == "cloud":
+            _draw_cloud(sc, v3(-1.9 + n * 1.7, 3.1 + 0.25 * (n % 2), -4.4), 1.0)
+        elif name == "moon":
+            _draw_moon(sc, v3(2.50, 3.40, -5.00), 1.0)
+        elif name == "planet":
+            _draw_planet(sc, v3(-2.70, 2.95, -5.20), 1.0)
+        elif name == "rocket":
+            _draw_rocket(sc, v3(1.25 + n * 0.7, 0.10, -2.35), 0.95, t_sec)
+        elif name == "satellite":
+            _draw_satellite(sc, v3(1.70, 2.55, -4.20), 1.0, t_sec)
+        elif name == "building":
+            _draw_building(sc, v3(1.60 + n * 0.5, 0.0, -3.60), 1.0)
+        elif name == "streetlamp":
+            _draw_streetlamp(sc, v3(1.40 + n * 0.55, 0.0, -1.10), 1.0)
+        elif name == "tent":
+            draw_camp_tent(sc, v3(-1.45 - n * 0.55, 0.0, -1.25), yaw_deg=20.0, scale=0.95)
+        elif name == "campfire":
+            draw_campfire(sc, v3(0.0, 0.0, -0.85), scale=1.0, t_sec=t_sec)
+        elif name == "pine":
+            draw_pine_tree(sc, v3(-1.80 - n * 0.5, 0.0, -1.95), scale=1.35)
+        elif name == "palm":
+            _draw_palm(sc, v3(1.25 + n * 0.6, 0.0, -1.70), 0.85)
+        elif name == "rock":
+            _draw_rock(sc, v3(-1.45 + n * 0.55, 0.0, -0.90), 1.0)
+        elif name == "asteroid":
+            _draw_rock(sc, v3(-2.10 + n * 0.6, 1.40, -3.40), 1.25)
+        elif name == "crystal":
+            _draw_crystal(sc, v3(1.20 + n * 0.55, 0.0, -0.85), 1.0)
+        elif name == "snowman":
+            _draw_snowman(sc, v3(1.20 + n * 0.6, 0.0, -0.90), 0.95)
+        elif name == "balloon":
+            _draw_balloon(sc, v3(1.55 + n * 0.4, 1.60, -1.40), 1.0)
+        elif name == "book":
+            draw_handbook_stack(sc, v3(-1.05, 0.0, 0.35), yaw_deg=-12.0, scale=0.8)
+        elif name == "flag":
+            _draw_flag(sc, v3(1.20 + n * 0.4, 0.0, -0.70), 1.0, t_sec)
+    if kind == "sky":
+        _draw_clouds_backdrop(sc, t_sec)
+    elif kind == "beach":
+        sc.add_ellipsoid(v3(0.0, 0.06, -3.30), v3(6.2, 0.05, 2.3), hex_rgb01("#3E9FD8"), roughness=0.15)
+        for i in range(4):
+            sc.add_ellipsoid(v3(-2.4 + i * 1.6, 0.10, -2.35), v3(0.85, 0.035, 0.16), hex_rgb01("#BFEFFF"), roughness=0.2)
+
+
+_CUSTOM_CAST_LAYOUT: Dict[int, Tuple[Tuple[float, float, float, float], ...]] = {
+    1: ((0.00, 0.42, 0.0, 0.94),),
+    2: ((-0.42, 0.38, 10.0, 0.94), (0.60, 0.18, -16.0, 0.88)),
+    3: ((0.00, 0.55, 0.0, 0.94), (-0.95, 0.02, 20.0, 0.88), (0.98, 0.00, -20.0, 0.88)),
+    4: ((-0.38, 0.52, 8.0, 0.92), (0.52, 0.44, -8.0, 0.88), (-1.12, -0.22, 20.0, 0.84), (1.14, -0.24, -20.0, 0.84)),
+    5: ((0.00, 0.62, 0.0, 0.94), (-0.62, 0.42, 10.0, 0.88), (0.64, 0.40, -10.0, 0.88),
+        (-1.25, -0.36, 20.0, 0.82), (1.27, -0.38, -20.0, 0.82)),
+}
+
+
+def _draw_custom_cast(sc: Scene3D, sh: Dict[str, Any], u: float, lt: float, floaty: bool, framing: str) -> None:
+    cast = list(sh.get("cast") or [])
+    if not cast:
+        cast = [_slot_actor(sh, "hero")]
+    cast = cast[:5]
+    if framing == "closeup":
+        actor = cast[0]
+        y = (0.12 if floaty else 0.0)
+        _draw_actor(sc, actor, v3(0.0, y, 0.15), yaw_deg=lerp(-12.0, 12.0, smoothstep(u)),
+                    scale=1.0, expression="happy", t_sec=lt)
+        return
+    layout = _CUSTOM_CAST_LAYOUT.get(len(cast), _CUSTOM_CAST_LAYOUT[1])
+    for i, (actor, (x, z, yaw, scl)) in enumerate(zip(cast, layout)):
+        bob = 0.055 * math.sin(lt * 1.35 + i * 0.9) if floaty else 0.0
+        y = (0.12 if floaty else 0.0) + bob
+        sway = 2.5 * math.sin(lt * 1.2 + i * 1.1)
+        _draw_actor(sc, actor, v3(x, y, z), yaw_deg=yaw + sway, scale=scl,
+                    expression="proud" if i == 2 and len(cast) >= 3 else "happy",
+                    t_sec=lt + i * 0.15)
+
+
+def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: int) -> Image.Image:
+    W_px: int = spec["width"]
+    H_px: int = spec["height"]
+    fps: int = spec["fps"]
+    aspect: str = spec["aspect"]
+    fov_s, z_s = _cam_framing_scale(aspect)
+
+    scene = sh.get("scene") or {}
+    kind = str(scene.get("kind") or "sky")
+    style = _SCENE_STYLES.get(kind, _SCENE_STYLES["sky"])
+    palette = scene.get("palette") or {}
+
+    local_f = frame_idx - sh["start_frame"]
+    u = local_f / float(max(1, sh["num_frames"] - 1))
+    lt = local_f / float(fps)
+    e = smoothstep(u)
+
+    framing = str(scene.get("framing") or "medium")
+    if framing not in ("wide", "medium", "closeup"):
+        framing = "medium"
+    if framing == "closeup":
+        base_z, fov_deg, cam_y, target_y = 3.05, 33.0, 1.82, 1.72
+    elif framing == "wide":
+        base_z, fov_deg, cam_y, target_y = 8.70, 38.5, 1.98, 1.36
+    else:
+        base_z, fov_deg, cam_y, target_y = 7.15, 37.5, 1.92, 1.36
+
+    cam = Camera3D(
+        pos=v3(math.sin(lt * 0.55) * 0.06, cam_y, base_z * z_s),
+        target=v3(0.0, target_y, 0.0),
+        fov_deg=fov_deg * fov_s,
+    )
+    cam = _apply_camera_move(cam, sh.get("camera"), u, lt)
+
+    floor_hex = palette.get("floor") or style.get("floor")
+    floor_y = 0.0 if floor_hex else None
+    sc = Scene3D(
+        W_px, H_px, cam,
+        bg_top=hex_rgb01(palette.get("sky_top") or style["bg_top"]),
+        bg_bot=hex_rgb01(palette.get("sky_bottom") or style["bg_bot"]),
+        floor_y=floor_y,
+        floor_color=hex_rgb01(floor_hex or style["bg_bot"]),
+        key_dir=style["key"],
+        rim_color=hex_rgb01(style["rim"]),
+    )
+
+    if kind in ("space", "night", "void"):
+        _draw_stars(sc, lt, 40 if kind == "space" else 30)
+    _draw_weather(sc, kind, lt)
+    _draw_scene_props(sc, scene, lt)
+    _draw_custom_cast(sc, sh, u, lt, bool(scene.get("float")), framing)
+    return sc.render()
+
+
 def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
     """Render one clean 3D frame (zero baked text) for any preset & aspect ratio."""
     W_px: int = spec["width"]
@@ -827,6 +1369,8 @@ def render_shot_3d_frame(spec: Dict[str, Any], frame_idx: int) -> Image.Image:
     fov_s, z_s = _cam_framing_scale(aspect)
 
     sh = _find_shot(spec, frame_idx)
+    if sh.get("scene"):
+        return _render_custom_scene(spec, sh, frame_idx)
     preset = sh["preset"]
     sec = sh["section"]
     gen = sh["gender"]
@@ -1945,6 +2489,7 @@ def _compute_clean_plate_hash(spec: Dict[str, Any]) -> str:
         "story_section": spec.get("story_section"),
         "characters": spec.get("characters"),
         "camera": spec.get("camera"),
+        "scene": spec.get("scene"),
         "shots": [
             {
                 "preset": s["preset"],
@@ -1959,6 +2504,7 @@ def _compute_clean_plate_hash(spec: Dict[str, Any]) -> str:
                 "show_ui_card": s["show_ui_card"],
                 "trio_sections": s["trio_sections"],
                 "camera": s.get("camera"),
+                "scene": s.get("scene"),
                 "cast": s.get("cast"),
             }
             for s in spec["shots"]
@@ -2216,6 +2762,8 @@ def main() -> None:
     parser.add_argument("--out", type=str, default="", help="Optional custom output MP4 path.")
     parser.add_argument("--list-presets", action="store_true", help="List available 3D shot presets and exit.")
     parser.add_argument("--list-cameras", action="store_true", help="List available camera moves and exit.")
+    parser.add_argument("--list-scenes", action="store_true", help="List AI free-scene kinds and props, then exit.")
+    parser.add_argument("--list-props", action="store_true", help="List AI free-scene prop ids, then exit.")
     args = parser.parse_args()
 
     if args.list_presets:
@@ -2225,6 +2773,20 @@ def main() -> None:
 
     if args.list_cameras:
         for k, desc in CAMERA_CATALOG.items():
+            print(f"  {k:12s} — {desc}")
+        return
+
+    if args.list_scenes:
+        print("AI 自由場景 scene kinds（每鏡揀一個）：")
+        for k, desc in SCENE_KIND_CATALOG.items():
+            defaults = ", ".join(_DEFAULT_SCENE_PROPS.get(k, [])) or "—"
+            print(f"  {k:12s} — {desc}（預設道具：{defaults}）")
+        print("\n用法：\"scene\": {\"kind\": \"space\", \"props\": [\"stars\", \"planet\", \"rocket\"], \"framing\": \"wide\", \"float\": true}")
+        return
+
+    if args.list_props:
+        print("AI 自由場景 props（可任意組合，每鏡 0–8 個）：")
+        for k, desc in PROP_CATALOG.items():
             print(f"  {k:12s} — {desc}")
         return
 

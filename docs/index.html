@@ -4,21 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="copyright" content="© SCOUT SYSTEM">
-<meta name="app-version" content="v2.3.0">
+<meta name="app-version" content="v3.0.0">
 <meta name="robots" content="noindex">
-<title>SCOUT 3D 動畫劇本生成器 v2.3.0 — © SCOUT SYSTEM</title>
+<title>3D 主題故事影片生成器 v3.0.0 — © SCOUT SYSTEM</title>
 <!--
-  SCOUT 3D 動畫劇本生成器 v2.3.0 · © SCOUT SYSTEM
+  3D 主題故事影片生成器 v3.0.0 · © SCOUT SYSTEM
   純前端 · 直呼 Gemini API（支援 Gemini Canvas 自動攔截） · 唔經任何後端
 
-  v2.3 升級重點（場景／運鏡分開 ＋ 多角色陣容）：
-    1. 【AI 導演 / 我話事】場景同運鏡正式分開：可以交畀 AI 每鏡自動決定場景＋運鏡，
-       也可以自己揀固定運鏡（慢推近、拉遠、左右橫移、上搖、環繞、升高、低角度、手持）。
-    2. 【逐鏡微調】每個鏡頭都可以獨立換場景同運鏡，AI 揀完你都可以即刻改。
-    3. 【多角色陣容】最多 5 位角色，每位可以獨立揀支部（小童軍／幼童軍／童軍／海／空／深資／領袖）、
-       真人或 AI 機械人，仲可以貼自己嘅 SCOUT 3D 制服碼（S3D1_...）；留「AI 自定」就由 AI 按故事分配。
-    4. 【Python 同步支援】runner 新增 `characters` 同 `camera` 欄位；舊 spec 冇呢兩個欄位都照樣出片。
-    5. 【純原創故事不變】冇 GitHub 連結時，AI 只會寫你打嘅童軍故事，唔會硬銷 SCOUT 3D。
+  v3.0 升級重點（由「童軍工具」變成「任何主題 3D 故事生成器」）：
+    1. 【主題自由】唔再綁死童軍／SCOUT 3D 介紹。你打咩主題（飛出太空、海底尋寶、城市天台、恐龍島…）
+       AI 就寫嗰個故事；SCOUT 3D 只負責把角色畫成童軍制服 3D 人仔。
+    2. 【AI 自己砌場景】新增 scene 積木：背景 kind（太空／海底／城市／雪地／室內…）＋
+       道具 props（火箭、行星、衛星、棕櫚樹、水晶、大樓、街燈…）＋色盤，AI 可以自由組合，
+       唔再只係喺 9 個地球營地場景入面揀。
+    3. 【場景／運鏡分開】AI 自動導演、我揀運鏡、我全權話事三種模式；逐鏡仍可改場景類型同運鏡。
+    4. 【多角色陣容】最多 5 位角色，每位可獨立支部、真人／AI 機械人、自己嘅 S3D1 制服碼。
+    5. 【舊 spec 照用】冇 scene／characters／camera 嘅舊劇本完全兼容。
 -->
 <style>
 :root{
@@ -254,8 +255,8 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
   <div class="brand">
     <div class="shield">🎬</div>
     <div>
-      <div class="logo">SCOUT 3D 動畫劇本生成器</div>
-      <div class="tagline">先定片長＆SCOUT 3D 穿搭碼 · AI 寫廣東話旁白 · 一鍵貼 CMD 出片</div>
+      <div class="logo">3D 主題故事影片生成器</div>
+      <div class="tagline">任何主題 → AI 寫廣東話故事＋自由設計場景 → 一鍵貼 CMD 出 3D 片</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -274,7 +275,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
       </div>
     </details>
-    <span class="ver" id="ver">v2.3.0</span>
+    <span class="ver" id="ver">v3.0.0</span>
   </div>
 </header>
 
@@ -337,8 +338,8 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
             <label>🤖 主角係咩角色</label>
             <select id="f_actor">
               <option value="auto">由 AI 按故事自動判斷（推薦）</option>
-              <option value="human">真人童軍</option>
-              <option value="ai_robot">AI 機械人（著真實童軍制服）</option>
+              <option value="human">真人角色</option>
+              <option value="ai_robot">AI 機械人（著 3D 制服）</option>
             </select>
             <div class="mini">故事講 AI／機械人加入童軍，就會出<b>3D 機械人角色</b>＋真實制服，唔會變真人。</div>
           </div>
@@ -362,7 +363,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
               <select id="f_camera"></select>
             </div>
           </div>
-          <div class="mini" id="directorHint">AI 會按劇情幫每一鏡揀最合適嘅童軍場景同運鏡。</div>
+          <div class="mini" id="directorHint">AI 會按劇情自己設計每一鏡嘅場景（唔限 preset）同運鏡。</div>
         </div>
 
         <!-- 1F. 多角色陣容（每人獨立支部／制服碼） -->
@@ -385,34 +386,34 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         <span class="hint" id="aiContextHint">按第 1 步片長＆穿搭自動編排</span>
       </div>
       <div class="tabs">
-        <button class="tab on" data-tab="ai">🤖 AI 全自動（故事重點 或 GitHub）</button>
+        <button class="tab on" data-tab="ai">🤖 AI 全自動（打主題就得）</button>
         <button class="tab" data-tab="manual">✍️ 我作大綱（AI 執旁白＋分鏡）</button>
       </div>
 
       <!-- 模式 A：AI 全自動 -->
       <div class="pbody" id="paneAi">
         <div class="status ok" id="modeBanner" style="margin-bottom:14px">
-          <span>🎬 <b>純原創童軍故事模式</b>：冇 GitHub 連結 → AI 只會寫你打嘅故事，唔會硬銷 SCOUT 3D。</span>
+          <span>🎬 <b>主題自由模式</b>：你打咩主題，AI 就寫咩故事，連場景都由 AI 自己砌（太空、海底、城市、雪地…）。SCOUT 3D 只負責畫角色，唔會硬銷。</span>
         </div>
         <div class="field">
-          <label>🎯 今次想講咩故事重點（推薦填寫）</label>
-          <input id="f_focus" placeholder="例：如果有個 AI 加入小童軍 / 第一次露營遇到大雨 / 學識綁繩結">
-          <div class="mini">打故事內容就得（唔使寫功能介紹）。AI 會按第 1 步片長範圍＋支部＋主角類型構思真正童軍故事。</div>
+          <label>🎯 今次想講咩主題／故事（推薦填寫）</label>
+          <input id="f_focus" placeholder="例：飛出太空 / 海底尋寶 / 城市天台追逐 / AI 加入小童軍">
+          <div class="mini">打主題或一句故事重點就得。AI 會自由設計場景同道具，唔會夾硬留喺地球營地；SCOUT 3D 只係角色畫風。</div>
         </div>
         <div class="field">
-          <label>🔗 GitHub／專案連結（選填 · 一行一條）</label>
-          <textarea id="f_urls" rows="2" placeholder="留空＝純原創童軍故事；貼咗連結先會轉做專案介紹模式（例：https://github.com/playerkousas-rgb/SCOUT3D）"></textarea>
-          <div class="mini">只有你<b>貼咗連結</b>（或者重點入面明確講 SCOUT 3D／徽章位置），先會讀 README 寫專案介紹；留空就 100% 跟你嘅故事。</div>
+          <label>🔗 參考連結（選填 · 一行一條）</label>
+          <textarea id="f_urls" rows="2" placeholder="留空＝完全原創；貼咗先會讀 README／網頁做世界觀參考（例：https://github.com/playerkousas-rgb/SCOUT3D）"></textarea>
+          <div class="mini">有連結都只會當<b>世界觀參考</b>，唔會變產品廣告；留空就 100% 跟你打嘅主題。</div>
         </div>
-        <button class="btn primary wide" id="btnAi">✨ 按片長＆故事重點叫 AI 作故事＋廣東話旁白</button>
+        <button class="btn primary wide" id="btnAi">✨ 按片長＆主題叫 AI 作故事＋自由設計場景</button>
       </div>
 
       <!-- 模式 B：我作大綱 -->
       <div class="pbody" id="paneManual" hidden>
         <div class="field">
           <label>✍️ 我嘅故事大綱（你自己打，長短不限）</label>
-          <textarea id="f_outline" rows="5" placeholder="例：&#10;開場：以前唔識聯章位置，查書查到頭暈仲聯錯位&#10;中段：打開 SCOUT 3D 揀章，自動飛去正確胸口、右袖旅區章同左袖專科章位置&#10;結尾：阿媽望住 3D 轉台照聯一次搞掂，集會敬禮領袖大讚"></textarea>
-          <div class="mini">AI 會按你第 1 步揀嘅<b>片長範圍</b>自動拆鏡（遠景、互動、胸袖特寫穿插），執順地道廣東話旁白，<b>唔會亂加新功能</b>。</div>
+          <textarea id="f_outline" rows="5" placeholder="例：&#10;開場：地球營地，主角望住星空，決定要飛出太空&#10;中段：火箭升空、穿過雲層，漂浮喺滿天星星嘅太空&#10;結尾：登陸光環行星，同同伴一齊插旗影相"></textarea>
+          <div class="mini">AI 會按你第 1 步揀嘅<b>片長範圍</b>自動拆鏡，仲會自己砌場景（太空、海底、城市…），執順地道廣東話旁白。</div>
         </div>
         <div class="field">
           <label>🎭 旁白語氣</label>
@@ -450,7 +451,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
           </div>
           <div class="field" style="margin-bottom:0">
             <label>🏷️ 頂部系列小標</label>
-            <input id="f_series" value="童軍動畫小劇場" placeholder="例：AI 加入小童軍 · 童軍動畫小劇場">
+            <input id="f_series" value="3D 主題故事" placeholder="例：飛出太空 · 3D 主題故事">
           </div>
         </div>
         <div class="field">
@@ -468,14 +469,14 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
     <div class="panel">
       <div class="phead">
         <span class="n">4</span>
-        <h2>逐鏡旁白 ＆ 3D 鏡位微調</h2>
-        <span class="hint">內置 9 個故事場景＋12 個制服特寫鏡位</span>
+        <h2>逐鏡旁白 ＆ 場景微調</h2>
+        <span class="hint">AI 自由場景（11 種背景 × 20 種道具）＋ 9 個經典營地場景</span>
       </div>
       <div class="pbody">
         <div class="pages" id="shotList"></div>
         <div style="display:flex;gap:8px;margin-top:12px">
           <button class="btn sm" id="btnAddShot" style="flex:1">＋ 新增一鏡</button>
-          <button class="btn sm" id="btnDemo" style="flex:1">💡 載入示範劇本（EP.01）</button>
+          <button class="btn sm" id="btnDemo" style="flex:1">💡 載入示範劇本</button>
         </div>
       </div>
     </div>
@@ -491,7 +492,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         <span class="hint" id="pgCount">4 鏡</span>
       </div>
       <div class="pbody">
-        <div id="status" class="status idle">先喺左邊第 1 步揀片長（同貼入 SCOUT 3D 穿搭碼），再叫 AI 作故事，或直接複製下面指令出片</div>
+        <div id="status" class="status idle">先喺左邊第 1 步揀片長，再打主題叫 AI 作故事（場景由 AI 自由設計），或直接複製下面指令出片</div>
         <div class="stage" id="stage"></div>
       </div>
     </div>
@@ -547,8 +548,8 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 /* ══════════════════════════════════════════════════════════════════
    基本設定（對齊 IG貼文生成器 v1.4.0 Canvas 自動攔截機制）
    ══════════════════════════════════════════════════════════════════ */
-const VERSION = 'v2.3.0';
-const APP_VERSION = 'v2.3.0';
+const VERSION = 'v3.0.0';
+const APP_VERSION = 'v3.0.0';
 const apiKey  = "";   /* 【唔好改】Gemini Canvas 環境會透過 fetch 攔截自動注入 */
 let   userKey = "";
 
@@ -692,56 +693,79 @@ const CAMERAS = [
 const CAMERA_MAP = Object.fromEntries(CAMERAS.map(c => [c.id, c]));
 function cameraZh(id){ const c = CAMERA_MAP[id] || CAMERA_MAP.auto; return c.emoji + ' ' + c.name; }
 
+/* 🏞 AI 自由場景積木：背景 kind ＋ 道具 props（可由 AI 任意組合，唔係固定 preset） */
+const SCENE_KINDS = [
+  { id:'space',      emoji:'🚀', name:'太空',        note:'深色星空，角色可以漂浮' },
+  { id:'sky',        emoji:'☁️', name:'天空／高空',  note:'藍天白雲，可以飛翔' },
+  { id:'sunset',     emoji:'🌇', name:'黃昏',        note:'橙紫天空、剪影感' },
+  { id:'night',      emoji:'🌙', name:'夜晚',        note:'深藍星空＋草地' },
+  { id:'forest',     emoji:'🌲', name:'森林／營地',  note:'綠地松樹' },
+  { id:'beach',      emoji:'🏖️', name:'海灘',        note:'沙地＋海邊' },
+  { id:'snow',       emoji:'❄️', name:'雪地',        note:'白雪＋飄雪' },
+  { id:'city',       emoji:'🌆', name:'城市',        note:'高樓霓虹' },
+  { id:'indoor',     emoji:'🏠', name:'室內',        note:'暖色牆＋木地板' },
+  { id:'underwater', emoji:'🐠', name:'海底',        note:'藍綠水色＋氣泡' },
+  { id:'void',       emoji:'⬛', name:'虛空',        note:'純黑背景＋聚光' }
+];
+const SCENE_KIND_MAP = Object.fromEntries(SCENE_KINDS.map(k => [k.id, k]));
+const SCENE_PROPS = [
+  { id:'stars', name:'星星' }, { id:'moon', name:'月亮' }, { id:'planet', name:'光環行星' },
+  { id:'rocket', name:'火箭' }, { id:'satellite', name:'人造衛星' }, { id:'asteroid', name:'隕石' },
+  { id:'cloud', name:'雲朵' }, { id:'tent', name:'帳篷' }, { id:'campfire', name:'營火' },
+  { id:'pine', name:'松樹' }, { id:'palm', name:'棕櫚樹' }, { id:'rock', name:'岩石' },
+  { id:'crystal', name:'發光水晶' }, { id:'snowman', name:'雪人' }, { id:'balloon', name:'氣球' },
+  { id:'building', name:'城市大樓' }, { id:'streetlamp', name:'街燈' }, { id:'book', name:'書本' },
+  { id:'flag', name:'旗幟' }, { id:'bubble', name:'氣泡' }
+];
+const SCENE_PROP_MAP = Object.fromEntries(SCENE_PROPS.map(p => [p.id, p]));
+function sceneZh(id){ const k = SCENE_KIND_MAP[id]; return k ? k.emoji + ' ' + k.name : '🏞️ 自訂場景'; }
+
 /* ══════════════════════════════════════════════════════════════════
    狀態與本機記憶
    ══════════════════════════════════════════════════════════════════ */
 const LS_KEY     = 'scout3d_key_v2';
 const LS_WORKDIR = 'scout3d_workdir_v2';
 
-const DEFAULT_SHOTS = () => ([
+const DEMO_SHOTS = () => ([
   {
-    preset: 'story_arrival_meet',
-    duration: 3.0,
-    narration: '今日小童軍集會，突然有個AI機械人著住橙色制服行到營地，同大家打招呼！',
-    subtitle: '如果有個 AI 加入小童軍\n佢第一次嚟集會…'
-  },
-  {
-    preset: 'story_group_chat',
-    duration: 3.0,
-    narration: '一班小童軍圍住佢，齊齊自我介紹，仲教機械人講廣東話口令。',
-    subtitle: '小隊圍圈自我介紹\n教 AI 講廣東話口令'
-  },
-  {
-    preset: 'story_leader_briefing',
-    duration: 3.0,
-    narration: '領袖笑笑口話，歡迎你加入小童軍，今日任務係一齊搭帳篷。',
-    subtitle: '領袖：歡迎加入小童軍！\n今日任務係搭帳篷'
-  },
-  {
-    preset: 'story_camp_outdoors',
-    duration: 3.0,
-    narration: '機械人第一次踩上草地搬營具，鬆軟泥土令佢不停打滑。',
-    subtitle: '第一次搬營具\n草地上不停打滑'
-  },
-  {
-    preset: 'story_team_task',
-    duration: 3.0,
-    narration: '一人一手合作，帳篷好快起好，機械人明白童軍嘅團隊精神。',
-    subtitle: '一人一手・帳篷起好\n學識團隊精神'
-  },
-  {
-    preset: 'story_campfire_night',
+    scene: { kind: 'night', props: ['stars', 'campfire', 'tent'], framing: 'wide' },
     duration: 3.2,
-    narration: '夜晚營火會，火光映住大家笑臉，機械人第一次感受童軍溫暖。',
-    subtitle: '夜晚營火會\n第一次感受童軍溫暖'
+    narration: '夜空下面，主角指住最光嗰粒星，話要飛出去睇下。',
+    subtitle: '望住最光嘅星\n決定飛出太空'
   },
   {
-    preset: 'story_happy_salute_end',
+    scene: { kind: 'space', props: ['stars', 'planet', 'rocket'], float: true, framing: 'wide' },
+    duration: 3.4,
+    narration: '火箭一點火，成個營地都震，三、二、一，衝破雲層！',
+    subtitle: '三、二、一\n衝破雲層！'
+  },
+  {
+    scene: { kind: 'space', props: ['stars', 'moon', 'satellite'], float: true, framing: 'medium' },
+    duration: 3.2,
+    narration: '穿過月球旁邊，人造衛星同我哋揮手，宇宙真係大到冇朋友。',
+    subtitle: '月球旁邊\n宇宙大到冇朋友'
+  },
+  {
+    scene: { kind: 'space', props: ['stars', 'asteroid', 'rocket'], float: true, framing: 'closeup' },
     duration: 3.0,
-    narration: '小童軍齊齊敬三指禮，歡迎AI正式成為我哋嘅新同伴！',
-    subtitle: '齊齊敬三指禮\n歡迎 AI 新同伴！'
+    narration: '前面有成堆隕石飛過，隊長大叫：捉實扶手，唔好鬆手！',
+    subtitle: '隕石飛過\n捉實扶手！'
+  },
+  {
+    scene: { kind: 'space', props: ['planet', 'flag', 'stars'], float: true, framing: 'medium' },
+    duration: 3.4,
+    narration: '最後降落喺光環行星，插起我哋嘅旗，正式打卡！',
+    subtitle: '降落光環行星\n插旗打卡'
+  },
+  {
+    scene: { kind: 'space', props: ['stars', 'planet'], float: true, framing: 'closeup' },
+    duration: 3.0,
+    narration: '回頭一望，地球只係一粒藍色光點，我哋真係飛出太空喇。',
+    subtitle: '地球變成一粒光點\n我哋真係飛出太空喇'
   }
-]).map(sh => ({ camera: 'auto', ...sh }));
+]).map(sh => ({ camera: 'auto', sceneKind: 'auto', ...sh }));
+const DEFAULT_SHOTS = DEMO_SHOTS;
+
 
 const S = {
   tab: 'ai',
@@ -762,10 +786,10 @@ const S = {
   fixedScene: 'story_arrival_meet', /* full 模式嘅固定場景 */
   voice: 'zh-HK-HiuMaanNeural',
   voiceRate: '+6%',
-  seriesBadge: '童軍動畫小劇場',
+  seriesBadge: '3D 主題故事',
   episodeId: 'scout_story_ep01',
   uiCard: {
-    title: '童軍動畫小劇場',
+    title: '3D 主題故事',
     toggles: ['世界會員章', '旅條 · 區章', '小隊章', '專科章']
   },
   shots: DEFAULT_SHOTS(),
@@ -1171,12 +1195,31 @@ function cameraDocBlock(){
 function directorRule(){
   if(S.director === 'full'){
     const p = PRESET_MAP[S.fixedScene] || PRESETS[0];
-    return `【導演指示：我全權話事（一定要跟）】\n· 每一鏡嘅 preset 都必須係 "${p.id}"（${p.name}）。\n· 每一鏡嘅 camera 都必須係 "${S.camera}"（${cameraZh(S.camera)}）。`;
+    return `【導演指示：我全權話事（一定要跟）】\n· 每一鏡嘅 preset 都必須係 "${p.id}"（${p.name}），唔需要輸出 scene。\n· 每一鏡嘅 camera 都必須係 "${S.camera}"（${cameraZh(S.camera)}）。`;
   }
   if(S.director === 'cam'){
-    return `【導演指示：場景交 AI，運鏡我話事（一定要跟）】\n· preset 由你按劇情揀，相鄰兩鏡唔好重複。\n· 每一鏡嘅 camera 都必須係 "${S.camera}"（${cameraZh(S.camera)}），唔准改。`;
+    return `【導演指示：場景交 AI，運鏡我話事（一定要跟）】\n· 每一鏡由你自由設計 scene（背景＋道具），跟劇情換景。\n· 每一鏡嘅 camera 都必須係 "${S.camera}"（${cameraZh(S.camera)}），唔准改。`;
   }
-  return `【導演指示：AI 自動導演】\n· 每一鏡由你兼任導演：自己揀最貼切嘅 preset 同 camera。\n· 相鄰兩鏡唔好重複同一個 preset；全片至少用 3 種唔同運鏡；動作／情緒位用 push_in 或 low_angle，環境位用 pull_out 或 crane_up，圍圈傾偈可以用 orbit_left／orbit_right。`;
+  return `【導演指示：AI 自動導演（場景＋運鏡都由你話事）】\n· 每一鏡由你兼任編劇＋美術指導：自己設計 scene，再揀最貼切嘅 camera。\n· 場景要隨劇情推進而變化（例如：地球準備 → 升空 → 太空 → 登陸月球），唔好全片同一個地方。\n· 全片至少用 3 種唔同運鏡；動作／情緒位用 push_in 或 low_angle，環境位用 pull_out 或 crane_up，對話可以用 orbit_left／orbit_right。`;
+}
+
+function sceneDocBlock(){
+  const kinds = SCENE_KINDS.map(k => `· "${k.id}" — ${k.name}：${k.note}`).join('\n');
+  const props = SCENE_PROPS.map(pr => pr.id).join('、');
+  return `【AI 自由場景積木（重點：場景由你砌，唔係只揀現成背景）】
+背景 kind（每鏡揀一個）：
+${kinds}
+道具 props（每鏡可揀 0–8 個，任意組合）：${props}
+framing：wide（遠景）／medium（中景）／closeup（特寫）
+float：角色係咪漂浮（太空／天空／虛空建議 true）
+palette（選填）：{"sky_top":"#0B1038","sky_bottom":"#2A1B4A","floor":"#335544"} 自訂天空／地面顏色
+
+【例子（直接影響你點寫）】
+· 主題「飛出太空」→ 第 1 鏡 Earth 營地，第 2 鏡 {"kind":"space","props":["stars","planet","rocket"],"float":true,"framing":"wide"}，第 3 鏡月球表面。
+· 主題「海底尋寶」→ {"kind":"underwater","props":["bubble","rock","crystal"],"framing":"medium"}。
+· 主題「城市天台」→ {"kind":"city","props":["building","streetlamp"],"framing":"wide"}。
+· 主題「雪地迷路」→ {"kind":"snow","props":["snowman","pine"],"framing":"wide"}。
+你可以自由創作，唔限於以上例子。`;
 }
 
 function castPromptBlock(heroSec, actor){
@@ -1188,29 +1231,21 @@ function castPromptBlock(heroSec, actor){
       : '由你按劇情決定（最好同主角唔同支部，令成團有唔同制服）';
     const skinTxt = (c.skin === 'ai_robot')
       ? 'AI 機械人'
-      : (c.skin === 'human' ? '真人童軍' : '由你決定真人／AI 機械人');
+      : (c.skin === 'human' ? '真人角色' : '由你決定真人／AI 機械人');
     return `· 角色 ${i + 2}：${secTxt}，${skinTxt}${c.code ? '，已有指定 SCOUT 3D 制服碼（旁白唔准講錯佢戴嘅徽章）' : ''}`;
   });
-  return `【角色陣容（全片固定 ${extras.length + 1} 位角色，3D 畫面每一鏡都會全部出場）】\n· 主角：${sectionZh(heroSec)}，${actor === 'ai_robot' ? 'AI 機械人' : '真人童軍'}\n${lines.join('\n')}\n★ 旁白只可以寫呢 ${extras.length + 1} 位角色之間嘅互動，唔好再作其他人。\n★ 輸出時必須回傳 "characters" 陣列（長度 ${extras.length + 1}，第一位係主角）；「由你決定」嘅角色請填真實支部 key（grasshopper／cub／scout／sea_scout／air_scout／venture／leader）同 actor_skin（human／ai_robot）。`;
+  return `【角色陣容（全片固定 ${extras.length + 1} 位角色，3D 畫面每一鏡都會全部出場）】\n· 主角：${sectionZh(heroSec)}，${actor === 'ai_robot' ? 'AI 機械人' : '真人角色'}\n${lines.join('\n')}\n★ 旁白只可以寫呢 ${extras.length + 1} 位角色之間嘅互動，唔好再作其他人。\n★ 輸出時必須回傳 "characters" 陣列（長度 ${extras.length + 1}，第一位係主角）；「由你決定」嘅角色請填真實支部 key（grasshopper／cub／scout／sea_scout／air_scout／venture／leader）同 actor_skin（human／ai_robot）。`;
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   AI 編劇 Prompt
-   ・純原創童軍故事模式（冇 GitHub 連結）＝只寫你打嘅故事，零產品推銷
-   ・專案模式（有 GitHub 連結 或 明確講徽章功能）＝讀 README 寫介紹
+   AI 編劇＋美術指導 Prompt（v3.0：任何主題 + AI 自由砌場景）
    ══════════════════════════════════════════════════════════════════ */
 function buildStoryPrompt(mode){
   const plan = DUR_MAP[S.durPlan] || DURATION_PLANS[0];
-  const urls = (mode === 'ai')
-    ? $('f_urls').value.split('\n').map(s => s.trim()).filter(Boolean)
-    : [];
   const focus = (mode === 'ai') ? $('f_focus').value.trim() : '';
   const outline = (mode === 'manual') ? $('f_outline').value.trim() : '';
   const tone = (mode === 'manual') ? $('f_tone').value : '溫馨搞笑、貼地生鬼';
   const briefText = mode === 'manual' ? outline : focus;
-  const projectMode = urls.length > 0;
-  const badgeTopic = /(scout\s*3d|撳章|自動對位|徽章位置|專章位置|旅號|區章|正確位置)/i.test(briefText);
-  const allowUniform = projectMode || badgeTopic;
 
   const sec = (S.storySection !== 'auto' && SECTION_MAP[S.storySection])
     ? S.storySection
@@ -1222,48 +1257,45 @@ function buildStoryPrompt(mode){
   const heroSec = lockedSec || sec;
 
   const charBlock = (s3dSummary
-    ? `【主角真實穿搭與徽章（由 SCOUT 3D 穿搭碼精準載入 —— 最高準則）】\n${s3dSummary}\n★ 極重要：主角喺 3D 畫面入面只會戴住上面列出嘅徽章同旅團設定！旁白或字幕提到具體徽章／旅號／區章／小隊時，必須 100% 對應上面清單，絕對唔准講主角冇戴嘅章！`
-    : `【主角設定（今次故事已鎖定）】\n· 支部：${sectionZh(heroSec)}\n· 真實制服：${SECTION_UNIFORM_ZH[heroSec] || SECTION_UNIFORM_ZH.grasshopper}\n· 主角角色類型：${actor === 'ai_robot' ? 'AI 機械人（白銀色圓潤機械外殼＋著住上述真實童軍制服，會有 LED 表情同天線，但制服、領巾、徽章全部同真人童軍一樣）' : '真人童軍小朋友'}`)
+    ? `【主角真實穿搭與徽章（由 SCOUT 3D 穿搭碼精準載入 —— 最高準則）】\n${s3dSummary}\n★ 主角喺 3D 畫面入面只會戴住上面列出嘅徽章同旅團設定；旁白提到徽章／旅號時要對應，唔好講主角冇戴嘅章。`
+    : `【主角外觀（只影響畫風，唔限制故事）】\n· 制服支部：${sectionZh(heroSec)}\n· 制服：${SECTION_UNIFORM_ZH[heroSec] || SECTION_UNIFORM_ZH.grasshopper}\n· 角色類型：${actor === 'ai_robot' ? 'AI 機械人（白銀機械外殼＋3D 制服）' : '真人角色（童軍制服 3D 人仔）'}`)
     + (castPromptBlock(heroSec, actor) ? '\n\n' + castPromptBlock(heroSec, actor) : '');
 
-  const common = `你係一位專寫香港童軍 3D 動畫短片嘅編劇兼廣東話旁白撰稿員。你要寫嘅係一個「真正嘅童軍故事」，唔係產品廣告。
+  const common = `你係一位香港廣東話 3D 短片編劇兼美術指導。
 
-【目標片長與彈性分鏡範圍（唔寫死鏡數，由你按節奏自由發揮！）】
+【最重要嘅設定】
+· 角色會由 SCOUT 3D 引擎畫成「童軍制服 3D 人仔」，呢個只係美術來源。
+· 故事、世界觀、場景、道具、氣氛全部由你自由創作 —— 唔一定要講童軍，可以係太空、海底、城市、魔法、恐龍、校園、體育……
+· 絕對唔准介紹 SCOUT 3D／任何 App／網站／軟件／功能，亦唔准賣廣告。
+
+【目標片長與彈性分鏡範圍】
 · 目標總片長：約 ${plan.sec} 秒。
-· 合理分鏡數量範圍：**${plan.minShots} 至 ${plan.maxShots} 鏡之間**（按起承轉合自由決定，千萬唔好 1 鏡到底）。
-· 全片廣東話旁白總字數建議：約 ${plan.minChars}–${plan.maxChars} 個中文字（平均每鏡旁白 18–34 字）。
+· 合理分鏡數量：**${plan.minShots} 至 ${plan.maxShots} 鏡**（按起承轉合自由決定）。
+· 廣東話旁白總字數：約 ${plan.minChars}–${plan.maxChars} 字（平均每鏡 18–34 字）。
 
 ${charBlock}
 
-【香港童軍真實性（一定要跟）】
-· 用正確支部名稱同活動：集會、小隊制、童軍規律、繩結、露營、營火會、步操、敬三指禮、服務社區。
-· 制服顏色同領巾一定要跟上面「真實制服」，唔准講錯（小童軍係橙色活動服、幼童軍係卡其衫黃領巾、童軍係卡其衫綠領巾）。
-· 稱呼用「小隊」「隊長」「領袖」「旅團」，唔好講「員工」「公司」「客服」。
-· 廣東話要地道香港口語（唔使、搞掂、我哋、齊齊、好正），唔好書面語。
+【廣東話與故事節奏】
+· 地道香港口語（唔使、搞掂、我哋、齊齊、好正），唔好書面語。
+· 每鏡都要推進劇情，有起承轉合；唔好一鏡到底。
+· 如果主題真係童軍活動，先用真實童軍細節（小隊、領袖、繩結、露營、營火）；其他主題就自由發揮，唔好夾硬拉返營地。
 
-【配音與字幕格式】
-· 全片由「單一香港廣東話旁白」講故事，每一鏡輸出：
+【配音與字幕格式】每一鏡輸出：
   1. "narration"：畀香港廣東話語音引擎讀出嚟，唔好寫「旁白：」前綴，亦唔好加表情符號。
   2. "subtitle"：片底大字字幕（12–26 字，可用 \\n 分兩行）。
 
-${presetDocBlock(allowUniform)}
+${sceneDocBlock()}
 
 ${cameraDocBlock()}
 
 ${directorRule()}`;
 
-  const storyRules = `【純原創童軍故事模式 —— 最高優先禁令】
-· 今次${mode === 'manual' ? '故事大綱' : '故事重點'}係：${briefText || '（未填，請自行構思一個溫馨童軍小故事）'}
-· 你只可以寫上面呢個故事，唔准加插任何產品／App／網站／軟件介紹。
-· 絕對禁止出現：「SCOUT 3D」、「撳章」、「自動對位」、「一撳即上身」、「下載」、「試用」、「功能」、
-  「正確位置教學」、「UI 卡」、「方塊變光滑」等廣告字眼同概念。
-· 唔准出現浮動勾／交叉廣告牌、產品功能清單、示範台。畫面只可以有童軍角色、營地、帳篷、松樹、營火等真實場景。
-· 如果故事講 AI／機械人加入童軍，就要寫佢點樣學規律、學綁繩、交朋友、被接納，重點係人情味同成長，唔係推銷任何程式。`;
+  const storyRules = `【今次主題（必須緊扣）】
+${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'}
 
-  const projectRules = `【專案介紹模式】
-· 今次係介紹專案：${urls.join('、') || '（未提供網址，只按重點寫）'}
-· 只可以講「已讀取嘅原文」同「今次重點」入面存在嘅內容，絕對唔准虛構原文冇提過嘅功能。
-· 可以用制服／徽章示範鏡位（包括 scout3d_auto_snap、胸前右袖左袖特寫）去展示真實佩戴位置。`;
+· 場景要跟住主題走：講太空就出太空、講海底就出海底、講城市就出城市；唔好全片都留喺地球營地。
+· 可以用 scene.props 加火箭、行星、衛星、棕櫚樹、水晶、大樓、街燈、雪人……去建立世界觀。
+· 唔准加任何產品／App／網站介紹或「功能示範」字眼。`;
 
   const castSchema = (S.cast && S.cast.length)
     ? `,
@@ -1272,54 +1304,71 @@ ${directorRule()}`;
     {"section": "由你決定嘅角色請填真實支部 key", "actor_skin": "human 或 ai_robot"}
   ]`
     : '';
-  const jsonBlock = `【輸出格式】只輸出純 JSON，唔要解釋、唔要 markdown code fence：
-{
-  "episode_slug": "英文細楷加底線短檔名，例如 scout_story_ai_joins",
-  "series_badge": "頂部系列小標（≤ 16 字）",
-  "story_section": "${heroSec}"${projectMode ? `,
-  "ui_card": {
-    "title": "功能卡短標題（≤ 14 字）",
-    "toggles": ["重點1", "重點2", "重點3", "重點4"]
-  }` : ''},
-  "actor_skin": "${actor}"${castSchema},
-  "shots": [
-    {
-      "preset": "上面可用 ID 之一",
-      "camera": "上面可用運鏡 ID 之一（跟足導演指示）",
+
+  const shotSchema = (S.director === 'full')
+    ? `    {
+      "preset": "${S.fixedScene}",
+      "camera": "${S.camera}",
       "narration": "地道香港廣東話口語旁白",
       "subtitle": "片底大字兩行短字幕（可用 \\n 換行）"
-    }
+    }`
+    : `    {
+      "scene": {"kind": "上面 kind 之一", "props": ["上面 props ID"], "framing": "wide|medium|closeup", "float": false},
+      "camera": "上面運鏡 ID 之一",
+      "narration": "地道香港廣東話口語旁白",
+      "subtitle": "片底大字兩行短字幕（可用 \\n 換行）"
+    }`;
+
+  const jsonBlock = `【輸出格式】只輸出純 JSON，唔要解釋、唔要 markdown code fence：
+{
+  "episode_slug": "英文細楷加底線短檔名，例如 space_rescue_ep01",
+  "series_badge": "頂部系列小標（≤ 16 字）",
+  "story_section": "${heroSec}",
+  "actor_skin": "${actor}"${castSchema},
+  "shots": [
+${shotSchema}
   ]
 }
-請確保 shots 數量落喺 ${plan.minShots} 至 ${plan.maxShots} 鏡之間，而且每一鏡都要推進故事。${(S.cast && S.cast.length) ? `\n"characters" 陣列長度必須係 ${S.cast.length + 1}（第一位主角，其餘順序對應角色 2–${S.cast.length + 1}）。` : ''}`;
+請確保 shots 數量落喺 ${plan.minShots} 至 ${plan.maxShots} 鏡之間。${(S.cast && S.cast.length) ? `\n"characters" 陣列長度必須係 ${S.cast.length + 1}（第一位主角，其餘順序對應角色 2–${S.cast.length + 1}）。` : ''}`;
+
+  const rawCtx = (mode === 'ai' && window.__URL_CTX)
+    ? `【參考資料（只作世界觀參考，唔好照抄廣告）】\n${window.__URL_CTX}\n`
+    : '';
 
   if(mode === 'manual'){
-    return `${common}
-
-${storyRules}
-
-旁白語氣：${tone}
-請跟足我寫嘅大綱脈絡，執靚地道廣東話旁白＋片底字幕＋最貼切嘅 3D 鏡位。
-
-${jsonBlock}`;
+    return `${common}\n\n${storyRules}\n\n旁白語氣：${tone}\n請跟足我寫嘅大綱脈絡，執靚地道廣東話旁白＋片底字幕，並為每鏡設計最貼切嘅 scene 同 camera。\n\n${rawCtx}${jsonBlock}`;
   }
 
-  if(projectMode){
-    const ctx = window.__URL_CTX || '';
-    return `${common}
+  return `${common}\n\n${storyRules}\n\n${rawCtx}${jsonBlock}`;
+}
 
-${projectRules}
-${ctx ? '\n【已讀取嘅 GitHub README / 網頁原文】\n' + ctx : ''}
-${focus ? '\n【今次重點】' + focus : ''}
-
-${jsonBlock}`;
+const SCENE_SHORTHAND = {
+  '太空':'space','宇宙':'space','星空':'space','銀河':'space','月球':'space',
+  '天空':'sky','高空':'sky','雲':'sky','黃昏':'sunset','日落':'sunset',
+  '夜晚':'night','晚上':'night','森林':'forest','樹林':'forest','營地':'forest',
+  '沙灘':'beach','海灘':'beach','海邊':'beach','雪':'snow','雪地':'snow',
+  '城市':'city','都市':'city','室內':'indoor','屋企':'indoor','海底':'underwater',
+  '海洋':'underwater','水底':'underwater','虛空':'void','黑底':'void'
+};
+function normSceneClient(v){
+  if(!v) return null;
+  let o = v;
+  if(typeof v === 'string'){
+    const t = v.trim();
+    const kind = SCENE_SHORTHAND[t] || (SCENE_KIND_MAP[t.toLowerCase()] ? t.toLowerCase() : '');
+    if(!kind) return null;
+    o = { kind };
   }
-
-  return `${common}
-
-${storyRules}
-
-${jsonBlock}`;
+  if(typeof o !== 'object') return null;
+  const kind = String(o.kind || o.scene_kind || '').trim().toLowerCase();
+  if(!SCENE_KIND_MAP[kind]) return null;
+  const props = Array.isArray(o.props)
+    ? o.props.map(x => String(x).trim().toLowerCase()).filter(x => SCENE_PROP_MAP[x]).slice(0, 8)
+    : [];
+  const fr = String(o.framing || '').trim().toLowerCase();
+  const framing = ['wide', 'medium', 'closeup'].includes(fr) ? fr : 'medium';
+  const palette = (o.palette && typeof o.palette === 'object') ? o.palette : undefined;
+  return { kind, props, framing, float: !!o.float, palette };
 }
 
 function parseStoryJson(raw, allowUniform){
@@ -1339,23 +1388,28 @@ function parseStoryJson(raw, allowUniform){
       return alt ? alt.id : pool[used.length % pool.length].id;
     };
     const shots = j.shots.map((sh, idx) => {
+      const scene = normSceneClient(sh.scene || sh.set || sh.world || sh.scene_kind);
       let p = String(sh.preset || '').trim();
       if(!PRESET_MAP[p] || (!allowUniform && PRESET_MAP[p].group !== 'story')){
         p = idx === 0 ? 'story_arrival_meet'
           : idx === j.shots.length - 1 ? 'story_happy_salute_end'
           : pool[(idx - 1) % pool.length].id;
       }
-      p = pickUnused(p);
-      used.push(p);
+      if(!scene){
+        p = pickUnused(p);
+        used.push(p);
+      }
       const nar = String(sh.narration || sh.subtitle || '').replace(/^旁白[:：]\s*/, '').trim();
       const sub = String(sh.subtitle || nar).trim();
       const camRaw = String(sh.camera || '').trim();
       const cam = CAMERA_MAP[camRaw] ? camRaw : 'auto';
       return {
         preset: fallbackStory(p),
-        duration: PRESET_MAP[p] ? PRESET_MAP[p].defDur : 3.0,
+        duration: scene ? 3.0 : (PRESET_MAP[p] ? PRESET_MAP[p].defDur : 3.0),
         camera: cam,
-        narration: nar || '今日小童軍集會，齊齊準備出發。',
+        scene,
+        sceneKind: scene ? 'auto' : 'auto',
+        narration: nar || '故事開始，齊齊出發。',
         subtitle: sub || nar
       };
     });
@@ -1385,7 +1439,7 @@ async function doStory(mode){
     const hasUrl = $('f_urls').value.trim().length > 0;
     const hasFocus = $('f_focus').value.trim().length > 0;
     if(!hasUrl && !hasFocus && !S.s3dDecoded){
-      showToast('請先打故事重點（例如：如果有個 AI 加入小童軍）');
+      showToast('請先打主題（例如：飛出太空）');
       return;
     }
   }else{
@@ -1428,9 +1482,7 @@ async function doStory(mode){
     const badgeTopic = /(scout\s*3d|撳章|自動對位|徽章位置|專章位置|旅號|正確位置)/i.test(briefText);
     const allowUniform = projectMode || badgeTopic;
 
-    setStatus('busy', projectMode
-      ? `AI 正在讀 README，按「約 ${plan.sec} 秒（${plan.minShots}–${plan.maxShots} 鏡）」構思專案介紹劇本…`
-      : `AI 正在按「約 ${plan.sec} 秒（${plan.minShots}–${plan.maxShots} 鏡）· ${sectionZh(resolvedSection())}${resolvedActor() === 'ai_robot' ? ' · AI 機械人主角' : ''}」構思童軍故事…`);
+    setStatus('busy', `AI 正在按「約 ${plan.sec} 秒（${plan.minShots}–${plan.maxShots} 鏡）· ${sectionZh(resolvedSection())}${resolvedActor() === 'ai_robot' ? ' · AI 機械人主角' : ''}」構思故事＋自由設計場景…`);
 
     const resp = await callText(buildStoryPrompt(mode));
     const parsed = parseStoryJson(pickText(resp), allowUniform);
@@ -1443,7 +1495,7 @@ async function doStory(mode){
       S.shots.forEach(sh => { sh.camera = 'auto'; });
     }else if(S.director === 'full'){
       const fp = PRESET_MAP[S.fixedScene] || PRESETS[0];
-      S.shots.forEach(sh => { sh.preset = fp.id; sh.duration = fp.defDur; sh.camera = 'auto'; });
+      S.shots.forEach(sh => { sh.preset = fp.id; sh.duration = fp.defDur; sh.camera = 'auto'; delete sh.scene; delete sh.sceneKind; });
     }
     if(parsed.series_badge){
       S.seriesBadge = parsed.series_badge;
@@ -1452,9 +1504,10 @@ async function doStory(mode){
     if(parsed.story_section){ S.aiSection = parsed.story_section; }
     if(parsed.actor_skin){ S.aiActor = parsed.actor_skin; }
     if(parsed.slug){
-      S.episodeId = parsed.slug.startsWith('scout3d_') || parsed.slug.startsWith('whatif_') || parsed.slug.startsWith('scout_story_')
+      S.episodeId = parsed.slug.startsWith('scout3d_') || parsed.slug.startsWith('whatif_')
+        || parsed.slug.startsWith('scout_story_') || parsed.slug.startsWith('story_')
         ? parsed.slug
-        : 'scout_story_' + parsed.slug;
+        : 'story_' + parsed.slug;
       $('f_epid').value = S.episodeId;
     }
     if(parsed.ui_card && parsed.ui_card.title && projectMode){
@@ -1469,7 +1522,7 @@ async function doStory(mode){
     renderStaticPickers();
     renderShotsEditor();
     await refreshAllOutputs();
-    setStatus('ok', `✅ AI 已編排 ${S.shots.length} 鏡${projectMode ? '專案介紹' : '童軍故事'}（${sectionZh(resolvedSection())}）！右邊撳「複製 CMD 出片指令」即可本機生成 MP4。`);
+    setStatus('ok', `✅ AI 已編排 ${S.shots.length} 鏡主題故事（${sectionZh(resolvedSection())}），場景由 AI 自由設計！右邊撳「複製 CMD 出片指令」即可本機生成 MP4。`);
     showToast(`✨ 已生成 ${S.shots.length} 鏡廣東話劇本！`);
   }catch(err){
     const msg = (err instanceof FriendlyError) ? err.message : ('⚠️ ' + (err && err.message ? err.message : '發生錯誤'));
@@ -1521,7 +1574,7 @@ function buildEpisodeSpec(){
   const characters = buildCharacters(sec, actor);
   const spec = {
     episode_id: epId,
-    series_badge: ($('f_series').value || '童軍動畫小劇場').trim(),
+    series_badge: ($('f_series').value || '3D 主題故事').trim(),
     aspect: S.aspect,
     fps: 24,
     section: sec,
@@ -1543,7 +1596,14 @@ function buildEpisodeSpec(){
       /* 廣東話每字約 0.145 秒；Python 會再用 edge-tts 實測長度精準鎖定，唔會留死空氣 */
       const estSpeak = S.voice === 'none' ? compact : Math.max(2.2, nar.replace(/\s+/g,'').length * 0.135 + 0.55);
       const dur = Number(Math.max(2.2, estSpeak).toFixed(1));
-      return {
+      let sc = sh.scene ? normSceneClient(sh.scene) : null;
+      if(sh.sceneKind && sh.sceneKind !== 'auto' && SCENE_KIND_MAP[sh.sceneKind]){
+        /* 用戶手動改場景類型：只用新 kind，道具交返俾預設組合 */
+        sc = { kind: sh.sceneKind };
+        if(sh.sceneKind === 'space' || sh.sceneKind === 'void' || sh.sceneKind === 'sky') sc.float = true;
+      }
+      if(S.director === 'full') sc = null;
+      const out = {
         preset: p,
         duration: dur,
         camera: cam,
@@ -1551,6 +1611,8 @@ function buildEpisodeSpec(){
         subtitle: sub,
         narration: nar
       };
+      if(sc) out.scene = sc;
+      return out;
     })
   };
   /* 多角色陣容：只有加咗角色先傳，舊單人 spec 保持一模一樣 */
@@ -1682,10 +1744,10 @@ function updateModeBanner(){
   const hasUrl = ($('f_urls').value || '').trim().length > 0;
   if(hasUrl){
     banner.className = 'status busy';
-    banner.innerHTML = '<span>🔗 <b>專案介紹模式</b>：已貼連結 → AI 會讀 README 寫專案故事，並可用制服／徽章示範鏡位。</span>';
+    banner.innerHTML = '<span>🔗 <b>有參考連結</b>：AI 會讀 README／網頁做世界觀參考，但唔會變產品廣告，場景仍然自由創作。</span>';
   }else{
     banner.className = 'status ok';
-    banner.innerHTML = '<span>🎬 <b>純原創童軍故事模式</b>：冇 GitHub 連結 → AI 只會寫你打嘅故事，唔會硬銷 SCOUT 3D。</span>';
+    banner.innerHTML = '<span>🎬 <b>主題自由模式</b>：你打咩主題，AI 就寫咩故事，連場景都由 AI 自己砌（太空、海底、城市、雪地…）。SCOUT 3D 只負責畫角色。</span>';
   }
 }
 
@@ -1696,7 +1758,7 @@ function sectionOptions(sel){
 }
 function skinOptions(sel){
   return `<option value="auto" ${(!sel || sel === 'auto') ? 'selected' : ''}>🤖 AI 按故事決定</option>
-    <option value="human" ${sel === 'human' ? 'selected' : ''}>🧑 真人童軍</option>
+    <option value="human" ${sel === 'human' ? 'selected' : ''}>🧑 真人角色</option>
     <option value="ai_robot" ${sel === 'ai_robot' ? 'selected' : ''}>🤖 AI 機械人</option>`;
 }
 
@@ -1844,11 +1906,15 @@ function renderShotsEditor(){
     const opts = `<optgroup label="童軍故事場景">${storyOpts}</optgroup><optgroup label="制服／徽章示範">${uniOpts}</optgroup>`;
     const curCam = (sh.camera && CAMERA_MAP[sh.camera]) ? sh.camera : 'auto';
     const camOpts = CAMERAS.map(c => `<option value="${c.id}" ${c.id === curCam ? 'selected' : ''}>${c.emoji} ${esc(c.name)}</option>`).join('');
+    const curScene = (sh.sceneKind && sh.sceneKind !== 'auto') ? sh.sceneKind : 'auto';
+    const sceneOpts = `<option value="auto" ${curScene === 'auto' ? 'selected' : ''}>🤖 ${sh.scene ? sceneZh(sh.scene.kind) : '跟 AI／preset'}</option>`
+      + SCENE_KINDS.map(k => `<option value="${k.id}" ${curScene === k.id ? 'selected' : ''}>${k.emoji} ${esc(k.name)}</option>`).join('');
     return `
       <div class="pagecard" data-idx="${idx}">
         <div class="ph">
           <b>第 ${idx + 1} 鏡</b>
-          <select class="js-preset">${opts}</select>
+          <select class="js-scene" title="場景類型（AI 自由場景）">${sceneOpts}</select>
+          <select class="js-preset" title="進階：固定鏡位 preset（想用 9 個經典營地場景先改）">${opts}</select>
           <select class="js-cam" title="呢一鏡嘅運鏡">${camOpts}</select>
           <div class="sp">
             <button class="btn xs js-up" title="上移" ${idx === 0 ? 'disabled' : ''}>↑</button>
@@ -1881,6 +1947,17 @@ function renderShotsEditor(){
     card.querySelector('.js-preset').addEventListener('change', async e => {
       S.shots[idx].preset = e.target.value;
       S.shots[idx].duration = (PRESET_MAP[e.target.value] || {defDur:3.2}).defDur;
+      await refreshAllOutputs();
+    });
+    card.querySelector('.js-scene').addEventListener('change', async e => {
+      const v = e.target.value;
+      if(v === 'auto'){
+        delete S.shots[idx].sceneKind;
+      }else{
+        S.shots[idx].sceneKind = v;
+        if(S.shots[idx].scene) delete S.shots[idx].scene;
+      }
+      renderShotsEditor();
       await refreshAllOutputs();
     });
     card.querySelector('.js-cam').addEventListener('change', async e => {
@@ -1916,7 +1993,7 @@ function renderShotsEditor(){
 function renderPreviewAndStats(spec){
   const totalSec = spec.shots.reduce((acc, s) => acc + s.duration, 0);
   const voiceObj = VOICES.find(v => v.id === spec.voice) || VOICES[0];
-  const actorZh = spec.actor_skin === 'ai_robot' ? 'AI 機械人' : '真人童軍';
+  const actorZh = spec.actor_skin === 'ai_robot' ? 'AI 機械人' : '真人角色';
   const castN = spec.characters ? spec.characters.length : 1;
   const dirZh = S.director === 'ai' ? 'AI 導演' : (S.director === 'cam' ? '我揀運鏡' : '我話事');
   $('pgCount').textContent = `${spec.shots.length} 鏡 · 預估 ~${totalSec.toFixed(0)} 秒 · ${sectionZh(spec.story_section)} · ${actorZh} · 👥 ${castN} 人 · ${dirZh} · ${voiceObj.name}`;
@@ -1925,11 +2002,16 @@ function renderPreviewAndStats(spec){
     const p = PRESET_MAP[sh.preset] || PRESETS[0];
     const camId = (sh.camera && sh.camera !== 'auto') ? sh.camera : (S.director !== 'ai' ? S.camera : 'auto');
     const camObj = CAMERA_MAP[camId] || CAMERA_MAP.auto;
+    const sceneId = (sh.sceneKind && sh.sceneKind !== 'auto') ? sh.sceneKind
+      : (sh.scene ? sh.scene.kind : null);
+    const sceneLabel = sceneId
+      ? `${sceneZh(sceneId)}${sh.scene && sh.scene.props && sh.scene.props.length ? ' · ' + sh.scene.props.map(x => (SCENE_PROP_MAP[x] || {name:x}).name).join('／') : ''}`
+      : `${p.emoji} ${esc(p.name.split('：')[0])}`;
     return `
       <div class="shotpv">
         <div class="shotpv-top">
           <span class="shotpv-num">SHOT ${i + 1}</span>
-          <span class="shotpv-pre">${p.emoji} ${esc(p.name.split('：')[0])} · ${camObj.emoji}${esc(camObj.name)}</span>
+          <span class="shotpv-pre">${sceneLabel} · ${camObj.emoji}${esc(camObj.name)}</span>
           <span class="shotpv-dur">~${sh.duration.toFixed(1)}s</span>
         </div>
         <div class="shotpv-vo">
@@ -2127,9 +2209,11 @@ function bindEvents(){
     S.shots.push({
       preset: nextP.id,
       duration: nextP.defDur,
+      sceneKind: 'auto',
       camera: 'auto',
-      narration: '小隊繼續完成今日嘅童軍任務，大家愈做愈有默契。',
-      subtitle: '小隊繼續努力\n默契愈嚟愈好'
+      scene: { kind: 'space', props: ['stars', 'planet'], float: true, framing: 'medium' },
+      narration: '故事繼續發展，大家一齊面對新挑戰。',
+      subtitle: '故事繼續發展\n一齊面對新挑戰'
     });
     renderShotsEditor();
     await refreshAllOutputs();
@@ -2138,8 +2222,8 @@ function bindEvents(){
 
   $('btnDemo').addEventListener('click', async () => {
     S.shots = DEFAULT_SHOTS();
-    S.seriesBadge = 'AI 加入小童軍 · 童軍動畫小劇場';
-    S.episodeId = 'scout_story_ai_joins_grasshopper';
+    S.seriesBadge = '飛出太空 · 3D 主題故事';
+    S.episodeId = 'space_adventure_ep01';
     S.storySection = 'grasshopper';
     S.actorSkin = 'ai_robot';
     S.charPreset = 'yau_grasshopper';
@@ -2160,7 +2244,7 @@ function bindEvents(){
     renderStaticPickers();
     renderShotsEditor();
     await refreshAllOutputs();
-    setStatus('ok', '💡 已載入示範劇本（小童軍 + AI 機械人主角 + 幼童軍／童軍同伴）—— 可直接複製 CMD 指令出片！');
+    setStatus('ok', '💡 已載入「飛出太空」示範：AI 自由場景（星空、火箭、月球、光環行星）—— 可直接複製 CMD 指令出片！');
     showToast('已載入示範劇本');
   });
 
@@ -2184,6 +2268,7 @@ function bindEvents(){
 async function runSelfTest(){
   const checks = [];
   checks.push(['5 級彈性片長', DURATION_PLANS.length === 5]);
+  const specProbe = buildEpisodeSpec();
   checks.push(['9 故事＋12 制服鏡位', PRESETS.filter(p=>p.group==='story').length === 9 && PRESETS.filter(p=>p.group==='uni').length === 12]);
   checks.push(['純故事模式預設', ($('f_urls').value || '').trim() === '']);
   const sampleS3d = await makeSampleS3dCode();
@@ -2192,15 +2277,15 @@ async function runSelfTest(){
   const sampleCmd = await buildMethodACommand();
   checks.push(['CMD 短碼輸出', sampleCmd.includes('src/scout3d_runner.py --b64 z_')]);
   const pureStoryPrompt = buildStoryPrompt('ai');
-  checks.push(['純故事提示零廣告', /唔准加插任何產品/.test(pureStoryPrompt) && /story_arrival_meet/.test(pureStoryPrompt)]);
-  const specProbe = buildEpisodeSpec();
+  checks.push(['主題提示零廣告', /唔准加任何產品/.test(pureStoryPrompt) && /AI 自由場景積木/.test(pureStoryPrompt)]);
+  checks.push(['AI 自由場景', SCENE_KINDS.length === 11 && SCENE_PROPS.length === 20 && !!specProbe.shots[0].scene]);
   checks.push(['支部／主角入 spec', !!specProbe.story_section && !!specProbe.actor_skin]);
   checks.push(['11 種運鏡', CAMERAS.length === 11]);
   checks.push(['逐鏡運鏡入 spec', !!specProbe.shots[0].camera]);
   checks.push(['多角色陣容功能', typeof buildCharacters === 'function' && typeof renderCastEditor === 'function']);
   checks.push(['右下角水印入指令', !!(specProbe.watermark && specProbe.watermark.text === '© SCOUT SYSTEM')]);
   const ok = checks.every(c => c[1]);
-  $('selfTest').textContent = `© SCOUT SYSTEM · SCOUT 3D 動畫劇本生成器 ${APP_VERSION} · 自檢 ${ok ? '通過 ✓' : '異常'}（${checks.map(c=>c[0]).join(' · ')}）`;
+  $('selfTest').textContent = `© SCOUT SYSTEM · 3D 主題故事影片生成器 ${APP_VERSION} · 自檢 ${ok ? '通過 ✓' : '異常'}（${checks.map(c=>c[0]).join(' · ')}）`;
 }
 
 (async function boot(){
