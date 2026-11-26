@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="copyright" content="© SCOUT SYSTEM">
-<meta name="app-version" content="v3.3.0">
+<meta name="app-version" content="v3.4.0">
 <meta name="robots" content="noindex">
-<title>3D 主題故事影片生成器 v3.3.0 — © SCOUT SYSTEM</title>
+<title>3D 主題故事影片生成器 v3.4.0 — © SCOUT SYSTEM</title>
 <!--
-  3D 主題故事影片生成器 v3.3.0 · © SCOUT SYSTEM
+  3D 主題故事影片生成器 v3.4.0 · © SCOUT SYSTEM
   純前端 · 直呼 Gemini API（支援 Gemini Canvas 自動攔截） · 唔經任何後端
 
   v3.1 升級重點（場景真正自由：AI 用基本形狀自己砌，冇清單）：
@@ -33,6 +33,18 @@
        唔會再夾硬插入舊 preset 道具。
     6. 【構圖規則】AI prompt 加入三層景深、地平線壓低、頭頂留白、主色 ≤3 等規則，
        再加「畀一塊 ≥3×3 嘅地面 box」提示，畫面自然整齊。
+
+  v3.4 升級重點（三個「明明揀咗但出嚟唔同」嘅問題一次過修好）：
+    1. 【30 秒就係 30 秒】舊版假設每字 0.135 秒（＝每分鐘 444 字，冇可能），
+       所以「約 30 秒」永遠變成 50 秒以上。v3.4 改用真實廣東話語速校準
+       （0.181 秒／字＋每鏡 0.42 秒留白），介面顯示嘅預估秒數＝出片長度；
+       AI 交多過鏡數上限、或者旁白超字數，會即場按目標剪短，並喺畫面講明剪咗幾句。
+    2. 【場景真係會轉】AI 每鏡最少 6 件物件、必須寫 scene.sky 天空色同地面色，
+       相鄰鏡唔可以同景；AI 偷懶冇寫天空色時，引擎會按該鏡物件嘅主色自動調出
+       唔同天空／地面（唔會 8 鏡同一個深藍底）。
+    3. 【便服唔會靜靜雞變制服】CMD 出片前會自動驗你部機嘅 src 版本；
+       舊版引擎會當「casual」係未知支部、靜靜雞換成童軍制服。而家會即場印
+       「請先 git pull origin main」，未知支部亦會退回便服而唔係制服。
 
   v3.3 升級重點（用起上嚟唔會卡死）：
     1. 【便服模式】新增「👕 便服（唔著童軍制服）」：主角／配角都可以唔著制服，
@@ -240,6 +252,10 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 .shotpv-num{background:var(--brand);color:#fff;font-weight:800;font-size:11px;padding:2px 8px;border-radius:var(--r-pill)}
 .shotpv-pre{font-weight:700;color:var(--brand-deep)}
 .shotpv-dur{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.dur-audit{margin:0 0 9px;padding:7px 11px;border-radius:10px;font-size:12.5px;font-weight:700}
+.dur-audit.idle{background:#f4f6fa;color:var(--muted);border:1px solid var(--line)}
+.dur-audit.ok{background:#e9f9ef;color:#1a7f45;border:1px solid #b8ecc9}
+.dur-audit.over{background:#fff3e2;color:#a35b00;border:1px solid #ffd9a8}
 .shotpv-vo{font-size:13.5px;color:var(--ink);line-height:1.5;padding-left:2px}
 .shotpv-sub{background:#182235;color:#fff6d6;border:1.5px solid #e7be46;border-radius:10px;
             padding:6px 10px;font-size:12.5px;font-weight:700;text-align:center;white-space:pre-line;line-height:1.4}
@@ -299,7 +315,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
       </div>
     </details>
-    <span class="ver" id="ver">v3.3.0</span>
+    <span class="ver" id="ver">v3.4.0</span>
   </div>
 </header>
 
@@ -606,6 +622,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
       </div>
       <div class="pbody">
         <div id="status" class="status idle">先喺左邊第 1 步揀片長，再打主題叫 AI 作故事（場景由 AI 自由設計），或直接複製下面指令出片</div>
+        <div id="durAuditLine" class="dur-audit idle">⏱️ 片長對帳：叫 AI 作完故事，呢度會顯示「目標 vs 實際預估」秒數</div>
         <div class="stage" id="stage"></div>
       </div>
     </div>
@@ -661,8 +678,8 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 /* ══════════════════════════════════════════════════════════════════
    基本設定（對齊 IG貼文生成器 v1.4.0 Canvas 自動攔截機制）
    ══════════════════════════════════════════════════════════════════ */
-const VERSION = 'v3.3.0';
-const APP_VERSION = 'v3.3.0';
+const VERSION = 'v3.4.0';
+const APP_VERSION = 'v3.4.0';
 const apiKey  = "";   /* 【唔好改】Gemini Canvas 環境會透過 fetch 攔截自動注入 */
 let   userKey = "";
 
@@ -705,14 +722,100 @@ function showToast(msg){
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   片長節奏範圍（唔寫死鏡數，自動拉開合理 Range 留空間畀 AI 構思！）
+   片長換算 —— 用真實廣東話語速校準（v3.4）
+   舊版假設每字 0.135 秒（＝每分鐘 444 字，冇可能），所以「約 30 秒」
+   永遠生出 50 秒以上嘅片。而家：
+     · edge-tts zh-HK ＋6% 語速實測 ≈ 0.181 秒／字
+     · 每鏡前後留白 0.42 秒（同 Python runner 完全一致）
    ══════════════════════════════════════════════════════════════════ */
+const SPEECH_SEC_PER_CHAR = 0.181;
+const SPEECH_CALIB_PCT = 6;
+const SHOT_OVERHEAD_SEC = 0.42;
+
+function voiceRatePct(){
+  const el = (typeof document !== 'undefined') ? document.getElementById('f_rate') : null;
+  const raw = String((el && el.value) || ('+' + SPEECH_CALIB_PCT + '%')).replace(/[^0-9.+-]/g, '');
+  const v = parseFloat(raw);
+  return Number.isFinite(v) ? v : SPEECH_CALIB_PCT;
+}
+/* 一句旁白實際會讀幾多秒 */
+function narrationSec(text){
+  const n = String(text == null ? '' : text).replace(/\s+/g, '').length;
+  if(!n) return 0;
+  return n * SPEECH_SEC_PER_CHAR * (1 + SPEECH_CALIB_PCT / 100) / (1 + voiceRatePct() / 100);
+}
+/* 一鏡實際會播幾多秒（同 runner 一樣：max(2.2, 語音＋留白)） */
+function estimateShotSec(text, fallback){
+  const sec = narrationSec(text);
+  if(sec <= 0) return Number((fallback || 3.0).toFixed(1));
+  return Number(Math.max(2.2, sec + SHOT_OVERHEAD_SEC).toFixed(1));
+}
+function estimateTotalSec(shots){
+  return (shots || []).reduce((a, sh) => a + estimateShotSec(sh && sh.narration, sh && sh.duration), 0);
+}
+/* 目標秒數 → 合理旁白字數（扣走每鏡留白再換算） */
+function planCharsFor(sec, shots){
+  const speech = Math.max(6, sec * 0.97 - shots * SHOT_OVERHEAD_SEC);
+  return Math.round(speech / SPEECH_SEC_PER_CHAR);
+}
+/* 削走最後一個分句（用嚟硬性壓片長；唔會削到一句都冇） */
+function dropLastClause(text){
+  let t = String(text || '').trim().replace(/[。！!？?]+$/, '');
+  let last = -1;
+  const re = /[，,、；;：:]/g;
+  let m;
+  while((m = re.exec(t))) last = m.index;
+  if(last <= 2) return '';
+  const head = t.slice(0, last).trim();
+  return head.length >= 6 ? head : '';
+}
+/* 把 AI 交嘅鏡頭硬性壓落目標片長（超時先剪字，唔會靜靜雞變長片） */
+function fitShotsToPlan(shots, plan){
+  const out = (shots || []).map(sh => Object.assign({}, sh));
+  const touched = new Set();
+  let dropped = 0;
+  /* 1) 鏡數超過上限：由中間揀最長嗰鏡併走（保留開頭兩鏡同結尾一鏡，故事結構唔會散） */
+  while(out.length > plan.maxShots && out.length > 3){
+    let idx = 1, best = -1;
+    for(let i = 1; i < out.length - 1; i++){
+      const L = String(out[i].narration || '').length;
+      if(L > best){ best = L; idx = i; }
+    }
+    out.splice(idx, 1);
+    dropped++;
+  }
+  /* 2) 仲超時就先剪字：每次揀「剪完最接近目標」嗰句，唔會一下子剪到變短片 */
+  const target = plan.sec;
+  const capHi = target * 1.05;
+  const capLo = target * 0.85;
+  const total = () => out.reduce((a, sh) => a + estimateShotSec(sh.narration, sh.duration), 0);
+  const charsOf = sh => String(sh.narration || '').replace(/\s+/g, '').length;
+  let guard = 0;
+  while(total() > capHi && guard++ < 500){
+    let pick = -1, pickBest = -1, fallback = -1, fallbackBest = -1;
+    for(let i = 0; i < out.length; i++){
+      const cur = String(out[i].narration || '');
+      const next = dropLastClause(cur);
+      if(!next) continue;
+      const L = charsOf(out[i]);
+      if(L > fallbackBest){ fallbackBest = L; fallback = i; }
+      const projected = total() - estimateShotSec(cur, 3) + estimateShotSec(next, 3);
+      if(projected >= capLo && L > pickBest){ pickBest = L; pick = i; }
+    }
+    const idx = pick >= 0 ? pick : fallback;
+    if(idx < 0) break;
+    out[idx].narration = dropLastClause(out[idx].narration);
+    touched.add(idx);
+  }
+  return { shots: out, trimmed: touched.size, dropped };
+}
+
 const DURATION_PLANS = [
-  { id:'15', sec:15, emoji:'⚡', name:'約 15 秒', note:'AI 自決 3–5 鏡',  minShots:3,  maxShots:5,  minChars:75,  maxChars:125, desc:'短小精悍 Reels 節奏：AI 會喺 3–5 鏡之間自由構思痛點反差與重點展示。' },
-  { id:'30', sec:30, emoji:'🎬', name:'約 30 秒', note:'AI 自決 6–9 鏡',  minShots:6,  maxShots:9,  minChars:150, maxChars:235, desc:'標準完整故事：AI 會喺 6–9 鏡之間自由穿插全景情境、撳章特效與近鏡特寫。' },
-  { id:'45', sec:45, emoji:'📽️', name:'約 45 秒', note:'AI 自決 9–13 鏡', minShots:9,  maxShots:13, minChars:225, maxChars:340, desc:'詳盡故事＋教學：AI 會喺 9–13 鏡之間靈活交替人物互動與胸袖徽章大特寫。' },
-  { id:'60', sec:60, emoji:'🎞️', name:'約 1 分鐘', note:'AI 自決 12–18 鏡', minShots:12, maxShots:18, minChars:300, maxChars:450, desc:'完整 1 分鐘長片：AI 會喺 12–18 鏡之間鋪排起承轉合與多角度特寫，絕唔會一鏡到底！' },
-  { id:'90', sec:90, emoji:'🍿', name:'約 90 秒', note:'AI 自決 18–25 鏡', minShots:18, maxShots:25, minChars:450, maxChars:660, desc:'深度故事／全套章教學：AI 會喺 18–25 鏡之間逐項拆解細節與故事高潮。' }
+  { id:'15', sec:15, emoji:'⚡', name:'約 15 秒', note:'AI 自決 3–5 鏡',  minShots:3,  maxShots:5,  minChars:planCharsFor(15,5)*0.9|0, maxChars:planCharsFor(15,3), desc:'短小精悍 Reels 節奏：AI 會喺 3–5 鏡之間自由構思痛點反差與重點展示。' },
+  { id:'30', sec:30, emoji:'🎬', name:'約 30 秒', note:'AI 自決 6–9 鏡',  minShots:6,  maxShots:9,  minChars:planCharsFor(30,9)*0.9|0, maxChars:planCharsFor(30,6), desc:'標準完整故事：AI 會喺 6–9 鏡之間自由穿插全景情境、撳章特效與近鏡特寫。' },
+  { id:'45', sec:45, emoji:'📽️', name:'約 45 秒', note:'AI 自決 9–13 鏡', minShots:9,  maxShots:13, minChars:planCharsFor(45,13)*0.9|0, maxChars:planCharsFor(45,9), desc:'詳盡故事＋教學：AI 會喺 9–13 鏡之間靈活交替人物互動與胸袖徽章大特寫。' },
+  { id:'60', sec:60, emoji:'🎞️', name:'約 1 分鐘', note:'AI 自決 12–18 鏡', minShots:12, maxShots:18, minChars:planCharsFor(60,18)*0.9|0, maxChars:planCharsFor(60,12), desc:'完整 1 分鐘長片：AI 會喺 12–18 鏡之間鋪排起承轉合與多角度特寫，絕唔會一鏡到底！' },
+  { id:'90', sec:90, emoji:'🍿', name:'約 90 秒', note:'AI 自決 18–25 鏡', minShots:18, maxShots:25, minChars:planCharsFor(90,25)*0.9|0, maxChars:planCharsFor(90,18), desc:'深度故事／全套章教學：AI 會喺 18–25 鏡之間逐項拆解細節與故事高潮。' }
 ];
 const DUR_MAP = Object.fromEntries(DURATION_PLANS.map(d => [d.id, d]));
 
@@ -1404,8 +1507,8 @@ function sceneDocBlock(){
 · repeat：{"count":40,"area":[[x0,x1],[y0,y1],[z0,z1]]} 一次過散佈多件（星星、碎石、螢火蟲）
 
 scene 層：
-· objects：上面嘅物件陣列（1–24 件；repeat.count ≤ 60）
-· sky：{"top":"#0A0E22","bottom":"#2A2144"}（或者單一色）
+· objects：上面嘅物件陣列（**6–24 件；少過 6 件會俾系統當「場景太單薄」**；repeat.count ≤ 60）
+· sky：{"top":"#0A0E22","bottom":"#2A2144"}（或者單一色）—— **每鏡都必須寫**，呢個係「睇得出轉場景」嘅關鍵
 · floor：{"color":"#C9B48A","y":0}；唔想有地面就 false\n  └ 戶外／室內場景最好自己加一塊大 box 做地面（size ≥ 3×3、y≈0、同色）—— 引擎會自動延伸成無限地面，唔會見到浮空平台邊。
 · framing：wide（遠景）／medium（中景）／closeup（特寫）
 · float：角色漂浮（無地面／太空建議 true）
@@ -1472,7 +1575,8 @@ function buildStoryPrompt(mode){
 【目標片長與彈性分鏡範圍】
 · 目標總片長：約 ${plan.sec} 秒。
 · 合理分鏡數量：**${plan.minShots} 至 ${plan.maxShots} 鏡**（按起承轉合自由決定）。
-· 廣東話旁白總字數：約 ${plan.minChars}–${plan.maxChars} 字（平均每鏡 18–34 字）。
+· 廣東話旁白總字數：**${plan.minChars}–${plan.maxChars} 字（硬上限）**，即每鏡大約 ${Math.max(8, Math.round(plan.minChars / plan.maxShots))}–${Math.round(plan.maxChars / plan.minShots)} 字。
+  └ 廣東話每字約 0.18 秒，所以「字數 ÷ 5」大約就係秒數：寫多咗系統會即場自動剪短，寫得太長一定爆片長。
 
 ${charBlock}
 
@@ -1491,7 +1595,20 @@ ${cameraDocBlock()}
 
 ${directorRule()}`;
 
-  const storyRules = `【今次主題（必須緊扣）】
+  /* v3.4：唔准重複上一條片 —— 之前 reload 會載返舊 draft，AI 又冇「唔可以一樣」嘅規則，
+     結果每次生成都係同一條「宣傳部最後一日」。而家直接把上一條片嘅旁白列出嚟封死。 */
+  const prevNarr = (S.shots || []).map(sh => String(sh.narration || '').trim()).filter(Boolean).slice(0, 12);
+  const prevBlock = prevNarr.length
+    ? `【上一條片（絕對唔可以重複）】
+· 上次 EP：${S.episodeId || '（未命名）'}${S.seriesBadge ? ' ／ ' + S.seriesBadge : ''}
+· 上次用過嘅旁白（唔准再用同樣情境、同樣笑點、同樣結尾，亦唔准改兩個字就當新）：
+${prevNarr.map((n, i) => `  ${i + 1}. ${n.slice(0, 46)}`).join('\n')}
+· 今次必須換一個完全唔同嘅角度：唔同地點、唔同衝突、唔同結局；episode_slug 亦要同上次唔同。
+
+`
+    : '';
+
+  const storyRules = `${prevBlock}【今次主題（必須緊扣）】
 ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'}
 
 · 場景要跟住主題走：講太空就出太空、講海底就出海底、講城市就出城市；唔好全片都留喺地球營地。
@@ -1500,7 +1617,9 @@ ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'
   1. 每一鏡嘅 scene.objects 必須按嗰一鏡嘅剧情重新設計，唔可以複製上一鏡。
   2. 相鄰兩鏡唔可以係同一個場景；全片至少要有 4 個明顯不同嘅場景／地點。
   3. 下面 sceneDocBlock 嘅例子只示範「格式」，**絕對唔准照抄內容**（例如唔好每逢科幻就抄土星環）。
-  4. 唔准用 props 或 kind 代替 objects；每鏡 objects 至少 3 件。
+  4. 唔准用 props 或 kind 代替 objects；**每鏡 objects 至少 6 件**（背景 2–3 件、中景 1–2 件、前景至少 1 件喺 z −0.5…−1.5）。
+  5. **每鏡一定要寫 scene.sky（top 同 bottom 兩個色）同地面色**：冇 sky 嘅鏡，引擎會用同一個預設深藍底，成條片就會「8 鏡都好似同一個景」。
+  6. 天空／地面主色要跟劇情地點轉（海邊藍綠、黃昏橙紫、室內暖褐、太空深藍紫、森林墨綠…），唔可以成套片同一個底色。
 · 角色可以係人，亦可以係動物：故事講動物就用 characters[].species（cat／sheep／dog／rabbit／bear／fox／panda）；人類就填 human。
 · 動物識行：要佢跑／爬／跟住行就用 posture: quadruped；企喺度講嘢、著衫就用 biped。
 · 服裝由你按故事設計（outfit.style 七選一 ＋ 三個顏色）。除非故事明確講童軍，唔好預設童軍制服；太空故事可以太空衣、魔法故事可以斗篷。
@@ -1883,7 +2002,15 @@ async function doStory(mode){
     const parsed = parseStoryJson(pickText(resp), allowUniform);
     if(!parsed) throw new FriendlyError('⚠️ AI 回傳格式未能解析，請再撳一次試試。');
 
-    S.shots = parsed.shots;
+    /* v3.4：AI 交嘅鏡數／字數要貼住目標片長 —— 唔可以再「揀 30 秒出 54 秒」 */
+    const fitted = fitShotsToPlan(parsed.shots, plan);
+    S.shots = fitted.shots;
+    S.durAudit = {
+      target: plan.sec,
+      est: Number(estimateTotalSec(S.shots).toFixed(1)),
+      trimmed: fitted.trimmed,
+      dropped: fitted.dropped
+    };
     S.aiCast = Array.isArray(parsed.characters) ? parsed.characters : [];
     const missingScenes = S.shots.filter(sh => !(sh.scene && sh.scene.objects && sh.scene.objects.length)).length;
     const sceneKinds = new Set(S.shots.map(sh => sh.scene && sh.scene.objects && sh.scene.objects.length ? JSON.stringify(sh.scene.objects) : 'none'));
@@ -1906,6 +2033,10 @@ async function doStory(mode){
     if(parsed.story_section){ S.aiSection = parsed.story_section; }
     if(parsed.actor_skin){ S.aiActor = parsed.actor_skin; }
     if(parsed.slug){
+      /* v3.4：同上一條片撞名就加後綴，唔會靜靜雞覆蓋舊片 */
+      if(parsed.slug === S.episodeId){
+        parsed.slug = parsed.slug + '_' + Date.now().toString(36).slice(-4);
+      }
       S.episodeId = parsed.slug.startsWith('scout3d_') || parsed.slug.startsWith('whatif_')
         || parsed.slug.startsWith('scout_story_') || parsed.slug.startsWith('story_')
         ? parsed.slug
@@ -1933,7 +2064,20 @@ async function doStory(mode){
     }else{
       setStatus('ok', `✅ AI 已編排 ${S.shots.length} 鏡，全部有 AI 自由場景（${S.sceneAudit.unique} 種不同場景）！`);
     }
-    showToast(`✨ 已生成 ${S.shots.length} 鏡廣東話劇本！`);
+    /* 片長對帳：講清楚目標 vs 預估，有剪過就明講 */
+    const a = S.durAudit;
+    const fitNote = (a.trimmed || a.dropped)
+      ? `；已按 ${a.target} 秒目標自動剪短 ${a.trimmed} 句${a.dropped ? `、併走 ${a.dropped} 鏡` : ''}`
+      : '';
+    const over = a.est > a.target * 1.12;
+    const durLine = $('durAuditLine');
+    if(durLine){
+      durLine.textContent = over
+        ? `⏱️ 預估 ${a.est} 秒 · 超出目標 ${a.target} 秒（可刪鏡或縮短旁白）${fitNote}`
+        : `⏱️ 預估 ${a.est} 秒 · 目標 ${a.target} 秒 ✓${fitNote}`;
+      durLine.className = 'dur-audit ' + (over ? 'over' : 'ok');
+    }
+    showToast(`✨ 已生成 ${S.shots.length} 鏡 · 預估 ${a.est} 秒${fitNote ? '（已壓到目標）' : ''}`);
   }catch(err){
     const msg = (err instanceof FriendlyError) ? err.message : ('⚠️ ' + (err && err.message ? err.message : '發生錯誤'));
     setStatus('err', msg);
@@ -2099,6 +2243,8 @@ function buildEpisodeSpec(){
     ...(($('f_tts_model') && $('f_tts_model').value.trim()) ? { voice_model: $('f_tts_model').value.trim() } : {}),
     ...(($('f_tts_cmd') && $('f_tts_cmd').value.trim()) ? { tts_command: $('f_tts_cmd').value.trim() } : {}),
     bgm_mood: 'comedy_to_hero',
+    /* 目標片長（秒）：runner 會用嚟核對實際長度，超標會大大聲提醒你 */
+    target_sec: (DUR_MAP[S.durPlan] || DURATION_PLANS[0]).sec,
     shots: S.shots.map(sh => {
       const p = (S.director === 'full' && PRESET_MAP[S.fixedScene])
         ? S.fixedScene
@@ -2108,9 +2254,9 @@ function buildEpisodeSpec(){
       const nar = String(sh.narration || '').trim();
       const sub = String(sh.subtitle || nar).trim();
       const compact = PRESET_MAP[p] ? PRESET_MAP[p].defDur : 3.0;
-      /* 廣東話每字約 0.145 秒；Python 會再用 edge-tts 實測長度精準鎖定，唔會留死空氣 */
-      const estSpeak = S.voice === 'none' ? compact : Math.max(2.2, nar.replace(/\s+/g,'').length * 0.135 + 0.55);
-      const dur = Number(Math.max(2.2, estSpeak).toFixed(1));
+      /* v3.4：用真實廣東話語速（0.181 秒／字）估，同 runner 實測幾乎一樣，
+         所以你喺下面見到嘅「預估秒數」就係出片長度，唔會再 30 秒變 54 秒。 */
+      const dur = S.voice === 'none' ? compact : estimateShotSec(nar, compact);
       let sc = sh.scene ? normSceneClient(sh.scene) : null;
       if(S.director === 'full') sc = null;
       const out = {
@@ -2153,7 +2299,10 @@ async function buildMethodACommand(){
   const sep = workdir.includes('/') ? '/' : '\\';
   const baseDir = workdir ? workdir.replace(/[\\/]+$/, '') : 'makemovie';
   $('outPathHint').textContent = `${baseDir}${sep}output${sep}${spec.episode_id}.mp4`;
-  return `${cdPart}python src/scout3d_runner.py --b64 ${b64}`;
+  /* 版本防呆（v3.4）：本機 src 太舊嘅話，「便服」會被舊引擎當成童軍制服。
+     所以出片前先自動驗一次，唔啱就大大聲叫你去 git pull，唔會靜靜雞出錯片。 */
+  const versionCheck = `python -c "import sys;sys.path.insert(0,'src');import scout3d_characters as c;print('[OK] 引擎支援便服 casual' if 'casual' in getattr(c,'SECTION_STYLES',{}) else '[X] 你部機嘅 src 係舊版：請先 git pull origin main，否則便服會變成童軍制服')"`;
+  return `${cdPart}${versionCheck} && python src/scout3d_runner.py --b64 ${b64}`;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2553,7 +2702,21 @@ function renderPreviewAndStats(spec){
   const actorZh = spec.actor_skin === 'ai_robot' ? 'AI 機械人' : '真人角色';
   const castN = spec.characters ? spec.characters.length : 1;
   const dirZh = S.director === 'ai' ? 'AI 導演' : (S.director === 'cam' ? '我揀運鏡' : '我話事');
-  $('pgCount').textContent = `${spec.shots.length} 鏡 · 預估 ~${totalSec.toFixed(0)} 秒 · ${sectionZh(spec.story_section)} · ${actorZh} · 👥 ${castN} 人 · ${dirZh} · ${voiceObj.name}`;
+  /* 片長對帳（live）：每次改鏡／改旁白都即刻更新，唔會再「揀 30 秒出 54 秒」 */
+  const plan = DUR_MAP[S.durPlan] || DURATION_PLANS[0];
+  const over = totalSec > plan.sec * 1.12;
+  const short = totalSec < plan.sec * 0.7;
+  const mark = over ? ' ⚠️ 太長' : (short ? ' ⬆️ 太短' : ' ✓');
+  $('pgCount').textContent = `${spec.shots.length} 鏡 · 預估 ~${totalSec.toFixed(0)} 秒（目標 ${plan.sec} 秒${mark}） · ${sectionZh(spec.story_section)} · ${actorZh} · 👥 ${castN} 人 · ${dirZh} · ${voiceObj.name}`;
+  const dl = $('durAuditLine');
+  if(dl){
+    dl.className = 'dur-audit ' + (over ? 'over' : (short ? 'over' : 'ok'));
+    dl.textContent = over
+      ? `⏱️ 預估 ${totalSec.toFixed(1)} 秒 · 超出目標 ${plan.sec} 秒 —— 刪一兩個鏡或者縮短最長嗰句旁白就返到數`
+      : (short
+        ? `⏱️ 預估 ${totalSec.toFixed(1)} 秒 · 距離目標 ${plan.sec} 秒仲差 ${(plan.sec - totalSec).toFixed(0)} 秒 —— 加鏡或者每鏡寫多一兩句旁白`
+        : `⏱️ 預估 ${totalSec.toFixed(1)} 秒 · 目標 ${plan.sec} 秒 ✓（配音會用實測長度鎖定，同呢個數幾乎一樣）`);
+  }
 
   $('stage').innerHTML = spec.shots.map((sh, i) => {
     const p = PRESET_MAP[sh.preset] || PRESETS[0];
@@ -2897,7 +3060,13 @@ async function runSelfTest(){
   checks.push(['逐鏡運鏡入 spec', !!specProbe.shots[0].camera]);
   checks.push(['多角色陣容功能', typeof buildCharacters === 'function' && typeof renderCastEditor === 'function']);
   checks.push(['右下角水印入指令', !!(specProbe.watermark && specProbe.watermark.text === '© SCOUT SYSTEM')]);
+  checks.push(['片長換算用真實語速', estimateShotSec('一二三四五六七八九十') >= 2.1 && estimateShotSec('一二三四五六七八九十') <= 2.45]);
+  checks.push(['30 秒計劃唔會爆長', (DUR_MAP['30'] || {}).maxChars <= 150]);
+  checks.push(['片長硬鎖生效', fitShotsToPlan([{narration:'第一句，第二句，第三句，第四句，第五句，第六句，第七句，第八句'}], DUR_MAP['30']).shots[0].narration.length < 40]);
+  checks.push(['場景最少 6 件＋必要天空色', /至少 6 件/.test(pureStoryPrompt) && /scene\.sky/.test(pureStoryPrompt)]);
+  checks.push(['CMD 版本防呆', sampleCmd.includes('git pull origin main')]);
   const ok = checks.every(c => c[1]);
+  if(typeof window !== 'undefined') window.__LASTCHECKS = checks;
   $('selfTest').textContent = `© SCOUT SYSTEM · 3D 主題故事影片生成器 ${APP_VERSION} · 自檢 ${ok ? '通過 ✓' : '異常'}（${checks.map(c=>c[0]).join(' · ')}）`;
 }
 
