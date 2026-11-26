@@ -23,10 +23,11 @@
 - `scripts/compile_scout3d_rig.mjs`：如需同步最新 `SCOUT3D` 規則，可一鍵由 `SCOUT3D` 源碼重新編譯 `assets/scout3d/`（一般本機 `CMD` 出片完全唔需要裝 Node.js）。
 - `src/scout3d_whatif.py`：《如果系列 EP.01：如果你有 SCOUT 3D》完整渲染管線。
 - `src/scout3d_runner.py`：通用劇本＋香港廣東話配音執行引擎（支援 `--b64 z_...` 短碼免開檔直接貼落 Windows `CMD` 一鍵出片；內置 `edge-tts` 香港廣東話自然語音合成、**按 `edge-tts` 實測語音長度精準鎖定每鏡秒數（零死空氣）**、以及 BGM 自動壓聲 Ducking；
-  另支援 `story_section`（`grasshopper`／`cub`／`scout`／`sea_scout`／`air_scout`／`venture`／`leader`，貼咗 `S3D1_...` 穿搭碼時以穿搭碼為準）同 `actor_skin`（`human`／`ai_robot`）兩種故事設定）。
+  另支援 **右下角超小「© SCOUT SYSTEM」水印**（預設只喺片中中間出現 3 秒、有淡入淡出、唔會遮字幕；可用 `watermark: {"enabled": false}` 關閉或自訂文字／`show_sec`），以及 `story_section`（`grasshopper`／`cub`／`scout`／`sea_scout`／`air_scout`／`venture`／`leader`，貼咗 `S3D1_...` 穿搭碼時以穿搭碼為準）同 `actor_skin`（`human`／`ai_robot`）兩種故事設定）。
 - `tools/SCOUT3D_動畫劇本生成器_v2.2.html`：對齊 `© SCOUT SYSTEM` 介面設計嘅純前端單檔工具（支援先設定 **15s / 30s / 45s / 60s / 90s 彈性片長範圍**、**主角支部**、**主角類型（真人／AI 機械人）** 與 **貼入 `SCOUT 3D` 角色穿搭碼 `S3D1_...`**；內建 **純原創童軍故事模式** 同 **GitHub 專案介紹模式**，簡化為單一 **「一鍵複製 CMD 出片指令」**）。
   - **純原創童軍故事模式**：GitHub 連結預設留空，只打故事重點（例：`如果有個AI 加入小童軍`）→ AI 只會寫你打嘅真實童軍故事，唔會硬銷 `SCOUT 3D`。
   - **GitHub 專案介紹模式**：只有貼咗 GitHub／專案網址（或重點明確講徽章位置）先會讀 `README` 寫專案介紹。
+  - **右下角水印開關**：CMD 面板可勾選「© SCOUT SYSTEM 超小水印」，指令 payload 會帶 `watermark`（右下角、片中中間 3 秒、淡入淡出）。
 
 ### 2. 本機更新與安裝（Windows CMD）
 ```bat
