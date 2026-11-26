@@ -575,6 +575,9 @@ _STORY_SECTION_ALIASES: Dict[str, str] = {
     "airscout": "air_scout", "air_scout": "air_scout", "air": "air_scout", "空童軍": "air_scout",
     "venture": "venture", "ventures": "venture", "rover": "venture", "rovers": "venture", "深資童軍": "venture",
     "leader": "leader", "leaders": "leader", "成年領袖": "leader", "領袖": "leader",
+    # 便服：唔著童軍制服（AI／用戶都可以揀）
+    "casual": "casual", "civilian": "casual", "plainclothes": "casual", "noutfit": "casual",
+    "nouniform": "casual", "free": "casual", "便服": "casual", "休閒服": "casual", "冇制服": "casual",
 }
 
 _ROBOT_SKIN_ALIASES = ("ai_robot", "airobot", "robot", "ai", "bot", "機械人", "机器人", "機械童軍")
@@ -1372,18 +1375,22 @@ def _draw_actor(
             t_sec=t_sec, wave=wave,
         )
         return
+    sec_name = str(actor.get("section") or "scout")
+    casual = sec_name == "casual"
     draw_scout_figure(
         sc, base_pos, yaw_deg=yaw_deg, scale=scale,
         style_mode=str(style_mode or actor.get("style_mode") or "bobo"),
         expression=expression,
-        salute=salute, wave=wave, badge_mode="correct",
-        show_sash=float(actor.get("show_sash") or 0.0),
-        section=str(actor.get("section") or "scout"),
+        salute=salute, wave=wave,
+        badge_mode="none" if casual else "correct",
+        show_sash=0.0 if casual else float(actor.get("show_sash") or 0.0),
+        section=sec_name,
         gender=str(actor.get("gender") or "M"),
-        hat=actor.get("hat"),
+        hat=False if casual else actor.get("hat"),
         t_sec=t_sec,
         s3d_custom=actor.get("s3d_custom"),
         actor_skin=str(actor.get("skin") or "human"),
+        outfit=actor.get("outfit") if casual else None,
     )
 
 

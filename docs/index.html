@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="copyright" content="© SCOUT SYSTEM">
-<meta name="app-version" content="v3.2.0">
+<meta name="app-version" content="v3.3.0">
 <meta name="robots" content="noindex">
-<title>3D 主題故事影片生成器 v3.2.0 — © SCOUT SYSTEM</title>
+<title>3D 主題故事影片生成器 v3.3.0 — © SCOUT SYSTEM</title>
 <!--
-  3D 主題故事影片生成器 v3.2.0 · © SCOUT SYSTEM
+  3D 主題故事影片生成器 v3.3.0 · © SCOUT SYSTEM
   純前端 · 直呼 Gemini API（支援 Gemini Canvas 自動攔截） · 唔經任何後端
 
   v3.1 升級重點（場景真正自由：AI 用基本形狀自己砌，冇清單）：
@@ -33,6 +33,17 @@
        唔會再夾硬插入舊 preset 道具。
     6. 【構圖規則】AI prompt 加入三層景深、地平線壓低、頭頂留白、主色 ≤3 等規則，
        再加「畀一塊 ≥3×3 嘅地面 box」提示，畫面自然整齊。
+
+  v3.3 升級重點（用起上嚟唔會卡死）：
+    1. 【便服模式】新增「👕 便服（唔著童軍制服）」：主角／配角都可以唔著制服，
+       由 AI 按故事配衫（tee／衛衣／太空衣…）；唔關童軍嘅故事預設就係便服。
+    2. 【場景唔會鎖死】逐鏡 preset 一改就即刻換景（會清走該鏡 AI 場景）；
+       每鏡新增「🧹 清走場景」；切去「我全權話事」再切返嚟，AI 場景／運鏡唔會消失。
+    3. 【開機唔再係示範片】首頁由「飛出太空 6 鏡」改為空白 3 鏡；想睇示範撳「💡 載入示範劇本」。
+    4. 【草稿自動保存】reload／熄 browser 都唔會冇咗你寫嘅劇本、場景、角色設定。
+    5. 【設定真係生效】物種／服裝／姿勢一改就更新指令；快速制服卡同「主角支部」dropdown 同步；
+       揀服裝會自動切便服（制服本身唔會用自訂服裝）。
+    6. 【加鏡唔再硬套太空】「＋ 新增一鏡」唔會再自動加太空場景。
 -->
 <style>
 :root{
@@ -288,7 +299,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
       </div>
     </details>
-    <span class="ver" id="ver">v3.2.0</span>
+    <span class="ver" id="ver">v3.3.0</span>
   </div>
 </header>
 
@@ -307,7 +318,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
       <div class="pbody">
         <!-- 1A. 目標片長 -> 彈性鏡位範圍 -->
         <div class="field">
-          <label>⏱️ 目標故事片長（自動配對合理分鏡範圍，留空間畀 AI 自由發揮節奏）</label>
+          <label>⏱️ 目標故事片長（AI 生成故事時會按呢個長度安排鏡數；你手動加減鏡唔受限制）</label>
           <div class="styles cols5" id="durList"></div>
           <div class="dur-banner" id="durBanner"></div>
         </div>
@@ -327,7 +338,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 
         <!-- 1C. 未貼穿搭碼時嘅快速制服卡 -->
         <div class="field" id="quickUniWrap">
-          <label id="quickUniLabel">🧢 快速揀主角制服（未貼 SCOUT 3D 穿搭碼時使用）</label>
+          <label id="quickUniLabel">🧢 快速揀主角著乜（第一個係「便服」＝ 唔著童軍制服；貼咗 SCOUT 3D 穿搭碼就以條碼為準）</label>
           <div class="unis" id="uniformList"></div>
         </div>
 
@@ -337,6 +348,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
             <label>🧭 主角支部（故事會用該支部真實制服）</label>
             <select id="f_section">
               <option value="auto">由 AI 按故事自動判斷（推薦）</option>
+              <option value="casual">👕 便服（唔著童軍制服 · AI 按故事配衫）</option>
               <option value="grasshopper">小童軍（橙色活動服 · 棗紅領巾）</option>
               <option value="cub">幼童軍（卡其衫 · 黃領巾綠邊）</option>
               <option value="scout">童軍（陸上制服 · 綠領巾）</option>
@@ -571,7 +583,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
       <div class="phead">
         <span class="n">4</span>
         <h2>逐鏡旁白 ＆ 場景微調</h2>
-        <span class="hint">AI 自由場景（11 種背景 × 20 種道具）＋ 9 個經典營地場景</span>
+        <span class="hint">每鏡可以係 AI 自由場景，或者揀 9 個經典營地場景</span>
       </div>
       <div class="pbody">
         <div class="pages" id="shotList"></div>
@@ -649,8 +661,8 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 /* ══════════════════════════════════════════════════════════════════
    基本設定（對齊 IG貼文生成器 v1.4.0 Canvas 自動攔截機制）
    ══════════════════════════════════════════════════════════════════ */
-const VERSION = 'v3.2.0';
-const APP_VERSION = 'v3.2.0';
+const VERSION = 'v3.3.0';
+const APP_VERSION = 'v3.3.0';
 const apiKey  = "";   /* 【唔好改】Gemini Canvas 環境會透過 fetch 攔截自動注入 */
 let   userKey = "";
 
@@ -717,6 +729,7 @@ const ASPECTS = [
 ];
 
 const SECTION_MAP = {
+  casual:     { zh:'便服',     preset:'' },
   grasshopper:{ zh:'小童軍',   preset:'yau_grasshopper' },
   cub:        { zh:'幼童軍',   preset:'lok_cub' },
   scout:      { zh:'童軍',     preset:'ming_scout_sash' },
@@ -727,6 +740,7 @@ const SECTION_MAP = {
 };
 
 const UNIFORMS = [
+  { id:'casual',          section:'casual',      emoji:'👕', name:'便服（唔著制服）', note:'AI 按故事配衫 · 冇領巾冇章', shirt:'#5B8DEF', scarf:'#31456B' },
   { id:'yau_grasshopper', section:'grasshopper', emoji:'🟠', name:'小童軍',       note:'橙色活動服 · 棗紅領巾',   shirt:'#ee7a30', scarf:'#7b1e2b' },
   { id:'lok_cub',         section:'cub',         emoji:'🟡', name:'幼童軍',       note:'卡其衫 · 黃領巾綠邊 · 帽', shirt:'#e4d8b6', scarf:'#e9b425' },
   { id:'ming_scout_sash', section:'scout',       emoji:'🧢', name:'陸童軍（男）', note:'卡其衫 · 綠領巾 · 專章帶', shirt:'#e4d8b6', scarf:'#2e7d4f' },
@@ -865,7 +879,13 @@ const DEMO_SHOTS = () => ([
     subtitle: '地球變成一粒光點\n我哋真係飛出太空喇'
   }
 ]).map(sh => ({ camera: 'auto', sceneKind: 'auto', ...sh }));
-const DEFAULT_SHOTS = DEMO_SHOTS;
+/* 開機用空白 3 鏡骨架：唔會再一開就係「飛出太空」示範（示範仍可撳「💡 載入示範劇本」） */
+const BLANK_SHOTS = () => ([
+  { preset: 'story_arrival_meet',    camera: 'auto', duration: 3.0, narration: '', subtitle: '' },
+  { preset: 'story_group_chat',      camera: 'auto', duration: 3.0, narration: '', subtitle: '' },
+  { preset: 'story_happy_salute_end',camera: 'auto', duration: 3.0, narration: '', subtitle: '' }
+]);
+const DEFAULT_SHOTS = BLANK_SHOTS;
 
 
 const S = {
@@ -873,7 +893,7 @@ const S = {
   durPlan: '30',
   heroStyle: 'bobo',
   aspect: '9:16',
-  charPreset: 'yau_grasshopper',
+  charPreset: 'casual',
   storySection: 'auto',      /* auto | grasshopper | cub | scout | sea_scout | air_scout | venture | leader */
   actorSkin: 'auto',         /* auto | human | ai_robot */
   aiSection: '',             /* AI 從故事重點判斷出嚟嘅支部 */
@@ -1043,6 +1063,62 @@ function summarizeS3dForPrompt(d){
 /* ══════════════════════════════════════════════════════════════════
    本機偏好與 Gemini 呼叫
    ══════════════════════════════════════════════════════════════════ */
+const LS_DRAFT = 'scout3d_draft_v3';
+function saveDraft(){
+  try{
+    const ui = {
+      section: ($('f_section') || {}).value || 'auto',
+      actor: ($('f_actor') || {}).value || 'auto',
+      species: ($('f_species') || {}).value || '',
+      outfit: ($('f_outfit') || {}).value || '',
+      posture: ($('f_posture') || {}).value || '',
+      series: ($('f_series') || {}).value || '',
+      epid: ($('f_epid') || {}).value || ''
+    };
+    localStorage.setItem(LS_DRAFT, JSON.stringify({
+      v: 3, ui,
+      shots: S.shots, seriesBadge: S.seriesBadge, episodeId: S.episodeId,
+      storySection: S.storySection, actorSkin: S.actorSkin, charPreset: S.charPreset,
+      aiSection: S.aiSection, aiActor: S.aiActor, aiCast: S.aiCast,
+      cast: S.cast, director: S.director, camera: S.camera, fixedScene: S.fixedScene,
+      aspect: S.aspect, heroStyle: S.heroStyle, voice: S.voice, durPlan: S.durPlan
+    }));
+  }catch(e){}
+}
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(LS_DRAFT);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(!d || !Array.isArray(d.shots) || !d.shots.length) return false;
+    S.shots = d.shots;
+    if(d.seriesBadge) S.seriesBadge = d.seriesBadge;
+    if(d.episodeId) S.episodeId = d.episodeId;
+    if(d.storySection) S.storySection = d.storySection;
+    if(d.actorSkin) S.actorSkin = d.actorSkin;
+    if(d.charPreset) S.charPreset = d.charPreset;
+    if(d.aiSection !== undefined) S.aiSection = d.aiSection;
+    if(d.aiActor !== undefined) S.aiActor = d.aiActor;
+    if(Array.isArray(d.aiCast)) S.aiCast = d.aiCast;
+    if(Array.isArray(d.cast)) S.cast = d.cast;
+    if(d.director) S.director = d.director;
+    if(d.camera) S.camera = d.camera;
+    if(d.fixedScene) S.fixedScene = d.fixedScene;
+    if(d.aspect) S.aspect = d.aspect;
+    if(d.heroStyle) S.heroStyle = d.heroStyle;
+    if(d.voice) S.voice = d.voice;
+    if(d.durPlan) S.durPlan = d.durPlan;
+    const ui = d.ui || {};
+    if(ui.section && $('f_section')) $('f_section').value = ui.section;
+    if(ui.actor && $('f_actor')) $('f_actor').value = ui.actor;
+    if(ui.species && $('f_species')) $('f_species').value = ui.species;
+    if(ui.outfit && $('f_outfit')) $('f_outfit').value = ui.outfit;
+    if(ui.posture && $('f_posture')) $('f_posture').value = ui.posture;
+    if(ui.series && $('f_series')) $('f_series').value = ui.series;
+    if(ui.epid && $('f_epid')) $('f_epid').value = ui.epid;
+    return true;
+  }catch(e){ return false; }
+}
 function loadPrefs(){
   try{
     userKey = localStorage.getItem(LS_KEY) || '';
@@ -1221,7 +1297,15 @@ const SECTION_UNIFORM_ZH = {
 function detectSectionFromText(txt){
   const t = String(txt || '');
   for(const k of SECTION_KEYWORDS){ if(k.re.test(t)) return k.sec; }
+  /* 故事唔關童軍事 → 便服（AI／用戶都可以明講） */
+  if(/(便服|唔著制服|唔洗制服|冇制服|普通衫|日常衫|civilian|casual)/i.test(t)) return 'casual';
   return '';
+}
+function normSectionKey(raw){
+  const t = String(raw || '').trim().toLowerCase();
+  if(!t) return '';
+  if(t === 'casual' || t === 'civilian' || t === '便服') return 'casual';
+  return detectSectionFromText(t);
 }
 function detectActorFromText(txt){
   return /(\bAI\b|人工智能|機械人|机器人|機械童軍|robot|機械)/i.test(String(txt || '')) ? 'ai_robot' : '';
@@ -1243,7 +1327,10 @@ function resolvedSection(){
   const locked = s3dLockedSection();
   if(locked) return locked;
   if(S.storySection && S.storySection !== 'auto') return S.storySection;
-  return S.aiSection || detectSectionFromText(storyText()) || uniformSection(S.charPreset);
+  const byText = S.aiSection || detectSectionFromText(storyText());
+  if(byText) return byText;
+  /* 未貼穿搭碼、又冇揀支部：預設便服，唔好夾硬著童軍制服 */
+  return S.charPreset ? uniformSection(S.charPreset) : 'casual';
 }
 function resolvedActor(){
   if(S.actorSkin && S.actorSkin !== 'auto') return S.actorSkin;
@@ -1417,6 +1504,7 @@ ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'
 · 角色可以係人，亦可以係動物：故事講動物就用 characters[].species（cat／sheep／dog／rabbit／bear／fox／panda）；人類就填 human。
 · 動物識行：要佢跑／爬／跟住行就用 posture: quadruped；企喺度講嘢、著衫就用 biped。
 · 服裝由你按故事設計（outfit.style 七選一 ＋ 三個顏色）。除非故事明確講童軍，唔好預設童軍制服；太空故事可以太空衣、魔法故事可以斗篷。
+· story_section：故事同童軍冇關就填 "casual"（便服，唔會著制服）；真係講童軍先填真實支部 key（grasshopper／cub／scout／sea_scout／air_scout／venture／leader）。
 · 唔准加任何產品／App／網站介紹或「功能示範」字眼。`;
 
   const castSchema = `,
@@ -1717,7 +1805,7 @@ function parseStoryJson(raw, allowUniform){
     const cast = Array.isArray(j.characters)
       ? j.characters.slice(0, 5).map(c => {
           const obj = (c && typeof c === 'object') ? c : { section: c };
-          const sec = detectSectionFromText(String(obj.section || obj.story_section || '')) || '';
+          const sec = normSectionKey(obj.section || obj.story_section) || '';
           const skin = /robot|機械|机械|ai/i.test(String(obj.actor_skin || obj.skin || '')) ? 'ai_robot' : 'human';
           return {
             section: sec,
@@ -1731,7 +1819,7 @@ function parseStoryJson(raw, allowUniform){
     return {
       slug: String(j.episode_slug || '').replace(/[^a-zA-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'').toLowerCase(),
       series_badge: String(j.series_badge || '').trim(),
-      story_section: detectSectionFromText(String(j.story_section || '')) || '',
+      story_section: normSectionKey(j.story_section) || '',
       actor_skin: /robot|機械|机械|ai/i.test(String(j.actor_skin || '')) ? 'ai_robot' : (/human|真人/i.test(String(j.actor_skin||'')) ? 'human' : ''),
       ui_card: j.ui_card || null,
       characters: cast,
@@ -1802,10 +1890,14 @@ async function doStory(mode){
     S.sceneAudit = { missing: missingScenes, unique: sceneKinds.size - (sceneKinds.has('none') ? 1 : 0), total: S.shots.length };
     /* 用戶揀咗「我話事」：AI 嘅場景／運鏡唔可以蓋過用戶設定 */
     if(S.director === 'cam'){
-      S.shots.forEach(sh => { sh.camera = 'auto'; });
+      S.shots.forEach(sh => { sh.cameraBackup = sh.camera; sh.camera = 'auto'; });
     }else if(S.director === 'full'){
       const fp = PRESET_MAP[S.fixedScene] || PRESETS[0];
-      S.shots.forEach(sh => { sh.preset = fp.id; sh.duration = fp.defDur; sh.camera = 'auto'; delete sh.scene; });
+      S.shots.forEach(sh => {
+        if(sh.scene) sh.sceneBackup = sh.scene;
+        sh.cameraBackup = sh.camera;
+        sh.preset = fp.id; sh.duration = fp.defDur; sh.camera = 'auto'; delete sh.scene;
+      });
     }
     if(parsed.series_badge){
       S.seriesBadge = parsed.series_badge;
@@ -1931,6 +2023,9 @@ function castPickSection(c, i){
   if(ai && ai.section && SECTION_MAP[ai.section]) return ai.section;
   const fromText = detectSectionFromText(storyText());
   if(fromText) return fromText;
+  /* 主角係便服（非童軍故事）就跟便服；真係童軍故事先分唔同支部 */
+  const heroSec = resolvedSection();
+  if(heroSec === 'casual') return 'casual';
   return ['cub', 'scout', 'venture', 'sea_scout'][i % 4];
 }
 function castPickSkin(c, i){
@@ -1995,7 +2090,10 @@ function buildEpisodeSpec(){
     voice: S.voice,
     voice_rate: $('f_rate').value || '+6%',
     ...(heroSpecies() ? { species: heroSpecies() } : {}),
-    ...(heroOutfit() ? { outfit: heroOutfit() } : {}),
+    /* 便服：AI 冇設計就用預設便服色，唔會變返童軍制服 */
+    ...((sec === 'casual')
+        ? { outfit: heroOutfit() || { style: 'hoodie', top: '#5B8DEF', bottom: '#31456B' } }
+        : (heroOutfit() ? { outfit: heroOutfit() } : {})),
     ...(heroPosture() ? { posture: heroPosture() } : {}),
     voice_engine: ($('f_tts_engine') && $('f_tts_engine').value) || 'edge',
     ...(($('f_tts_model') && $('f_tts_model').value.trim()) ? { voice_model: $('f_tts_model').value.trim() } : {}),
@@ -2038,7 +2136,7 @@ function buildEpisodeSpec(){
     spec.watermark = { enabled: false, text: '© SCOUT SYSTEM', show_sec: 3.0 };
   }
   /* 只有同支部一致嘅人物設定檔先會傳，避免「小童軍故事用陸童軍設定」 */
-  if(!S.s3dDecoded && uniSec === sec){
+  if(!S.s3dDecoded && uniSec === sec && sec !== 'casual'){
     spec.char_preset = S.charPreset;
   }
   if(S.s3dDecoded){
@@ -2288,8 +2386,12 @@ function renderUniforms(){
   box.querySelectorAll('.unicard').forEach(el => {
     el.addEventListener('click', async () => {
       S.charPreset = el.dataset.id;
+      /* 卡片同「主角支部」dropdown 要一致：唔係 dropdown 會靜靜雞蓋過你嘅選擇 */
       if(S.s3dDecoded){
-        showToast('💡 目前用緊上方 SCOUT 3D 穿搭碼；如需改用快速卡可撳「清除」');
+        showToast('💡 目前用緊上方 SCOUT 3D 穿搭碼（支部由條碼決定）；如需改用快速卡可撳「清除」');
+      }else{
+        S.storySection = uniformSection(S.charPreset) || 'casual';
+        if($('f_section')) $('f_section').value = S.storySection;
       }
       renderUniforms();
       await refreshAllOutputs();
@@ -2354,6 +2456,7 @@ function renderShotsEditor(){
             <textarea class="vo-in js-scene-desc" rows="2" placeholder="例：土星環上面有條發光冰跑道，遠處見到地球，仲有幾粒流星飛過…">${esc(sh.sceneText || '')}</textarea>
             <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
               <button class="btn sm js-scene-ai">🎨 叫 AI 用呢段描述重畫場景</button>
+              <button class="btn sm js-scene-clear" ${sh.scene ? '' : 'disabled'} title="清走呢一鏡嘅 AI 場景，改回用 preset">🧹 清走場景</button>
               <span class="mini js-scene-note">${sh.scene ? '場景會寫入 CMD payload' : '打描述 → AI 砌 objects → 入 CMD'}</span>
             </div>
           </div>
@@ -2381,6 +2484,13 @@ function renderShotsEditor(){
     card.querySelector('.js-preset').addEventListener('change', async e => {
       S.shots[idx].preset = e.target.value;
       S.shots[idx].duration = (PRESET_MAP[e.target.value] || {defDur:3.2}).defDur;
+      if(S.shots[idx].scene){
+        /* 用戶揀 preset ＝ 想要嗰個場景；唔清走 AI 場景嘅話個 dropdown 會似壞咗 */
+        delete S.shots[idx].scene;
+        delete S.shots[idx].sceneFallback;
+        showToast('🏞️ 第 ' + (idx + 1) + ' 鏡改用 preset 場景（已清走 AI 場景）');
+      }
+      renderShotsEditor();
       await refreshAllOutputs();
     });
     card.querySelector('.js-scene-desc').addEventListener('input', e => {
@@ -2398,6 +2508,14 @@ function renderShotsEditor(){
         btn.disabled = false;
         btn.textContent = old;
       }
+    });
+    card.querySelector('.js-scene-clear').addEventListener('click', async e => {
+      if(!S.shots[idx].scene) return;
+      delete S.shots[idx].scene;
+      delete S.shots[idx].sceneFallback;
+      renderShotsEditor();
+      await refreshAllOutputs();
+      showToast('🧹 已清走第 ' + (idx + 1) + ' 鏡嘅 AI 場景');
     });
     card.querySelector('.js-cam').addEventListener('change', async e => {
       S.shots[idx].camera = e.target.value;
@@ -2471,6 +2589,7 @@ async function refreshAllOutputs(){
   if(mySeq !== cmdSeq) return;
   S.latestCmd = cmd;
   $('cmdPreview').textContent = cmd;
+  saveDraft();
 }
 
 async function handleS3dInput(){
@@ -2572,11 +2691,34 @@ function bindEvents(){
     refreshAllOutputs();
   });
 
+  ['f_species', 'f_outfit', 'f_posture'].forEach(id => {
+    const el = $(id);
+    if(!el) return;
+    el.addEventListener('change', async () => {
+      /* 揀咗服裝但仲係制服模式：制服唔會用自訂服裝，自動切去便服 */
+      if(id === 'f_outfit' && el.value && $('f_section') && $('f_section').value !== 'casual'){
+        const sp = ($('f_species') || {}).value || '';
+        if(sp !== 'cat' && sp !== 'sheep' && sp !== 'dog' && sp !== 'rabbit' && sp !== 'bear' && sp !== 'fox' && sp !== 'panda'){
+          $('f_section').value = 'casual';
+          S.storySection = 'casual';
+          S.charPreset = 'casual';
+          renderUniforms();
+          showToast('👕 揀咗服裝 → 自動轉「便服」模式（童軍制服唔會用自訂服裝）');
+        }
+      }
+      updateContextHints();
+      await refreshAllOutputs();
+    });
+  });
+
   ['f_section', 'f_actor'].forEach(id => {
     $(id).addEventListener('change', async () => {
       if(id === 'f_section'){
         S.storySection = $('f_section').value || 'auto';
-        if(S.storySection !== 'auto' && SECTION_MAP[S.storySection]){
+        if(S.storySection === 'casual'){
+          S.charPreset = 'casual';
+          renderUniforms();
+        }else if(S.storySection !== 'auto' && SECTION_MAP[S.storySection] && SECTION_MAP[S.storySection].preset){
           S.charPreset = SECTION_MAP[S.storySection].preset;
           renderUniforms();
         }
@@ -2595,12 +2737,12 @@ function bindEvents(){
   /* 🎥 導演模式：AI 自決 / 我揀運鏡 / 我全權話事 */
   $('f_director').addEventListener('change', async () => {
     S.director = $('f_director').value || 'ai';
-    if(S.director === 'full'){
-      const fp = PRESET_MAP[S.fixedScene] || PRESETS[0];
-      S.shots.forEach(sh => { sh.preset = fp.id; sh.duration = fp.defDur; });
+    /* 唔會再改寫逐鏡 preset／camera：切返 AI 導演時原本設定仍然喺度 */
+    if(S.director !== 'full'){
+      S.shots.forEach(sh => { if(!sh.scene && sh.sceneBackup){ sh.scene = sh.sceneBackup; delete sh.sceneBackup; } });
     }
-    if(S.director !== 'ai'){
-      S.shots.forEach(sh => { sh.camera = 'auto'; });
+    if(S.director === 'ai'){
+      S.shots.forEach(sh => { if(sh.cameraBackup){ sh.camera = sh.cameraBackup; delete sh.cameraBackup; } });
     }
     renderDirector();
     renderShotsEditor();
@@ -2681,11 +2823,9 @@ function bindEvents(){
     S.shots.push({
       preset: nextP.id,
       duration: nextP.defDur,
-      sceneKind: 'auto',
       camera: 'auto',
-      scene: { kind: 'space', props: ['stars', 'planet'], float: true, framing: 'medium' },
-      narration: '故事繼續發展，大家一齊面對新挑戰。',
-      subtitle: '故事繼續發展\n一齊面對新挑戰'
+      narration: '',
+      subtitle: ''
     });
     renderShotsEditor();
     await refreshAllOutputs();
@@ -2693,7 +2833,7 @@ function bindEvents(){
   });
 
   $('btnDemo').addEventListener('click', async () => {
-    S.shots = DEFAULT_SHOTS();
+    S.shots = DEMO_SHOTS();
     S.seriesBadge = '飛出太空 · 3D 主題故事';
     S.episodeId = 'space_adventure_ep01';
     S.storySection = 'grasshopper';
@@ -2752,6 +2892,7 @@ async function runSelfTest(){
   checks.push(['主題提示零廣告', /唔准加任何產品/.test(pureStoryPrompt) && /自由場景：由你自己砌/.test(pureStoryPrompt)]);
   checks.push(['AI 自由場景 primitives', SCENE_KINDS.length === 11 && BP_SHAPES.length === 6 && !!normSceneClient({objects:[{shape:'ring',size:[1,0.1]}]})]);
   checks.push(['支部／主角入 spec', !!specProbe.story_section && !!specProbe.actor_skin]);
+  checks.push(['便服模式（唔著制服）', normSectionKey('便服') === 'casual' && !!SECTION_MAP.casual]);
   checks.push(['11 種運鏡', CAMERAS.length === 11]);
   checks.push(['逐鏡運鏡入 spec', !!specProbe.shots[0].camera]);
   checks.push(['多角色陣容功能', typeof buildCharacters === 'function' && typeof renderCastEditor === 'function']);
@@ -2762,10 +2903,11 @@ async function runSelfTest(){
 
 (async function boot(){
   loadPrefs();
+  loadDraft();
   if(userKey) $('f_key').value = userKey;
   refreshKeyChip();
-  if($('f_section')) $('f_section').value = S.storySection;
-  if($('f_actor')) $('f_actor').value = S.actorSkin;
+  if($('f_section')) $('f_section').value = S.storySection || 'auto';
+  if($('f_actor')) $('f_actor').value = S.actorSkin || 'auto';
   updateModeBanner();
   renderStaticPickers();
   renderShotsEditor();

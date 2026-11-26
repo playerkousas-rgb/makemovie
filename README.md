@@ -246,3 +246,27 @@ python src/scout3d_runner.py --list-props
 ```bat
 python -c "import sys,json; sys.path.insert(0,'src'); import scout3d_runner as r; n=r.normalize_episode_spec(json.load(open('episodes/story_example.json'))); r.render_shot_3d_frame(n,10).save('still.png')"
 ```
+
+### 6d. 唔想角色著制服？場景又唔轉？（v3.3）
+
+三個最常撞到嘅卡死位，v3.3 已經拆咗：
+
+| 你想做 | 以前點解做唔到 | 而家點做 |
+| --- | --- | --- |
+| 主角唔著童軍制服 | 「支部」只有 7 個童軍支部，預設硬食小童軍 | 快速卡第一個係 **👕 便服**；「主角支部」dropdown 亦有 **便服（唔著制服）**。故事唔關童軍時預設就係便服，AI 用 `outfit` 配衫（tee／衛衣／裙／太空衣／盔甲／斗篷／雨衣） |
+| 揀咗服裝但角色仲係制服 | 制服模式根本唔會用 `outfit` | 揀任何服裝會自動轉便服模式（制服模式唔會用自訂服裝） |
+| 改咗場景但畫面冇變 | 該鏡有 AI 場景時，`scene` 永遠贏過 preset，dropdown 似壞咗 | 一改 preset 即刻清走該鏡 AI 場景；另有 **🧹 清走場景** 按鈕 |
+| 切「我全權話事」再切返 AI | AI 場景／逐鏡運鏡被直接刪掉 | 會備份，切返 AI 導演會還原 |
+| 開機就係「飛出太空」6 鏡 | 首頁載入咗示範劇本 | 首頁改成空白 3 鏡；想睇示範撳 **💡 載入示範劇本** |
+| reload 之後劇本冇咗 | 完全冇存檔 | 自動存 localStorage（劇本／場景／角色／導演模式） |
+
+便服 spec 寫法（AI 會自己填）：
+
+```json
+{
+  "story_section": "casual",
+  "outfit": {"style": "hoodie", "top": "#E8553E", "bottom": "#2E3A59", "accent": "#FFD24A"}
+}
+```
+
+`section: "casual"` 嘅真人角色會用童軍 rig 嘅身形／表情，但無帽、無領巾、無徽章、無袋蓋，衫褲顏色由 `outfit` 決定；動物角色本身就唔著制服，`outfit` 照用。
