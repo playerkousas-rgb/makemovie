@@ -473,8 +473,15 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
           </div>
         </div>
 
+        <div class="field" style="margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer">
+            <input id="f_wm" type="checkbox" checked style="width:16px;height:16px;accent-color:#1f6b4a;cursor:pointer">
+            © SCOUT SYSTEM 超小水印（右下角・片中中間出現 3 秒・會寫入 CMD 指令）
+          </label>
+        </div>
+
         <button class="btn gold wide" id="btnCopyCmd" style="font-size:16px;padding:14px 20px">
-          📋 一鍵複製 CMD 出片指令（連廣東話配音）
+          📋 一鍵複製 CMD 出片指令（連廣東話配音＋右下角水印）
         </button>
 
         <div class="cmdbox" id="cmdPreview" title="撳上面按鈕即可複製整條指令">正在準備指令…</div>
@@ -1384,6 +1391,12 @@ function buildEpisodeSpec(){
       };
     })
   };
+  /* 右下角超小「© SCOUT SYSTEM」水印：只喺片中中間出現幾秒（唔會遮字幕） */
+  if(!$('f_wm') || $('f_wm').checked){
+    spec.watermark = { text: '© SCOUT SYSTEM', show_sec: 3.0, position: 'bottom-right' };
+  }else{
+    spec.watermark = { enabled: false, text: '© SCOUT SYSTEM', show_sec: 3.0 };
+  }
   /* 只有同支部一致嘅人物設定檔先會傳，避免「小童軍故事用陸童軍設定」 */
   if(!S.s3dDecoded && uniSec === sec){
     spec.char_preset = S.charPreset;
@@ -1770,6 +1783,10 @@ function bindEvents(){
     });
   });
 
+  if($('f_wm')){
+    $('f_wm').addEventListener('change', () => { refreshAllOutputs(); });
+  }
+
   $('f_urls').addEventListener('input', () => {
     updateModeBanner();
     updateContextHints();
@@ -1847,6 +1864,7 @@ async function runSelfTest(){
   checks.push(['純故事提示零廣告', /唔准加插任何產品/.test(pureStoryPrompt) && /story_arrival_meet/.test(pureStoryPrompt)]);
   const specProbe = buildEpisodeSpec();
   checks.push(['支部／主角入 spec', !!specProbe.story_section && !!specProbe.actor_skin]);
+  checks.push(['右下角水印入指令', !!(specProbe.watermark && specProbe.watermark.text === '© SCOUT SYSTEM')]);
   const ok = checks.every(c => c[1]);
   $('selfTest').textContent = `© SCOUT SYSTEM · SCOUT 3D 動畫劇本生成器 ${APP_VERSION} · 自檢 ${ok ? '通過 ✓' : '異常'}（${checks.map(c=>c[0]).join(' · ')}）`;
 }

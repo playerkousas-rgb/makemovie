@@ -318,6 +318,20 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "toggles": toggles,
     }
 
+    # 右下角超小「© SCOUT SYSTEM」水印（預設片中中間出現幾秒；可以 watermark.enabled=false 關掉）
+    wm_raw = raw.get("watermark")
+    if wm_raw is False:
+        watermark = {"enabled": False, "text": "© SCOUT SYSTEM", "show_sec": 3.0, "position": "bottom-right"}
+    elif isinstance(wm_raw, dict):
+        watermark = {
+            "enabled": bool(wm_raw.get("enabled", True)),
+            "text": _sanitize_text_for_font(str(wm_raw.get("text") or "© SCOUT SYSTEM"))[:28],
+            "show_sec": float(clamp(float(wm_raw.get("show_sec") or 3.0), 1.0, 12.0)),
+            "position": "bottom-right",
+        }
+    else:
+        watermark = {"enabled": True, "text": "© SCOUT SYSTEM", "show_sec": 3.0, "position": "bottom-right"}
+
     default_preset = str(raw.get("default_preset") or "story_arrival_meet")
     if default_preset not in PRESET_CATALOG:
         default_preset = "story_arrival_meet"
@@ -405,6 +419,7 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "voice": voice,
         "voice_rate": voice_rate,
         "ui_card": ui_card,
+        "watermark": watermark,
         "shots": shots_norm,
     }
 
@@ -1243,6 +1258,31 @@ def overlay_episode_ui_and_subtitles(clean_img: Image.Image, spec: Dict[str, Any
             txt_col = (255, 246, 210, 255) if ("SCOUT 3D" in ln or "SCOUT3D" in ln) else (255, 255, 255, 255)
             draw.text((tx, ty), ln, font=f_sub, fill=txt_col)
             cur_y += lh + line_gap
+
+    # 4. Tiny「© SCOUT SYSTEM」水印（右下角・預設只喺片中間出現幾秒・有淡入淡出）
+    wm = spec.get("watermark") or {}
+    if bool(wm.get("enabled", True)):
+        wm_text = str(wm.get("text") or "© SCOUT SYSTEM")
+        total_sec = spec["total_frames"] / float(fps)
+        show_sec = float(clamp(float(wm.get("show_sec") or 3.0), 1.0, max(1.0, total_sec)))
+        t_now = frame_idx / float(fps)
+        mid = total_sec / 2.0
+        t0 = max(0.0, mid - show_sec / 2.0)
+        t1 = min(total_sec, mid + show_sec / 2.0)
+        if t0 - 1e-6 <= t_now <= t1 + 1e-6:
+            fade = min(1.0, (t_now - t0) / 0.45, (t1 - t_now) / 0.45)
+            fade = max(0.0, min(1.0, fade))
+            alpha = int(round(96 + 118 * fade))
+            wm_sz = 13 if aspect == "9:16" else 12
+            f_wm = _font(wm_sz, bold=False)
+            wb = draw.textbbox((0, 0), wm_text, font=f_wm)
+            ww, wh = wb[2] - wb[0], wb[3] - wb[1]
+            mg_x = 20 if aspect == "9:16" else 22
+            mg_y = 30 if aspect == "9:16" else 22
+            wtx = W_px - ww - mg_x - wb[0]
+            wty = H_px - wh - mg_y - wb[1]
+            draw.text((wtx + 1, wty + 1), wm_text, font=f_wm, fill=(8, 12, 20, int(alpha * 0.55)))
+            draw.text((wtx, wty), wm_text, font=f_wm, fill=(255, 255, 255, alpha))
 
     return Image.alpha_composite(out, ui_layer).convert("RGB")
 
