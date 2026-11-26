@@ -478,6 +478,29 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
             <input id="f_series" value="3D 主題故事" placeholder="例：飛出太空 · 3D 主題故事">
           </div>
         </div>
+        <details class="field" id="ttsAdv">
+          <summary style="cursor:pointer;font-weight:600">🔊 語音引擎（進階：Piper / Coqui / 自訂指令）</summary>
+          <div class="row2" style="margin-top:10px">
+            <div class="field" style="margin-bottom:0">
+              <label>引擎</label>
+              <select id="f_tts_engine">
+                <option value="edge" selected>edge-tts（雲端，粵語最自然）</option>
+                <option value="piper">Piper（本機 ONNX，快、多語言但冇粵語）</option>
+                <option value="coqui">Coqui TTS（本機，有粵語社群模型）</option>
+                <option value="command">自訂指令（任何本機 TTS）</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>模型／聲線檔</label>
+              <input id="f_tts_model" placeholder="piper .onnx 路徑 或 Coqui 模型名">
+            </div>
+          </div>
+          <div class="field" id="ttsCmdField" hidden style="margin-top:10px">
+            <label>自訂指令（{out}=輸出檔、{text_file}=逐句文字檔）</label>
+            <input id="f_tts_cmd" placeholder="例：python my_tts.py --voice hk --in {text_file} --out {out}">
+          </div>
+          <p class="hint" style="margin:8px 0 0">只影響本機 render；呢頁只負責寫劇本。留空即用 edge-tts。</p>
+        </details>
         <div class="field">
           <label>🎨 3D 角色風格</label>
           <div class="styles" id="styleList"></div>
@@ -1817,6 +1840,9 @@ function buildEpisodeSpec(){
     hero_style: S.heroStyle,
     voice: S.voice,
     voice_rate: $('f_rate').value || '+6%',
+    voice_engine: ($('f_tts_engine') && $('f_tts_engine').value) || 'edge',
+    ...(($('f_tts_model') && $('f_tts_model').value.trim()) ? { voice_model: $('f_tts_model').value.trim() } : {}),
+    ...(($('f_tts_cmd') && $('f_tts_cmd').value.trim()) ? { tts_command: $('f_tts_cmd').value.trim() } : {}),
     bgm_mood: 'comedy_to_hero',
     shots: S.shots.map(sh => {
       const p = (S.director === 'full' && PRESET_MAP[S.fixedScene])
@@ -2351,6 +2377,19 @@ function bindEvents(){
 
   $('btnAi').addEventListener('click', () => doStory('ai'));
   $('btnManual').addEventListener('click', () => doStory('manual'));
+
+  function syncTtsEngineUi(){
+    const eng = ($('f_tts_engine') || {}).value || 'edge';
+    $('ttsCmdField').hidden = eng !== 'command';
+    $('f_tts_model').disabled = eng === 'edge' || eng === 'command';
+  }
+  ['f_tts_engine', 'f_tts_model', 'f_tts_cmd'].forEach(id => {
+    const el = $(id);
+    if(!el) return;
+    el.addEventListener('input', () => { syncTtsEngineUi(); refreshAllOutputs(); });
+    el.addEventListener('change', () => { syncTtsEngineUi(); refreshAllOutputs(); });
+  });
+  syncTtsEngineUi();
 
   ['f_rate', 'f_series', 'f_epid'].forEach(id => {
     $(id).addEventListener('input', () => refreshAllOutputs());

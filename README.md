@@ -1,10 +1,10 @@
-# 3D 主題故事影片生成器（本機出片）
+# 主題故事影片生成器（本機出片 · 多用途）
 
-**你打主題 → AI 寫廣東話劇本＋自由設計場景 → 本機一鍵生成 3D MP4。**
+**你打主題 → AI 寫廣東話劇本＋自由設計場景 → 本機一鍵生成 MP4。**
 
-呢個係一個**個人用嘅主題→影片工具**：任何題材（飛出太空、海底尋寶、城市天台、恐龍島…）都可以出片。
-角色由 `SCOUT 3D` 引擎畫成童軍制服 3D 人仔 —— **SCOUT 3D 只係「角色繪製器」，唔係成個 app 嘅主題**，
-所以故事、世界觀、場景、道具全部由 AI 自由創作，唔會硬銷任何產品。
+呢個係一個**多用途嘅本機動畫生成器**，唔係單一產品工具：任何題材（飛出太空、海底尋寶、城市天台、恐龍島…）都可以出片。
+`SCOUT 3D` 只係**其中一個可選角色繪製器**（用嚟準確重現童軍制服／徽章），
+**唔用 SCOUT 3D 一樣出到片**；故事、世界觀、場景、道具、服裝全部由 AI 自由創作。
 
 ## 目录
 - AGENTS.md - 俾 AI 睇嘅工作守则
@@ -140,6 +140,40 @@ python scripts/ai_scene_test.py --text "土星環上面有條發光冰跑道，�
 - `--render` 會直接用 AI 回傳嘅 JSON 出 MP4（**冇人手寫嘅場景**）
 - 如果 AI 亂作 shape，script 會報錯並印出可辨識嘅 6 種形狀
 - 已經有 AI 原始回覆？`--raw-file output/ai_raw.txt` 可以離線驗證／渲染
+
+### 5d. 語音引擎（edge-tts / Piper / Coqui / 自訂指令）
+
+配音唔再焊死喺 edge-tts。spec 加三個欄位就得，留空即沿用 edge-tts：
+
+```json
+{
+  "voice": "zh-HK-HiuMaanNeural",
+  "voice_rate": "+6%",
+  "voice_engine": "piper",
+  "voice_model": "D:/tts/voices/zh_CN-huayan-medium.onnx",
+  "tts_command": "mytts --in {text_file} --out {out}"
+}
+```
+
+| `voice_engine` | 需要 | 粵語？ | 備註 |
+|---|---|---|---|
+| `edge`（預設） | 網絡 | ✅ HiuMaan / WanLung 等 | 免費微軟雲端，暫時係粵語最自然 |
+| `piper` | `pip install piper-tts` ＋ ONNX 聲線 | ❌ 只有普通話 | 純 CPU、極快、完全離線；`PIPER_BIN` 可指定 exe |
+| `coqui` | `pip install TTS` ＋ 模型名 | ✅ 有粵語社群模型 | 較慢，第一次會落模型；`voice_model` 填 Coqui 模型名 |
+| `command` | 任何本機 TTS CLI | 睇你用邊個 | 支援 `{out}`（輸出檔）、`{text_file}`（逐句文字）、`{text}`、`{voice}` |
+
+重點：**目前冇大型歐洲開源引擎出到粵語**（Kyutai Pocket TTS 只有 6 種歐洲語言；Piper 44 個 locale 得普通話，冇粵語）。
+所以粵語預設仍然係 edge-tts，其他語言／完全離線就可以揀 Piper 或 Coqui。
+
+本機亦可以直接用 CLI 指定（會覆寫 spec）：
+
+```bat
+python src/scout3d_runner.py --spec episodes/story_example.json --tts-engine piper --tts-model D:\tts\voices\zh_CN-huayan-medium.onnx
+python src/scout3d_runner.py --b64 z_xxx --tts-engine command --tts-command "mytts --in {text_file} --out {out}"
+```
+
+HTML 第 3 步有 **「🔊 語音引擎（進階）」** 摺疊欄：填一次就會寫入 CMD payload，唔使改 Python。
+合成失敗（模型未裝、指令錯）只會令該鏡轉純 BGM，唔會令成套片 crash。
 
 ### 6. 多角色 ＋ 運鏡 spec 寫法（`characters` / `camera`）
 
