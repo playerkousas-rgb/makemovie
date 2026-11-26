@@ -3,6 +3,9 @@
 | 檔案 | 內容 |
 |---|---|
 | `index.html` | 一頁睇晒：影片播放器＋分鏡表（用瀏覽器開） |
+| `animal_mixed_v2_preview.mp4` | **v3.2 示範**：真人＋貓（biped）＋羊（quadruped）兩鏡，106 格 720p |
+| `visual_final_day.png` | v3.2 日間定格：無限草地、日間雲、太陽光暈、接觸陰影 |
+| `visual_final_space.png` | v3.2 太空定格：自動星空、行星環加密、夜間調色 |
 | `space_adventure_preview.mp4` | **v3.0 示範**：「飛出太空」6 鏡 20 秒，AI 自由場景（夜晚營地→太空→月球→隕石→行星→回望地球） |
 | `contact_sheet_space_adventure.jpg` | 太空示範 24 格分鏡表 |
 | `story_ai_joins_grasshopper_preview.mp4` | 21 秒 9:16 無聲預覽（BGM 版；有聲版喺你部機用 edge-tts 生成） |

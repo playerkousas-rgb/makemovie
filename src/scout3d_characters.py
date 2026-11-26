@@ -1463,7 +1463,7 @@ def draw_mom_figure(
     R = rot_y(yaw_deg)
     W = lambda lx, ly, lz: base_pos + (R @ v3(lx * scale, ly * scale, lz * scale))
     S = lambda d: d * scale
-    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(0.60), strength=0.26)
+    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(1.05), strength=0.50)
 
     for side in (-1.0, 1.0):
         sc.add_ellipsoid(W(side * 0.18, 0.09, 0.05), (S(0.11), S(0.08), S(0.16)), COL["maroon"], rot=R)
@@ -1584,7 +1584,7 @@ def draw_handbook_stack(sc: Scene3D, base_pos: np.ndarray, yaw_deg: float = 0.0,
     R = rot_y(yaw_deg)
     W = lambda lx, ly, lz: base_pos + (R @ v3(lx * scale, ly * scale, lz * scale))
     S = lambda d: d * scale
-    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(0.55), strength=0.25)
+    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(1.00), strength=0.48)
 
     books = [
         (0.11, COL["book_a"], 4.0),
@@ -1974,7 +1974,7 @@ def draw_animal_quadruped(
     c_accent = _as_hex(outfit.get("accent"), "#FFD24A")
     dark = _shade(c_fur, 0.55)
 
-    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(0.62), strength=0.26)
+    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(1.05), strength=0.55)
 
     gait = math.sin(t_sec * 7.0) * 0.16 if walking else 0.0
     bob = math.sin(t_sec * 14.0) * 0.012 if walking else 0.0
@@ -2092,7 +2092,7 @@ def draw_animal_figure(
     c_bottom = _as_hex(outfit.get("bottom"), "#31456B")
     c_accent = _as_hex(outfit.get("accent"), "#FFD24A")
 
-    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(0.58), strength=0.27)
+    sc.add_floor_shadow(float(base_pos[0]), float(base_pos[2]), S(1.15), strength=0.55)
 
     bob = math.sin(t_sec * 3.2) * 0.015
     wave_u = float(max(0.0, min(1.0, wave)))

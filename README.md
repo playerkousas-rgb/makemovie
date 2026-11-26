@@ -228,3 +228,21 @@ python src/scout3d_runner.py --list-scenes
 python src/scout3d_runner.py --list-props
 ```
 
+### 6c. 畫面質素（v3.2 視覺升級）
+
+分工：**劇本、場景、運鏡全部由 AI（Gemini）寫**；本機引擎淨係負責「畫面靚」。v3.2 改咗嘅嘢：
+
+| 項目 | 效果 |
+| --- | --- |
+| 無限地面 | AI 用一大塊 box 做地面（`shape:"box"`、`py ≤ 0.25`、`sx/ sz ≥ 1.2`）時，引擎自動延伸成同色無邊地面，塊 box 會自動收埋 → 冇浮空平台硬邊 |
+| 電影調色 | 天空主光暈、太陽／月光輝、遠景大氣霧（只落前景，唔會洗白天空）、發光體泛光、輕微 S 曲線＋加暖＋暗角 |
+| 角色接地 | 真人／動物／四足角色腳下都有柔和接觸陰影（世界座標跟腳位） |
+| 環形平滑 | `shape:"ring"` 會按圓周自動加密珠數，土星環唔會變珠鏈 |
+| 天空氛圍 | 天空底部夠暗（< 0.16）自動加星空；日間戶外自動加幾朵雲；AI 自己砌咗 `objects` 就唔會再塞舊 preset 道具 |
+| 構圖規則 | HTML 嘅 AI prompt 有【構圖規則】：三層景深、地平線壓低、角色頭頂留白、主色 ≤ 3、大細對比 10:1、發光物 ≤ 3，並提示「畀一塊 ≥ 3×3 地面 box」 |
+
+想驗一張定格（720p 一格約 0.7–1.2 秒；106 格約 42 秒）：
+
+```bat
+python -c "import sys,json; sys.path.insert(0,'src'); import scout3d_runner as r; n=r.normalize_episode_spec(json.load(open('episodes/story_example.json'))); r.render_shot_3d_frame(n,10).save('still.png')"
+```

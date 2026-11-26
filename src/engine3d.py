@@ -626,6 +626,25 @@ class Scene3D:
         bot = np.array(self.bg_bot, dtype=np.float32)
         img = top * (1.0 - v_grad) + bot * v_grad
         img = np.broadcast_to(img, (self.h, self.w, 3)).copy()
+        # Soft key-light pool behind the cast so the backdrop is not a flat wall
+        yy, xx = np.mgrid[0:self.h, 0:self.w].astype(np.float32)
+        cx = (xx / max(1, self.w - 1) - 0.52) * 1.05
+        cy = (yy / max(1, self.h - 1) - 0.46) * 1.15
+        glow = np.exp(-(cx * cx + cy * cy) * 2.1) * 0.085
+        img = img * (1.0 + glow[..., None])
+        # Soft light source in the sky (sun / moon) along the key-light direction
+        try:
+            sun = self.cam_pos + self.key_dir * 60.0
+            su, sv, _sz = self.project_point(sun)
+            if 0.0 <= su <= self.w and 0.0 <= sv <= self.h:
+                sx = (xx / max(1, self.w - 1) - su / max(1, self.w)) * self.aspect
+                sy = yy / max(1, self.h - 1) - sv / max(1, self.h)
+                d2 = (sx * sx + sy * sy) / 0.055
+                sun_mask = np.exp(-d2) * 0.20
+                img = img + sun_mask[..., None] * (self.rim_color * 0.8 + 0.2)
+        except Exception:
+            pass
+        bg_img = img.copy()
 
         # 2. Analytic studio floor plane (y = floor_y) with soft contact shadows
         if self.floor_y is not None:
@@ -638,12 +657,16 @@ class Scene3D:
                 fx = pf[:, :, 0]
                 fz = pf[:, :, 2]
                 # Distance fade into studio cyclorama horizon so there's no harsh horizon line!
-                dist_fade = np.clip(1.0 - np.hypot(fx, fz) / 14.0, 0.0, 1.0) ** 1.4
+                dist = np.hypot(fx, fz)
+                dist_fade = np.clip(1.0 - np.clip((dist - 9.0) / 7.0, 0.0, 1.0), 0.0, 1.0) ** 1.2
                 shadow = np.zeros((self.h, self.w), dtype=np.float32)
                 for sx, sz, sr, s_str in self.shadow_blobs:
                     d2 = ((fx - sx) ** 2 + (fz - sz) ** 2) / max(1e-4, sr * sr)
-                    shadow = np.maximum(shadow, s_str * np.exp(-d2 * 1.8))
+                    shadow = np.maximum(shadow, s_str * np.exp(-d2 * 1.15))
                 fl_col = np.array(self.floor_color, dtype=np.float32) * (1.0 - shadow[..., None])
+                # Soft light pool + gentle edge falloff so the ground reads as a lit set, not a flat fill
+                fl_tint = 0.88 + 0.20 * np.exp(-(dist * dist) / 70.0)
+                fl_col = fl_col * fl_tint[..., None]
                 blend = (dist_fade * 0.85)[..., None]
                 img[vis_f] = img[vis_f] * (1.0 - blend[vis_f]) + fl_col[vis_f] * blend[vis_f]
 
@@ -661,7 +684,7 @@ class Scene3D:
 
             # Hemisphere sky-to-ground bounce fill
             hemi = 0.5 + 0.5 * n[:, 1]
-            ambient = 0.30 + 0.16 * hemi
+            ambient = 0.25 + 0.15 * hemi
 
             # Specular highlight
             h_vec = normalize(self.key_dir + np.array([0.0, 0.0, 1.0], dtype=np.float32))
@@ -674,15 +697,26 @@ class Scene3D:
 
             # Soft rim backlight on silhouettes
             ndotv = np.clip(np.sum(n * v, axis=-1), 0.0, 1.0)
-            rim = ((1.0 - ndotv) ** 3.0) * (0.24 + 0.18 * np.clip(n[:, 1], 0.0, 1.0))
+            rim = ((1.0 - ndotv) ** 3.0) * (0.30 + 0.20 * np.clip(n[:, 1], 0.0, 1.0))
 
             shaded = (
-                c * (ambient + 0.68 * wrap)[:, None]
+                c * (ambient + 0.78 * wrap)[:, None]
                 + spec[:, None] * np.array([1.0, 0.98, 0.94], dtype=np.float32)
                 + rim[:, None] * self.rim_color * 0.55
                 + self.emissive_buf[fg]
             )
             img[fg] = np.clip(shaded, 0.0, 1.0)
+
+        # 3b. Atmospheric haze: distant geometry melts into the backdrop (depth cue)
+        if self.floor_y is not None:
+            haze = (np.clip((np.minimum(self.t_buf, 40.0) - 4.0) / 16.0, 0.0, 1.0) ** 1.15) * 0.34
+            haze = haze[..., None] * (self.t_buf < 1e8)[..., None]
+            img = img * (1.0 - haze) + bg_img * haze
+
+        # 3c. Cheap bloom from emissive surfaces (stars, LEDs, fire)
+        if float(np.max(self.emissive_buf)) > 0.02:
+            bloom = gaussian_filter(self.emissive_buf, sigma=(7.0, 7.0, 0.0))
+            img = img + bloom * 0.55
 
         # 4. Crisp silhouette edge anti-aliasing pass (selective depth-edge smoothing)
         depth_clamped = np.minimum(self.t_buf, 30.0)
@@ -693,6 +727,15 @@ class Scene3D:
             blurred = gaussian_filter(img, sigma=(0.72, 0.72, 0.0))
             img = np.where(edge_mask, 0.55 * img + 0.45 * blurred, img)
 
-        # Subtle sRGB-friendly contrast curve
+        # 5. Film grade: gentle S-contrast, a touch of saturation, warm highlights + vignette
+        img = np.clip(img, 0.0, 1.0)
+        img = np.clip((img - 0.5) * 1.06 + 0.5, 0.0, 1.0)
+        lum = img @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+        img = np.clip(lum[..., None] + (img - lum[..., None]) * 1.06, 0.0, 1.0)
+        img = np.clip(img * np.array([1.015, 1.006, 0.985], dtype=np.float32), 0.0, 1.0)
+        vr = np.sqrt(cx * cx * 0.9 + cy * cy * 0.75)
+        vig = np.clip(1.03 - 0.30 * vr ** 2.4, 0.80, 1.03)
+        img = img * vig[..., None]
+
         out_u8 = np.clip(img * 255.0 + 0.5, 0.0, 255.0).astype(np.uint8)
         return Image.fromarray(out_u8, mode="RGB")

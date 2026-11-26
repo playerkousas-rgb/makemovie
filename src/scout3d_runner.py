@@ -1804,6 +1804,9 @@ def _bp_draw_copy(
         radius = max(0.05, size[0] * scale)
         tube = max(0.008, float(obj.get("tube") or 0.08) * scale)
         count = int(obj.get("count") or 48)
+        # 環要連貫：依圓周自動加珠，唔好變成一粒粒珠鏈
+        need = int(math.ceil((2.0 * math.pi * radius) / max(0.012, tube * 1.35)))
+        count = max(count, min(320, need))
         mat = _bp_rot_matrix((rot[0], rot[1] + extra_rot, rot[2]))
         for i in range(count):
             ang = 2.0 * math.pi * i / count
@@ -1820,6 +1823,8 @@ def _bp_draw_copy(
 
 def _draw_blueprint(sc: Scene3D, scene: Dict[str, Any], t_sec: float, floor_y: Optional[float]) -> None:
     for i, obj in enumerate(scene.get("objects") or []):
+        if obj.get("_hide"):
+            continue
         repeat = obj.get("repeat")
         seed = float(obj.get("seed") or 0.0) + i * 7.31
         dx, dy, dz, pulse_scale, extra_rot = _bp_pose(obj, t_sec, seed)
@@ -1907,6 +1912,32 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
     else:
         floor_hex = palette.get("floor") or style.get("floor")
     floor_y = None if not floor_hex else float(scene.get("floor_y") or 0.0)
+    if floor_hex is None and objects:
+        # AI 用大 box 做地面時，補一塊無限地面（同色）→ 唔會見到浮空平台嘅硬邊
+        try:
+            sky_bot = str(palette.get("sky_bottom") or palette.get("sky_top") or style["bg_bot"])
+            r_, g_, b_ = hex_rgb01(sky_bot)
+            bright = 0.299 * r_ + 0.587 * g_ + 0.114 * b_
+        except Exception:
+            bright = 0.8
+        if bright > 0.42:
+            ground = None
+            best_area = 0.0
+            for ob in objects:
+                if ob.get("shape") != "box":
+                    continue
+                px, py, pz = ob["pos"]
+                sx, sy, sz = ob["size"]
+                if py > 0.25 or sx < 1.2 or sz < 1.2:
+                    continue
+                area = float(sx * sz)
+                if area > best_area:
+                    best_area = area
+                    ground = ob
+            if ground is not None:
+                floor_hex = str(ground["color"])
+                floor_y = float(ground["pos"][1] + ground["size"][1] - 0.002)
+                ground["_hide"] = True  # 無限地面代替塊浮空平台
     key_dir = light.get("dir") or style["key"]
     sc = Scene3D(
         W_px, H_px, cam,
@@ -1918,12 +1949,17 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
         rim_color=hex_rgb01(light.get("rim") or style["rim"]),
     )
 
-    if kind in ("space", "night", "void"):
+    _sky_b = float(sum(hex_rgb01(palette.get("sky_bottom") or style["bg_bot"]))) / 3.0
+    if kind in ("space", "night", "void") or _sky_b < 0.16:
         _draw_stars(sc, lt, 40 if kind == "space" else 30)
     if kind:
         _draw_weather(sc, kind, lt)
     _draw_blueprint(sc, scene, lt, floor_y)
-    _draw_scene_props(sc, scene, lt)
+    if not scene.get("objects"):
+        _draw_scene_props(sc, scene, lt)
+    elif kind in ("", "sky") and _sky_b > 0.55:
+        # 日間天空加少少雲，令遠景唔會空白一片（夜景唔加）
+        _draw_clouds_backdrop(sc, lt)
     if scene.get("cast", True) is not False:
         _draw_custom_cast(sc, sh, u, lt, bool(scene.get("float")), framing)
     return sc.render()

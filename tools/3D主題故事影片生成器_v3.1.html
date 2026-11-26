@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="copyright" content="© SCOUT SYSTEM">
-<meta name="app-version" content="v3.1.0">
+<meta name="app-version" content="v3.2.0">
 <meta name="robots" content="noindex">
-<title>3D 主題故事影片生成器 v3.1.0 — © SCOUT SYSTEM</title>
+<title>3D 主題故事影片生成器 v3.2.0 — © SCOUT SYSTEM</title>
 <!--
-  3D 主題故事影片生成器 v3.1.0 · © SCOUT SYSTEM
+  3D 主題故事影片生成器 v3.2.0 · © SCOUT SYSTEM
   純前端 · 直呼 Gemini API（支援 Gemini Canvas 自動攔截） · 唔經任何後端
 
   v3.1 升級重點（場景真正自由：AI 用基本形狀自己砌，冇清單）：
@@ -21,6 +21,18 @@
        仲有 AI 自動導演／我揀運鏡／我全權話事。
     4. 【多角色陣容】最多 5 位角色，每位可獨立支部、真人／AI 機械人、自己嘅 S3D1 制服碼。
     5. 【舊 spec 照用】冇 scene／characters／camera 嘅舊劇本完全兼容。
+
+  v3.2 升級重點（畫面）— 劇本／場景／運鏡交晒俾 AI，我哋淨係改靚個畫面：
+    1. 【無限地面】AI 用一個大 box 做地面時，引擎自動延伸成無邊地面（同色），
+       唔會再見到浮空平台／硬邊。
+    2. 【電影調色】天空主光暈、太陽／月光輝、遠景大氣霧、發光體泛光、柔和暗角、
+       輕微 S 曲線＋加暖，成個畫面有「拍出嚟」嘅質感。
+    3. 【角色接地】真人／動物／四足角色腳下都有柔和接觸陰影，唔會似浮喺地面。
+    4. 【環形平滑】土星環／光環自動按圓周加密，唔會變成一粒粒珠鏈。
+    5. 【天空氛圍】深色天空自動加星空；日間戶外自動加幾朵雲；AI 自己砌嘅場景
+       唔會再夾硬插入舊 preset 道具。
+    6. 【構圖規則】AI prompt 加入三層景深、地平線壓低、頭頂留白、主色 ≤3 等規則，
+       再加「畀一塊 ≥3×3 嘅地面 box」提示，畫面自然整齊。
 -->
 <style>
 :root{
@@ -276,7 +288,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
       </div>
     </details>
-    <span class="ver" id="ver">v3.1.0</span>
+    <span class="ver" id="ver">v3.2.0</span>
   </div>
 </header>
 
@@ -637,8 +649,8 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 /* ══════════════════════════════════════════════════════════════════
    基本設定（對齊 IG貼文生成器 v1.4.0 Canvas 自動攔截機制）
    ══════════════════════════════════════════════════════════════════ */
-const VERSION = 'v3.1.0';
-const APP_VERSION = 'v3.1.0';
+const VERSION = 'v3.2.0';
+const APP_VERSION = 'v3.2.0';
 const apiKey  = "";   /* 【唔好改】Gemini Canvas 環境會透過 fetch 攔截自動注入 */
 let   userKey = "";
 
@@ -1297,7 +1309,7 @@ function sceneDocBlock(){
 你可以用以下 6 種引擎基本形狀，自由發明任何場景（土星環、冰洞、糖果屋、恐龍骨架、太空站…）：
 · sphere 球　· ellipsoid 橢球（可拉長／壓扁）　· box 圓角方塊　· capsule 膠囊　· cylinder 圓柱　· ring 環（tube 控制粗幼）
 
-每個 object 嘅欄位：
+【構圖規則（畫面靚唔靚就靠呢幾條）】\n· 三層深度：背景（z −8…−14）＋中景（z −3…−6）＋前景（z −0.5…−1.5）；唔好所有物件擠同一個 z。\n· 地平線唔好穿過角色個頭；wide 鏡嘅地面大約喺畫面下 1/3。\n· 角色周圍留白：物件同角色塊面／頭頂至少隔 0.6 個身位，唔好有東西「插」住個頭。\n· 一個場景最多 3 個主色（天空＋地面＋一個重點色），其餘用同色系深淺；唔好七彩亂撞。\n· 大形狀造氣氛（漸變天空、巨大月亮／山／雲層），細形狀造細節（石、花、光點），大細比例大約 10:1。\n· glow 0.3–0.8 嘅發光物件最多 2–3 件，做視覺焦點；唔好周圍都發光。\n\n每個 object 嘅欄位：
 · pos [x,y,z]：角色企喺 y≈0、鏡頭望住原點 (0,1.2,0)；x 大約 ±2 以內係畫面中心
 · size：球＝半徑；橢球＝[rx,ry,rz]；方塊＝[半邊長x,y,z]；圓柱／膠囊＝[半徑, 長度]；環＝[半徑, 粗幼]
 · color "#RRGGBB"、glow 0–1（發光）、rot [x,y,z] 度、roughness 0–1
@@ -1307,7 +1319,7 @@ function sceneDocBlock(){
 scene 層：
 · objects：上面嘅物件陣列（1–24 件；repeat.count ≤ 60）
 · sky：{"top":"#0A0E22","bottom":"#2A2144"}（或者單一色）
-· floor：{"color":"#C9B48A","y":0}；唔想有地面就 false
+· floor：{"color":"#C9B48A","y":0}；唔想有地面就 false\n  └ 戶外／室內場景最好自己加一塊大 box 做地面（size ≥ 3×3、y≈0、同色）—— 引擎會自動延伸成無限地面，唔會見到浮空平台邊。
 · framing：wide（遠景）／medium（中景）／closeup（特寫）
 · float：角色漂浮（無地面／太空建議 true）
 · cast：false＝純景物鏡（唔出角色），適合開場空鏡
