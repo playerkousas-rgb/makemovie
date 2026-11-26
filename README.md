@@ -112,7 +112,16 @@ python src/scout3d_runner.py --list-shapes
 python src/scout3d_runner.py --spec episodes/story_example.json
 ```
 
-### 5b. 真實 AI 測試（唔用預先寫好嘅場景）
+### 5b. 喺 Gemini Canvas 直接測試 AI（免本機 key）
+
+HTML 第 2 步下面有 **「🧪 AI 場景測試（唔出片）」**：打一句場景描述，撳一下，
+就會用 Canvas 自動注入嘅 Gemini Key 問 AI，即場顯示 **AI 原始回覆＋格式驗證**。
+唔會出片、唔會改劇本，用嚟確認 AI 真係有砌 `objects`，定係偷懶用 preset。
+
+生成故事之後，如果 AI 冇出場景，預覽會顯示 **「⚠️ preset（AI 未出場景）」**，
+狀態欄亦會講有幾鏡缺場景，唔會再靜靜哋當成功。
+
+### 5c. 真實 AI 測試 script（可選，本機用）
 
 HTML 每一鏡都有 **「場景描述」自由文字框**：你打字，撳 **「🎨 叫 AI 用呢段描述重畫場景」**，
 AI 會將你嘅描述翻譯成 `scene.objects`，再寫入 CMD payload。
