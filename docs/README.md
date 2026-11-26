@@ -1,11 +1,11 @@
 # docs/ — 靜態部署用（GitHub Pages / Vercel）
 
-`index.html` 係 `tools/SCOUT3D_動畫劇本生成器_v2.3.html` 嘅**部署副本**，
+`index.html` 係 `tools/3D主題故事影片生成器_v3.0.html` 嘅**部署副本**，
 放成 `index.html` 就可以零設定當網站首頁。
 
 **更新方法（工具改完之後）：**
 ```bash
-cp "tools/SCOUT3D_動畫劇本生成器_v2.3.html" docs/index.html
+cp "tools/3D主題故事影片生成器_v3.0.html" docs/index.html
 ```
 
 ## GitHub Pages

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SCOUT 3D 故事預覽 · © SCOUT SYSTEM</title>
+<title>3D 主題故事影片預覽 · © SCOUT SYSTEM</title>
 <style>
   :root{--brand:#1f6b4a;--paper:#f6f1e7;--card:#fffdf9;--line:#e6ddc9;--ink:#21302a;--muted:#5c6b62}
   *{box-sizing:border-box}
@@ -23,18 +23,34 @@
 </style>
 </head>
 <body>
-  <h1>AI 加入小童軍 · 3D 故事預覽</h1>
-  <div class="sub">兩段示範：① 原版單人故事（7 鏡 · 21 秒）② 新功能示範（4 人不同支部＋AI 導演運鏡 · 4 鏡 · 9.6 秒）</div>
+  <h1>飛出太空 · AI 自由場景示範</h1>
+  <div class="sub">你打主題「飛出太空」，AI 自己砌場景：夜晚營地 → 火箭升空 → 月球／衛星 → 隕石 → 光環行星插旗 → 回望地球（6 鏡 · 20 秒 · 3 個角色）。</div>
 
   <div class="wrap">
     <div class="card">
-      <span class="tag">▶ 影片（無聲預覽）</span>
-      <video src="story_ai_joins_grasshopper_preview.mp4" poster="contact_sheet_story_ai_joins_grasshopper.jpg" controls autoplay muted loop playsinline></video>
-      <div class="foot">有聲版喺你部機用 <code>edge-tts</code> 生成（廣東話配音＋BGM）。</div>
+      <span class="tag">▶ 主題故事（無聲預覽）</span>
+      <video src="space_adventure_preview.mp4" poster="contact_sheet_space_adventure.jpg" controls autoplay muted loop playsinline></video>
+      <div class="foot">由 <code>scene</code> 積木生成（太空／夜晚 × 火箭、行星、衛星、隕石、營火、旗）。</div>
     </div>
 
     <div class="card wide">
       <span class="tag">🖼 24 格分鏡表</span>
+      <img src="contact_sheet_space_adventure.jpg" alt="space scene contact sheet">
+    </div>
+  </div>
+
+  <h1 style="margin-top:28px">經典童軍故事示範</h1>
+  <div class="sub">SCOUT 3D 只係角色畫風；下面保留舊示範：① 單人故事（7 鏡）② 4 人不同支部＋AI 導演運鏡。</div>
+
+  <div class="wrap">
+    <div class="card">
+      <span class="tag">▶ 影片（無聲預覽）</span>
+      <video src="story_ai_joins_grasshopper_preview.mp4" poster="contact_sheet_story_ai_joins_grasshopper.jpg" controls muted loop playsinline></video>
+      <div class="foot">有聲版喺你部機用 <code>edge-tts</code> 生成（廣東話配音＋BGM）。</div>
+    </div>
+
+    <div class="card wide">
+      <span class="tag">🖼 分鏡表</span>
       <img src="contact_sheet_story_ai_joins_grasshopper.jpg" alt="contact sheet">
     </div>
   </div>
@@ -56,7 +72,7 @@
   </div>
 
   <div class="foot">
-    © SCOUT SYSTEM · 片中中間 3 秒右下角有超小水印。動態 GIF：<code>preview/story_preview.gif</code>（270px 輕量版）。
+    © SCOUT SYSTEM · 片中中間 3 秒右下角有超小水印。場景積木：<code>scene: {kind, props, framing, float, palette}</code>。
   </div>
 </body>
 </html>
