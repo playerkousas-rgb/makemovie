@@ -52,6 +52,10 @@ from scout3d_characters import (
     draw_leader_figure,
     draw_mom_figure,
     draw_scout_figure,
+    draw_animal_figure,
+    draw_animal_quadruped,
+    ANIMAL_FUR,
+    ANIMAL_SPECIES,
     draw_turntable_pedestal,
     resolve_character_preset,
 )
@@ -620,6 +624,62 @@ CANTONESE_VOICES: Dict[str, str] = {
 }
 
 
+_VOICE_ENGINES = ("edge", "piper", "coqui", "command")
+
+
+def _norm_voice_engine(value: Any) -> str:
+    key = str(value or "").strip().lower()
+    aliases = {"edge-tts": "edge", "edgetts": "edge", "piper-tts": "piper", "coqui-tts": "coqui",
+               "custom": "command", "cmd": "command", "shell": "command"}
+    key = aliases.get(key, key)
+    return key if key in _VOICE_ENGINES else "edge"
+
+
+def _run_external_tts(engine: str, text: str, voice: str, model: str, command: str,
+                      out_audio: Path) -> None:
+    """Synthesize speech with a local/open-source engine, writing any audio format to out_audio."""
+    out_audio.parent.mkdir(parents=True, exist_ok=True)
+    if engine == "piper":
+        if not model:
+            raise RuntimeError("piper 需要 voice_model（.onnx voice 路徑）")
+        exe = os.environ.get("PIPER_BIN") or "piper"
+        cmd = [exe, "--model", model, "--output_file", str(out_audio)]
+        res = subprocess.run(cmd, input=text.encode("utf-8"), stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        if res.returncode != 0:
+            raise RuntimeError(f"piper failed ({res.returncode}): {res.stderr.decode('utf-8', 'ignore')[:200]}")
+        return
+    if engine == "coqui":
+        try:
+            from TTS.api import TTS  # type: ignore
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError("未安裝 Coqui TTS（pip install TTS）") from exc
+        if not model:
+            raise RuntimeError("coqui 需要 voice_model（例如 tts_models/zh-CN/... 或 Cantonese 模型）")
+        kwargs = {"text": text, "file_path": str(out_audio)}
+        try:
+            api = TTS(model_name=model)
+            api.tts_to_file(**kwargs)
+        except TypeError:
+            api = TTS(model_name=model)
+            api.tts_to_file(text=text, file_path=str(out_audio), language="zh")
+        return
+    if engine == "command":
+        if not command:
+            raise RuntimeError("command 引擎需要 tts_command，例如：mytts --out {out} < {text_file}")
+        import shlex
+        tmp_txt = out_audio.with_suffix(out_audio.suffix + ".txt")
+        tmp_txt.write_text(text, encoding="utf-8")
+        cmd = command.replace("{out}", str(out_audio)).replace("{text_file}", str(tmp_txt)).replace("{voice}", voice)
+        if "{text}" in cmd:
+            cmd = cmd.replace("{text}", shlex.quote(text))
+        res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        tmp_txt.unlink(missing_ok=True)
+        if res.returncode != 0:
+            raise RuntimeError(f"tts command failed ({res.returncode}): {res.stderr.decode('utf-8', 'ignore')[:300]}")
+        return
+    raise RuntimeError(f"unknown voice engine: {engine}")
+
+
 def _clean_cantonese_tts_text(text: str) -> str:
     """Normalize Cantonese narration text so edge-tts speaks naturally without spelling symbols."""
     t = str(text or "").strip()
@@ -785,6 +845,10 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
     # 以及自己嘅 SCOUT 3D 制服穿搭碼（S3D1_... / JSON）。
     # 冇 `characters` 嘅舊 spec 會自動變成單一主角，行為同以前完全一樣。
     # ------------------------------------------------------------------
+    default_species = _norm_species(raw.get("species") or raw.get("animal"))
+    default_posture = _norm_posture(raw.get("posture") or raw.get("pose") or raw.get("gait"))
+    default_outfit = _norm_outfit(raw.get("outfit") or raw.get("clothes") or raw.get("costume"))
+    default_fur = str(raw.get("fur") or raw.get("fur_color") or "").strip()
     story_mode = bool(_norm_story_section(raw.get("story_section")) or raw.get("characters") or raw.get("cast"))
     cast_raw = raw.get("characters") or raw.get("cast")
     explicit_cast = isinstance(cast_raw, list) and len(cast_raw) > 0
@@ -834,9 +898,16 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
             else:
                 sash_i = default_sash if i == 0 else None
             style_i = str(c.get("style_mode") or hero_style)
+            sp_i = _norm_species(c.get("species") or c.get("animal")) or (default_species if i == 0 else "")
+            outfit_i = _norm_outfit(c.get("outfit") or c.get("clothes") or c.get("costume"))
+            if outfit_i is None and i == 0:
+                outfit_i = default_outfit
+            fur_i = c.get("fur") or c.get("fur_color") or (default_fur if i == 0 else None)
+            posture_i = _norm_posture(c.get("posture") or c.get("pose") or c.get("gait") or (default_posture if i == 0 else "biped"))
             ep_cast.append(_make_actor(
                 sec, skin, gen_i, hat_i, sash_i, style_i, code,
                 _sanitize_text_for_font(str(c.get("name") or f"角色{i + 1}"))[:12],
+                species=sp_i, outfit=outfit_i, fur=fur_i, posture=posture_i,
             ))
         hero0 = ep_cast[0]
         default_section = hero0["section"]
@@ -849,6 +920,8 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         ep_cast = [_make_actor(
             default_section, ep_actor_skin, default_gender, default_hat, default_sash,
             hero_style, s3d_custom, "主角",
+            species=default_species, outfit=default_outfit, fur=default_fur,
+            posture=default_posture,
         )]
 
     default_camera = _norm_camera(raw.get("camera") or raw.get("camera_move") or raw.get("default_camera"))
@@ -864,6 +937,9 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
     voice_rate = str(raw.get("voice_rate") or "+6%").strip()
     if not re.match(r"^[+-]\d{1,3}%$", voice_rate):
         voice_rate = "+6%"
+    voice_engine = _norm_voice_engine(raw.get("voice_engine") or raw.get("tts_engine"))
+    voice_model = str(raw.get("voice_model") or raw.get("tts_model") or "").strip()
+    tts_command = str(raw.get("tts_command") or raw.get("voice_command") or "").strip()
     series_badge = _sanitize_text_for_font(str(raw.get("series_badge") or "童軍動畫小劇場"))
 
     ui_raw = raw.get("ui_card") or {}
@@ -1026,6 +1102,9 @@ def normalize_episode_spec(raw: Dict[str, Any], subtitle_override: Optional[Dict
         "bgm_mood": bgm_mood,
         "voice": voice,
         "voice_rate": voice_rate,
+        "voice_engine": voice_engine,
+        "voice_model": voice_model,
+        "tts_command": tts_command,
         "ui_card": ui_card,
         "watermark": watermark,
         "shots": shots_norm,
@@ -1117,6 +1196,10 @@ def _make_actor(
     style_mode: str = "bobo",
     s3d_custom: Optional[Dict[str, Any]] = None,
     name: str = "",
+    species: str = "",
+    outfit: Optional[Dict[str, str]] = None,
+    fur: Optional[str] = None,
+    posture: str = "biped",
 ) -> Dict[str, Any]:
     """Build a normalized cast member dict used by the story scene renderer."""
     sec = section if section in SECTION_STYLES else "scout"
@@ -1133,7 +1216,93 @@ def _make_actor(
         "show_sash": sash if sec in _ACTOR_SASH_SECTIONS else 0.0,
         "style_mode": style_mode if style_mode in ("bobo", "blocky", "morph") else "bobo",
         "s3d_custom": s3d_custom,
+        "species": _norm_species(species),
+        "posture": _norm_posture(posture),
+        "outfit": outfit,
+        "fur": _species_fur_hex(_norm_species(species), fur) if _norm_species(species) else "",
     }
+
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 動物角色 ＋ AI 自訂服裝（species / outfit）
+# ═══════════════════════════════════════════════════════════════════
+_SPECIES_ALIASES = {
+    "cat": "cat", "貓": "cat", "小猫": "cat", "kitten": "cat",
+    "sheep": "sheep", "羊": "sheep", "綿羊": "sheep", "绵羊": "sheep", "lamb": "sheep",
+    "dog": "dog", "狗": "dog", "小狗": "dog", "puppy": "dog",
+    "rabbit": "rabbit", "兔": "rabbit", "兔子": "rabbit", "bunny": "rabbit",
+    "bear": "bear", "熊": "bear", "小熊": "bear",
+    "fox": "fox", "狐狸": "fox",
+    "panda": "panda", "熊貓": "panda", "熊猫": "panda",
+}
+_OUTFIT_STYLES = {"tee", "hoodie", "dress", "spacesuit", "armor", "cape", "raincoat"}
+_OUTFIT_STYLE_ALIASES = {
+    "t-shirt": "tee", "tshirt": "tee", "shirt": "tee", "t恤": "tee",
+    "hoody": "hoodie", "衛衣": "hoodie", "卫衣": "hoodie",
+    "skirt": "dress", "裙": "dress", "連身裙": "dress",
+    "space": "spacesuit", "太空衣": "spacesuit", "宇航服": "spacesuit",
+    "armour": "armor", "盔甲": "armor", "鎧甲": "armor",
+    "cloak": "cape", "斗篷": "cape", "披風": "cape",
+    "coat": "raincoat", "雨衣": "raincoat",
+}
+
+
+def _norm_posture(value: Any) -> str:
+    key = str(value or "").strip().lower()
+    if key in ("quadruped", "quad", "four-leg", "four_legged", "walk", "walking", "四足", "四腳", "四脚", "爬地"):
+        return "quadruped"
+    return "biped"
+
+
+def _norm_species(value: Any) -> str:
+    """Return a supported species key, or '' for human."""
+    key = str(value or "").strip().lower()
+    if not key or key in ("human", "humanoid", "人", "人類"):
+        return ""
+    return _SPECIES_ALIASES.get(key, "")
+
+
+def _hex_or_default(value: Any, fallback: str) -> str:
+    txt = str(value or "").strip()
+    if not txt:
+        return fallback
+    if not txt.startswith("#"):
+        txt = "#" + txt
+    if re.match(r"^#[0-9a-fA-F]{6}$", txt):
+        return txt.lower()
+    return fallback
+
+
+def _norm_outfit(value: Any) -> Optional[Dict[str, str]]:
+    """Normalise an AI-designed outfit: 'hoodie' or {"style":..., "top":"#hex", ...}."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return {"style": _OUTFIT_STYLE_ALIASES.get(value.strip().lower(), value.strip().lower())}
+    if not isinstance(value, dict):
+        return None
+    style_raw = str(value.get("style") or value.get("type") or "").strip().lower()
+    style = _OUTFIT_STYLE_ALIASES.get(style_raw, style_raw)
+    if not style:
+        style = "tee"
+    if style not in _OUTFIT_STYLES:
+        style = "tee"
+    out: Dict[str, str] = {"style": style}
+    if value.get("top") or value.get("color") or value.get("shirt"):
+        out["top"] = _hex_or_default(value.get("top") or value.get("color") or value.get("shirt"), "#E8553E")
+    if value.get("bottom") or value.get("pants") or value.get("leg"):
+        out["bottom"] = _hex_or_default(value.get("bottom") or value.get("pants") or value.get("leg"), "#31456B")
+    if value.get("accent") or value.get("trim"):
+        out["accent"] = _hex_or_default(value.get("accent") or value.get("trim"), "#FFD24A")
+    return out
+
+
+def _species_fur_hex(species: str, explicit: Any = None) -> str:
+    txt = str(explicit or "").strip()
+    if txt:
+        return _hex_or_default(txt, ANIMAL_FUR.get(species, "#F0A45C"))
+    return ANIMAL_FUR.get(species, "#F0A45C")
 
 
 def _slot_actor(sh: Dict[str, Any], kind: str) -> Dict[str, Any]:
@@ -1186,6 +1355,23 @@ def _draw_actor(
     wave: float = 0.0,
     t_sec: float = 0.0,
 ) -> None:
+    species = _norm_species(actor.get("species"))
+    if species and _norm_posture(actor.get("posture")) == "quadruped":
+        draw_animal_quadruped(
+            sc, base_pos, yaw_deg=yaw_deg + 32.0, scale=scale * 1.00, species=species,
+            fur=actor.get("fur") or ANIMAL_FUR.get(species),
+            outfit=actor.get("outfit"), expression=expression,
+            t_sec=t_sec,
+        )
+        return
+    if species:
+        draw_animal_figure(
+            sc, base_pos, yaw_deg=yaw_deg, scale=scale, species=species,
+            fur=actor.get("fur") or ANIMAL_FUR.get(species),
+            outfit=actor.get("outfit"), expression=expression,
+            t_sec=t_sec, wave=wave,
+        )
+        return
     draw_scout_figure(
         sc, base_pos, yaw_deg=yaw_deg, scale=scale,
         style_mode=str(style_mode or actor.get("style_mode") or "bobo"),
@@ -1618,6 +1804,9 @@ def _bp_draw_copy(
         radius = max(0.05, size[0] * scale)
         tube = max(0.008, float(obj.get("tube") or 0.08) * scale)
         count = int(obj.get("count") or 48)
+        # 環要連貫：依圓周自動加珠，唔好變成一粒粒珠鏈
+        need = int(math.ceil((2.0 * math.pi * radius) / max(0.012, tube * 1.35)))
+        count = max(count, min(320, need))
         mat = _bp_rot_matrix((rot[0], rot[1] + extra_rot, rot[2]))
         for i in range(count):
             ang = 2.0 * math.pi * i / count
@@ -1634,6 +1823,8 @@ def _bp_draw_copy(
 
 def _draw_blueprint(sc: Scene3D, scene: Dict[str, Any], t_sec: float, floor_y: Optional[float]) -> None:
     for i, obj in enumerate(scene.get("objects") or []):
+        if obj.get("_hide"):
+            continue
         repeat = obj.get("repeat")
         seed = float(obj.get("seed") or 0.0) + i * 7.31
         dx, dy, dz, pulse_scale, extra_rot = _bp_pose(obj, t_sec, seed)
@@ -1688,6 +1879,23 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
         base_z, fov_deg, cam_y, target_y = 8.70, 38.5, 1.98, 1.36
     else:
         base_z, fov_deg, cam_y, target_y = 7.15, 37.5, 1.92, 1.36
+    cast_now = sh.get("cast") or []
+    quad_count = sum(
+        1 for c in cast_now
+        if _norm_species(c.get("species")) and _norm_posture(c.get("posture")) == "quadruped"
+    )
+    if quad_count and quad_count < len(cast_now):
+        # 人＋四足混合：動物身體會向後伸，鏡頭退後少少免得 cut 腳
+        base_z *= 1.10
+        target_y = min(target_y, 1.20)
+    if cast_now and all(
+        _norm_species(c.get("species")) and _norm_posture(c.get("posture")) == "quadruped"
+        for c in cast_now
+    ):
+        # 四足角色矮一大截：鏡頭要拉低，唔好影住天空
+        base_z, fov_deg, cam_y, target_y = 7.90, 37.5, 1.55, 1.02
+        if framing == "closeup":
+            base_z, cam_y, target_y = 4.40, 1.35, 1.05
 
     cam = Camera3D(
         pos=v3(math.sin(lt * 0.55) * 0.06, cam_y, base_z * z_s),
@@ -1704,6 +1912,32 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
     else:
         floor_hex = palette.get("floor") or style.get("floor")
     floor_y = None if not floor_hex else float(scene.get("floor_y") or 0.0)
+    if floor_hex is None and objects:
+        # AI 用大 box 做地面時，補一塊無限地面（同色）→ 唔會見到浮空平台嘅硬邊
+        try:
+            sky_bot = str(palette.get("sky_bottom") or palette.get("sky_top") or style["bg_bot"])
+            r_, g_, b_ = hex_rgb01(sky_bot)
+            bright = 0.299 * r_ + 0.587 * g_ + 0.114 * b_
+        except Exception:
+            bright = 0.8
+        if bright > 0.42:
+            ground = None
+            best_area = 0.0
+            for ob in objects:
+                if ob.get("shape") != "box":
+                    continue
+                px, py, pz = ob["pos"]
+                sx, sy, sz = ob["size"]
+                if py > 0.25 or sx < 1.2 or sz < 1.2:
+                    continue
+                area = float(sx * sz)
+                if area > best_area:
+                    best_area = area
+                    ground = ob
+            if ground is not None:
+                floor_hex = str(ground["color"])
+                floor_y = float(ground["pos"][1] + ground["size"][1] - 0.002)
+                ground["_hide"] = True  # 無限地面代替塊浮空平台
     key_dir = light.get("dir") or style["key"]
     sc = Scene3D(
         W_px, H_px, cam,
@@ -1715,12 +1949,17 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
         rim_color=hex_rgb01(light.get("rim") or style["rim"]),
     )
 
-    if kind in ("space", "night", "void"):
+    _sky_b = float(sum(hex_rgb01(palette.get("sky_bottom") or style["bg_bot"]))) / 3.0
+    if kind in ("space", "night", "void") or _sky_b < 0.16:
         _draw_stars(sc, lt, 40 if kind == "space" else 30)
     if kind:
         _draw_weather(sc, kind, lt)
     _draw_blueprint(sc, scene, lt, floor_y)
-    _draw_scene_props(sc, scene, lt)
+    if not scene.get("objects"):
+        _draw_scene_props(sc, scene, lt)
+    elif kind in ("", "sky") and _sky_b > 0.55:
+        # 日間天空加少少雲，令遠景唔會空白一片（夜景唔加）
+        _draw_clouds_backdrop(sc, lt)
     if scene.get("cast", True) is not False:
         _draw_custom_cast(sc, sh, u, lt, bool(scene.get("float")), framing)
     return sc.render()
@@ -2586,15 +2825,19 @@ def _synthesize_single_tts_wav(
     rate: str,
     cache_dir: Path,
     force: bool = False,
+    engine: str = "edge",
+    model: str = "",
+    command: str = "",
 ) -> Optional[Tuple[Path, np.ndarray, float]]:
     """Synthesize or load cached Cantonese voiceover clip for a single shot."""
     cleaned = _clean_cantonese_tts_text(text)
     if not cleaned or voice == "none":
         return None
+    engine = _norm_voice_engine(engine)
 
     cache_dir.mkdir(parents=True, exist_ok=True)
-    key = hashlib.sha256(f"v1|{voice}|{rate}|{cleaned}".encode("utf-8")).hexdigest()[:20]
-    safe_voice = re.sub(r"[^a-zA-Z0-9_-]+", "_", voice)
+    key = hashlib.sha256(f"v2|{engine}|{voice}|{model}|{command}|{rate}|{cleaned}".encode("utf-8")).hexdigest()[:20]
+    safe_voice = re.sub(r"[^a-zA-Z0-9_-]+", "_", voice or engine)
     dst_wav = cache_dir / f"vo_{safe_voice}_{key}.wav"
 
     if not force and dst_wav.exists() and dst_wav.stat().st_size > 256:
@@ -2604,6 +2847,23 @@ def _synthesize_single_tts_wav(
                 return dst_wav, samples, dur_s
         except Exception:
             pass
+
+    if engine != "edge":
+        tmp_ext = ".wav"
+        try:
+            with tempfile.NamedTemporaryFile(prefix="scout3d_tts_", suffix=tmp_ext, delete=False) as tf:
+                tmp_audio = Path(tf.name)
+            _run_external_tts(engine, cleaned, voice, model, command, tmp_audio)
+            samples, dur_s = _decode_and_trim_speech_wav(tmp_audio, dst_wav)
+            return dst_wav, samples, dur_s
+        except Exception as exc:  # noqa: BLE001
+            print(f"[scout3d-runner] 提示：{engine} 語音引擎失敗 ({exc})，該鏡頭改用純 BGM。")
+            return None
+        finally:
+            try:
+                tmp_audio.unlink(missing_ok=True)
+            except Exception:
+                pass
 
     if not _ensure_edge_tts_installed():
         return None
@@ -2639,6 +2899,9 @@ def prepare_episode_voiceovers(spec: Dict[str, Any], force: bool = False) -> Dic
     """Synthesize Cantonese narration per shot and auto-extend shot durations so speech never clips."""
     voice = str(spec.get("voice") or "none")
     rate = str(spec.get("voice_rate") or "+6%")
+    engine = _norm_voice_engine(spec.get("voice_engine"))
+    model = str(spec.get("voice_model") or "")
+    command = str(spec.get("tts_command") or "")
     if voice == "none":
         return {}
 
@@ -2656,7 +2919,8 @@ def prepare_episode_voiceovers(spec: Dict[str, Any], force: bool = False) -> Dic
         nar = str(sh.get("narration") or "")
         if not nar:
             continue
-        res = _synthesize_single_tts_wav(nar, voice=voice, rate=rate, cache_dir=tts_cache_dir, force=force)
+        res = _synthesize_single_tts_wav(nar, voice=voice, rate=rate, cache_dir=tts_cache_dir, force=force,
+                                            engine=engine, model=model, command=command)
         if res is None:
             continue
         _, samples, tts_sec = res
@@ -3121,6 +3385,9 @@ def main() -> None:
     parser.add_argument("--spec", type=str, default="", help="Path to an episode .json spec file.")
     parser.add_argument("--voice", type=str, default="", help="Cantonese TTS voice override (zh-HK-HiuMaanNeural, zh-HK-HiuGaaiNeural, zh-HK-WanLungNeural, none).")
     parser.add_argument("--no-voice", action="store_true", help="Disable Cantonese voiceover and render BGM only.")
+    parser.add_argument("--tts-engine", default="", choices=["edge", "piper", "coqui", "command"], help="Local TTS engine (default: edge-tts).")
+    parser.add_argument("--tts-model", default="", help="Model/voice path for piper (.onnx) or coqui model name.")
+    parser.add_argument("--tts-command", default="", help="Custom TTS command for engine=command; placeholders: {out} {text_file} {text} {voice}.")
     parser.add_argument("--write-py", action="store_true", help="Also save a Git-ready `episodes/<episode_id>.py` file locally.")
     parser.add_argument("--only-write-py", action="store_true", help="Only write `episodes/<episode_id>.py` without rendering video.")
     parser.add_argument("--force", action="store_true", help="Force full 3D clean-plate re-render.")
@@ -3181,6 +3448,12 @@ def main() -> None:
         raw_spec["voice"] = "none"
     elif args.voice:
         raw_spec["voice"] = args.voice
+    if args.tts_engine:
+        raw_spec["voice_engine"] = args.tts_engine
+    if args.tts_model:
+        raw_spec["voice_model"] = args.tts_model
+    if args.tts_command:
+        raw_spec["tts_command"] = args.tts_command
 
     if args.write_py or args.only_write_py:
         norm = normalize_episode_spec(raw_spec)

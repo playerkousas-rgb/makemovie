@@ -1,10 +1,10 @@
-# 3D 主題故事影片生成器（本機出片）
+# 主題故事影片生成器（本機出片 · 多用途）
 
-**你打主題 → AI 寫廣東話劇本＋自由設計場景 → 本機一鍵生成 3D MP4。**
+**你打主題 → AI 寫廣東話劇本＋自由設計場景 → 本機一鍵生成 MP4。**
 
-呢個係一個**個人用嘅主題→影片工具**：任何題材（飛出太空、海底尋寶、城市天台、恐龍島…）都可以出片。
-角色由 `SCOUT 3D` 引擎畫成童軍制服 3D 人仔 —— **SCOUT 3D 只係「角色繪製器」，唔係成個 app 嘅主題**，
-所以故事、世界觀、場景、道具全部由 AI 自由創作，唔會硬銷任何產品。
+呢個係一個**多用途嘅本機動畫生成器**，唔係單一產品工具：任何題材（飛出太空、海底尋寶、城市天台、恐龍島…）都可以出片。
+`SCOUT 3D` 只係**其中一個可選角色繪製器**（用嚟準確重現童軍制服／徽章），
+**唔用 SCOUT 3D 一樣出到片**；故事、世界觀、場景、道具、服裝全部由 AI 自由創作。
 
 ## 目录
 - AGENTS.md - 俾 AI 睇嘅工作守则
@@ -141,6 +141,40 @@ python scripts/ai_scene_test.py --text "土星環上面有條發光冰跑道，�
 - 如果 AI 亂作 shape，script 會報錯並印出可辨識嘅 6 種形狀
 - 已經有 AI 原始回覆？`--raw-file output/ai_raw.txt` 可以離線驗證／渲染
 
+### 5d. 語音引擎（edge-tts / Piper / Coqui / 自訂指令）
+
+配音唔再焊死喺 edge-tts。spec 加三個欄位就得，留空即沿用 edge-tts：
+
+```json
+{
+  "voice": "zh-HK-HiuMaanNeural",
+  "voice_rate": "+6%",
+  "voice_engine": "piper",
+  "voice_model": "D:/tts/voices/zh_CN-huayan-medium.onnx",
+  "tts_command": "mytts --in {text_file} --out {out}"
+}
+```
+
+| `voice_engine` | 需要 | 粵語？ | 備註 |
+|---|---|---|---|
+| `edge`（預設） | 網絡 | ✅ HiuMaan / WanLung 等 | 免費微軟雲端，暫時係粵語最自然 |
+| `piper` | `pip install piper-tts` ＋ ONNX 聲線 | ❌ 只有普通話 | 純 CPU、極快、完全離線；`PIPER_BIN` 可指定 exe |
+| `coqui` | `pip install TTS` ＋ 模型名 | ✅ 有粵語社群模型 | 較慢，第一次會落模型；`voice_model` 填 Coqui 模型名 |
+| `command` | 任何本機 TTS CLI | 睇你用邊個 | 支援 `{out}`（輸出檔）、`{text_file}`（逐句文字）、`{text}`、`{voice}` |
+
+重點：**目前冇大型歐洲開源引擎出到粵語**（Kyutai Pocket TTS 只有 6 種歐洲語言；Piper 44 個 locale 得普通話，冇粵語）。
+所以粵語預設仍然係 edge-tts，其他語言／完全離線就可以揀 Piper 或 Coqui。
+
+本機亦可以直接用 CLI 指定（會覆寫 spec）：
+
+```bat
+python src/scout3d_runner.py --spec episodes/story_example.json --tts-engine piper --tts-model D:\tts\voices\zh_CN-huayan-medium.onnx
+python src/scout3d_runner.py --b64 z_xxx --tts-engine command --tts-command "mytts --in {text_file} --out {out}"
+```
+
+HTML 第 3 步有 **「🔊 語音引擎（進階）」** 摺疊欄：填一次就會寫入 CMD payload，唔使改 Python。
+合成失敗（模型未裝、指令錯）只會令該鏡轉純 BGM，唔會令成套片 crash。
+
 ### 6. 多角色 ＋ 運鏡 spec 寫法（`characters` / `camera`）
 
 ```json
@@ -161,8 +195,30 @@ python scripts/ai_scene_test.py --text "土星環上面有條發光冰跑道，�
 }
 ```
 
-- `characters`：最多 5 位；第一位係主角。每項可加 `section`（7 個支部）、`actor_skin`（`human`／`ai_robot`）同 `uniform_code`（`S3D1_...`，貼咗就以碼為準）。舊 spec 冇 `characters` 會自動當單一主角。
+- `characters`：最多 5 位；第一位係主角。每項可加 `section`（7 個支部）、`actor_skin`（`human`／`ai_robot`）、`uniform_code`（`S3D1_...`，貼咗就以碼為準）、`species`（動物）同 `outfit`（AI 設計服裝）。舊 spec 冇 `characters` 會自動當單一主角。
 - `camera`：`auto`（跟場景原有運鏡）／`push_in`／`pull_out`／`pan_left`／`pan_right`／`tilt_up`／`orbit_left`／`orbit_right`／`crane_up`／`low_angle`／`handheld`。可以寫喺 episode 做預設，亦可以每鏡覆蓋。
+
+### 6b. 動物角色 ＋ AI 自訂服裝（`species` / `outfit`）
+
+動物角色係**由零砌**（頭、吻、耳、尾、手腳都係自己嗰套），**唔係喺人類頭上貼耳仔**，所以任何角度都唔會有人頭穿崩。
+
+```json
+{
+  "characters": [
+    {"name": "阿貓", "species": "cat", "outfit": {"style": "hoodie", "top": "#E8553E", "bottom": "#31456B", "accent": "#FFD24A"}},
+    {"name": "羊羊", "species": "sheep", "outfit": {"style": "dress", "top": "#7FB2E5", "accent": "#FFF2B8"}},
+    {"name": "汪汪", "species": "dog", "outfit": {"style": "spacesuit", "top": "#EDEFF4", "accent": "#59E0FF"}}
+  ]
+}
+```
+
+- `species`：`cat`／`sheep`／`dog`／`rabbit`／`bear`／`fox`／`panda`（亦接受中文「貓」等）；留空或 `human` 就照舊出童軍制服人仔。可以寫喺 episode 頂層（主角用）或每個角色自己嗰項。
+- `outfit.style`：`tee`／`hoodie`／`dress`／`spacesuit`／`armor`／`cape`／`raincoat`；`top`／`bottom`／`accent` 係 `#RRGGBB`，留空就用該物種嘅預設配色。
+- `posture`：`biped`（預設，企喺度講嘢／著衫）或 `quadruped`（四足，識行路／跑步；會自動 3/4 鏡頭＋對角步態）。可以寫喺 episode 頂層或每個角色。
+- 物種細節：貓有額頭虎斑＋鬚、狗有單邊眼罩斑＋垂耳、羊有羊毛冠／羊毛身、兔有長耳＋兔牙、狐狸有長吻＋白尾尖、熊貓有黑眼圈＋黑耳。全部識**定時眨眼**，表情支援 `happy`／`nervous`／`surprised`。
+- 動物同真人可以同一鏡混合出場（最多 5 位），制服片完全唔受影響；四足角色會自動調低鏡頭，唔會影住天空。
+- HTML 第 1 步有 **「🐾 主角物種」**、**「👕 主角服裝」**、**「🐾 動物姿勢」**；每位配角亦有自己嘅物種／服裝／姿勢 dropdown。留空＝由 AI 按故事決定。
+- AI 編劇 prompt 已經加入劇本工藝規則：2 秒 hook、想要→阻礙→轉折→自己解決→回味、每鏡要有睇得到嘅動作、角色性格差異、廣東話語氣詞、禁止重複句式、字幕係金句（每行 ≤ 12 字）。
 
 ```bat
 python src/scout3d_runner.py --spec episodes/story_example.json
@@ -172,3 +228,21 @@ python src/scout3d_runner.py --list-scenes
 python src/scout3d_runner.py --list-props
 ```
 
+### 6c. 畫面質素（v3.2 視覺升級）
+
+分工：**劇本、場景、運鏡全部由 AI（Gemini）寫**；本機引擎淨係負責「畫面靚」。v3.2 改咗嘅嘢：
+
+| 項目 | 效果 |
+| --- | --- |
+| 無限地面 | AI 用一大塊 box 做地面（`shape:"box"`、`py ≤ 0.25`、`sx/ sz ≥ 1.2`）時，引擎自動延伸成同色無邊地面，塊 box 會自動收埋 → 冇浮空平台硬邊 |
+| 電影調色 | 天空主光暈、太陽／月光輝、遠景大氣霧（只落前景，唔會洗白天空）、發光體泛光、輕微 S 曲線＋加暖＋暗角 |
+| 角色接地 | 真人／動物／四足角色腳下都有柔和接觸陰影（世界座標跟腳位） |
+| 環形平滑 | `shape:"ring"` 會按圓周自動加密珠數，土星環唔會變珠鏈 |
+| 天空氛圍 | 天空底部夠暗（< 0.16）自動加星空；日間戶外自動加幾朵雲；AI 自己砌咗 `objects` 就唔會再塞舊 preset 道具 |
+| 構圖規則 | HTML 嘅 AI prompt 有【構圖規則】：三層景深、地平線壓低、角色頭頂留白、主色 ≤ 3、大細對比 10:1、發光物 ≤ 3，並提示「畀一塊 ≥ 3×3 地面 box」 |
+
+想驗一張定格（720p 一格約 0.7–1.2 秒；106 格約 42 秒）：
+
+```bat
+python -c "import sys,json; sys.path.insert(0,'src'); import scout3d_runner as r; n=r.normalize_episode_spec(json.load(open('episodes/story_example.json'))); r.render_shot_3d_frame(n,10).save('still.png')"
+```

@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="copyright" content="© SCOUT SYSTEM">
-<meta name="app-version" content="v3.1.0">
+<meta name="app-version" content="v3.2.0">
 <meta name="robots" content="noindex">
-<title>3D 主題故事影片生成器 v3.1.0 — © SCOUT SYSTEM</title>
+<title>3D 主題故事影片生成器 v3.2.0 — © SCOUT SYSTEM</title>
 <!--
-  3D 主題故事影片生成器 v3.1.0 · © SCOUT SYSTEM
+  3D 主題故事影片生成器 v3.2.0 · © SCOUT SYSTEM
   純前端 · 直呼 Gemini API（支援 Gemini Canvas 自動攔截） · 唔經任何後端
 
   v3.1 升級重點（場景真正自由：AI 用基本形狀自己砌，冇清單）：
@@ -21,6 +21,18 @@
        仲有 AI 自動導演／我揀運鏡／我全權話事。
     4. 【多角色陣容】最多 5 位角色，每位可獨立支部、真人／AI 機械人、自己嘅 S3D1 制服碼。
     5. 【舊 spec 照用】冇 scene／characters／camera 嘅舊劇本完全兼容。
+
+  v3.2 升級重點（畫面）— 劇本／場景／運鏡交晒俾 AI，我哋淨係改靚個畫面：
+    1. 【無限地面】AI 用一個大 box 做地面時，引擎自動延伸成無邊地面（同色），
+       唔會再見到浮空平台／硬邊。
+    2. 【電影調色】天空主光暈、太陽／月光輝、遠景大氣霧、發光體泛光、柔和暗角、
+       輕微 S 曲線＋加暖，成個畫面有「拍出嚟」嘅質感。
+    3. 【角色接地】真人／動物／四足角色腳下都有柔和接觸陰影，唔會似浮喺地面。
+    4. 【環形平滑】土星環／光環自動按圓周加密，唔會變成一粒粒珠鏈。
+    5. 【天空氛圍】深色天空自動加星空；日間戶外自動加幾朵雲；AI 自己砌嘅場景
+       唔會再夾硬插入舊 preset 道具。
+    6. 【構圖規則】AI prompt 加入三層景深、地平線壓低、頭頂留白、主色 ≤3 等規則，
+       再加「畀一塊 ≥3×3 嘅地面 box」提示，畫面自然整齊。
 -->
 <style>
 :root{
@@ -276,7 +288,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
       </div>
     </details>
-    <span class="ver" id="ver">v3.1.0</span>
+    <span class="ver" id="ver">v3.2.0</span>
   </div>
 </header>
 
@@ -343,6 +355,48 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
               <option value="ai_robot">AI 機械人（著 3D 制服）</option>
             </select>
             <div class="mini">故事講 AI／機械人加入童軍，就會出<b>3D 機械人角色</b>＋真實制服，唔會變真人。</div>
+          </div>
+        </div>
+
+        <!-- 1D2. 動物角色 ＋ AI 自訂服裝 -->
+        <div class="row2" style="margin-top:12px">
+          <div class="field" style="margin-bottom:0">
+            <label>🐾 主角物種</label>
+            <select id="f_species">
+              <option value="">由 AI 決定（人／動物）</option>
+              <option value="human">人類（童軍制服）</option>
+              <option value="cat">貓</option>
+              <option value="sheep">綿羊</option>
+              <option value="dog">狗</option>
+              <option value="rabbit">兔</option>
+              <option value="bear">熊</option>
+              <option value="fox">狐狸</option>
+              <option value="panda">熊貓</option>
+            </select>
+            <div class="mini">揀動物會用<b>由零畫嘅動物角色</b>（冇人頭穿崩），一樣跟故事換場景。</div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>👕 主角服裝（AI 可自由設計）</label>
+            <select id="f_outfit">
+              <option value="">由 AI 按故事設計</option>
+              <option value="tee">T 裇</option>
+              <option value="hoodie">衛衣</option>
+              <option value="dress">裙</option>
+              <option value="spacesuit">太空衣</option>
+              <option value="armor">盔甲</option>
+              <option value="cape">斗篷</option>
+              <option value="raincoat">雨衣</option>
+            </select>
+            <div class="mini">唔止童軍制服：AI 會按故事配顏色，亦可以喺度鎖定款式。</div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>🐾 動物姿勢</label>
+            <select id="f_posture">
+              <option value="">由 AI 決定</option>
+              <option value="biped">雙足站立（講嘢、著衫）</option>
+              <option value="quadruped">四足行走（跑步、爬行）</option>
+            </select>
+            <div class="mini">四足會自動用 3/4 鏡頭＋步行步態；唔係動物就冇影響。</div>
           </div>
         </div>
 
@@ -478,6 +532,29 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
             <input id="f_series" value="3D 主題故事" placeholder="例：飛出太空 · 3D 主題故事">
           </div>
         </div>
+        <details class="field" id="ttsAdv">
+          <summary style="cursor:pointer;font-weight:600">🔊 語音引擎（進階：Piper / Coqui / 自訂指令）</summary>
+          <div class="row2" style="margin-top:10px">
+            <div class="field" style="margin-bottom:0">
+              <label>引擎</label>
+              <select id="f_tts_engine">
+                <option value="edge" selected>edge-tts（雲端，粵語最自然）</option>
+                <option value="piper">Piper（本機 ONNX，快、多語言但冇粵語）</option>
+                <option value="coqui">Coqui TTS（本機，有粵語社群模型）</option>
+                <option value="command">自訂指令（任何本機 TTS）</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>模型／聲線檔</label>
+              <input id="f_tts_model" placeholder="piper .onnx 路徑 或 Coqui 模型名">
+            </div>
+          </div>
+          <div class="field" id="ttsCmdField" hidden style="margin-top:10px">
+            <label>自訂指令（{out}=輸出檔、{text_file}=逐句文字檔）</label>
+            <input id="f_tts_cmd" placeholder="例：python my_tts.py --voice hk --in {text_file} --out {out}">
+          </div>
+          <p class="hint" style="margin:8px 0 0">只影響本機 render；呢頁只負責寫劇本。留空即用 edge-tts。</p>
+        </details>
         <div class="field">
           <label>🎨 3D 角色風格</label>
           <div class="styles" id="styleList"></div>
@@ -572,8 +649,8 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 /* ══════════════════════════════════════════════════════════════════
    基本設定（對齊 IG貼文生成器 v1.4.0 Canvas 自動攔截機制）
    ══════════════════════════════════════════════════════════════════ */
-const VERSION = 'v3.1.0';
-const APP_VERSION = 'v3.1.0';
+const VERSION = 'v3.2.0';
+const APP_VERSION = 'v3.2.0';
 const apiKey  = "";   /* 【唔好改】Gemini Canvas 環境會透過 fetch 攔截自動注入 */
 let   userKey = "";
 
@@ -1232,7 +1309,7 @@ function sceneDocBlock(){
 你可以用以下 6 種引擎基本形狀，自由發明任何場景（土星環、冰洞、糖果屋、恐龍骨架、太空站…）：
 · sphere 球　· ellipsoid 橢球（可拉長／壓扁）　· box 圓角方塊　· capsule 膠囊　· cylinder 圓柱　· ring 環（tube 控制粗幼）
 
-每個 object 嘅欄位：
+【構圖規則（畫面靚唔靚就靠呢幾條）】\n· 三層深度：背景（z −8…−14）＋中景（z −3…−6）＋前景（z −0.5…−1.5）；唔好所有物件擠同一個 z。\n· 地平線唔好穿過角色個頭；wide 鏡嘅地面大約喺畫面下 1/3。\n· 角色周圍留白：物件同角色塊面／頭頂至少隔 0.6 個身位，唔好有東西「插」住個頭。\n· 一個場景最多 3 個主色（天空＋地面＋一個重點色），其餘用同色系深淺；唔好七彩亂撞。\n· 大形狀造氣氛（漸變天空、巨大月亮／山／雲層），細形狀造細節（石、花、光點），大細比例大約 10:1。\n· glow 0.3–0.8 嘅發光物件最多 2–3 件，做視覺焦點；唔好周圍都發光。\n\n每個 object 嘅欄位：
 · pos [x,y,z]：角色企喺 y≈0、鏡頭望住原點 (0,1.2,0)；x 大約 ±2 以內係畫面中心
 · size：球＝半徑；橢球＝[rx,ry,rz]；方塊＝[半邊長x,y,z]；圓柱／膠囊＝[半徑, 長度]；環＝[半徑, 粗幼]
 · color "#RRGGBB"、glow 0–1（發光）、rot [x,y,z] 度、roughness 0–1
@@ -1242,7 +1319,7 @@ function sceneDocBlock(){
 scene 層：
 · objects：上面嘅物件陣列（1–24 件；repeat.count ≤ 60）
 · sky：{"top":"#0A0E22","bottom":"#2A2144"}（或者單一色）
-· floor：{"color":"#C9B48A","y":0}；唔想有地面就 false
+· floor：{"color":"#C9B48A","y":0}；唔想有地面就 false\n  └ 戶外／室內場景最好自己加一塊大 box 做地面（size ≥ 3×3、y≈0、同色）—— 引擎會自動延伸成無限地面，唔會見到浮空平台邊。
 · framing：wide（遠景）／medium（中景）／closeup（特寫）
 · float：角色漂浮（無地面／太空建議 true）
 · cast：false＝純景物鏡（唔出角色），適合開場空鏡
@@ -1271,7 +1348,7 @@ function castPromptBlock(heroSec, actor){
       : (c.skin === 'human' ? '真人角色' : '由你決定真人／AI 機械人');
     return `· 角色 ${i + 2}：${secTxt}，${skinTxt}${c.code ? '，已有指定 SCOUT 3D 制服碼（旁白唔准講錯佢戴嘅徽章）' : ''}`;
   });
-  return `【角色陣容（全片固定 ${extras.length + 1} 位角色，3D 畫面每一鏡都會全部出場）】\n· 主角：${sectionZh(heroSec)}，${actor === 'ai_robot' ? 'AI 機械人' : '真人角色'}\n${lines.join('\n')}\n★ 旁白只可以寫呢 ${extras.length + 1} 位角色之間嘅互動，唔好再作其他人。\n★ 輸出時必須回傳 "characters" 陣列（長度 ${extras.length + 1}，第一位係主角）；「由你決定」嘅角色請填真實支部 key（grasshopper／cub／scout／sea_scout／air_scout／venture／leader）同 actor_skin（human／ai_robot）。`;
+  return `【角色陣容（全片固定 ${extras.length + 1} 位角色，3D 畫面每一鏡都會全部出場）】\n· 主角：${sectionZh(heroSec)}，${actor === 'ai_robot' ? 'AI 機械人' : '真人角色'}\n${lines.join('\n')}\n★ 旁白只可以寫呢 ${extras.length + 1} 位角色之間嘅互動，唔好再作其他人。\n★ 輸出時必須回傳 "characters" 陣列（長度 ${extras.length + 1}，第一位係主角）；「由你決定」嘅角色請填真實支部 key（grasshopper／cub／scout／sea_scout／air_scout／venture／leader）同 actor_skin（human／ai_robot）。\n★ 每位角色都要有 species（human 或 cat／sheep／dog／rabbit／bear／fox／panda）同 outfit（style＋顏色）：動物故事全部填動物，服裝按故事設計。`;
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1295,13 +1372,13 @@ function buildStoryPrompt(mode){
 
   const charBlock = (s3dSummary
     ? `【主角真實穿搭與徽章（由 SCOUT 3D 穿搭碼精準載入 —— 最高準則）】\n${s3dSummary}\n★ 主角喺 3D 畫面入面只會戴住上面列出嘅徽章同旅團設定；旁白提到徽章／旅號時要對應，唔好講主角冇戴嘅章。`
-    : `【主角外觀（只影響畫風，唔限制故事）】\n· 制服支部：${sectionZh(heroSec)}\n· 制服：${SECTION_UNIFORM_ZH[heroSec] || SECTION_UNIFORM_ZH.grasshopper}\n· 角色類型：${actor === 'ai_robot' ? 'AI 機械人（白銀機械外殼＋3D 制服）' : '真人角色（童軍制服 3D 人仔）'}`)
+    : `【主角外觀（只影響畫風，唔限制故事）】\n· 制服支部：${sectionZh(heroSec)}\n· 制服（如果故事係童軍）：${SECTION_UNIFORM_ZH[heroSec] || SECTION_UNIFORM_ZH.grasshopper}\n· 角色類型：${actor === 'ai_robot' ? 'AI 機械人（白銀機械外殼＋3D 制服）' : '真人角色'}\n· 如果故事唔係童軍，species／outfit 由你按故事決定，唔一定要用制服。`)
     + (castPromptBlock(heroSec, actor) ? '\n\n' + castPromptBlock(heroSec, actor) : '');
 
   const common = `你係一位香港廣東話 3D 短片編劇兼美術指導。
 
 【最重要嘅設定】
-· 角色會由 SCOUT 3D 引擎畫成「童軍制服 3D 人仔」，呢個只係美術來源。
+· 角色會由 3D 引擎畫成 chibi 3D 角色：可以係人，亦可以係動物（貓／羊／狗／兔／熊／狐狸／熊貓）。\n· 童軍故事先用真實童軍制服；其他故事嘅服裝由你按世界觀設計（T 裇／衛衣／裙／太空衣／盔甲／斗篷／雨衣）。
 · 故事、世界觀、場景、道具、氣氛全部由你自由創作 —— 唔一定要講童軍，可以係太空、海底、城市、魔法、恐龍、校園、體育……
 · 絕對唔准介紹 SCOUT 3D／任何 App／網站／軟件／功能，亦唔准賣廣告。
 
@@ -1312,14 +1389,14 @@ function buildStoryPrompt(mode){
 
 ${charBlock}
 
-【廣東話與故事節奏】
-· 地道香港口語（唔使、搞掂、我哋、齊齊、好正），唔好書面語。
-· 每鏡都要推進劇情，有起承轉合；唔好一鏡到底。
-· 如果主題真係童軍活動，先用真實童軍細節（小隊、領袖、繩結、露營、營火）；其他主題就自由發揮，唔好夾硬拉返營地。
+【劇本工藝（最重要，唔好求其）】\n1. 開頭 2 秒就要有 hook：一句反常對白、一個問題、或者一個意外；唔好由「今日天氣好好」開始。\n2. 用「想要 → 阻礙 → 轉折 → 主角自己解決 → 回味」推進；唔可以靠天降好運或者旁白一句「最後成功咗」。\n3. 每鏡要有一個睇得到嘅動作／反應／笑點（跌、搶、誤會、讓步、發現），唔好只係企定定講道理。\n4. 角色要有性格差異：一個衝動、一個謹慎、一個愛吐槽；要有對話感，似角色心聲。\n5. 廣東話要地道：語氣詞（咩、囉、喎、喇、㗎、啦、吓、咪），句子短，每句 ≤ 14 字；唔好書面語。\n6. 唔准重複句式：唔准每鏡都用「突然」、「原來」、「大家」、「最後」開頭；唔准「今集我哋會…」。\n7. 結尾用畫面或一句反差收尾，唔好講大道理，唔好加「所以我哋要學識…」。\n8. 笑點要貼地：香港人日常會明嘅情境（排隊、趕時間、打機、食飯、落雨、搭車）。\n9. 如果主題真係童軍活動，先用真實童軍細節（小隊、領袖、繩結、露營、營火）；其他主題就自由發揮，唔好夾硬拉返營地。
+
+
+
 
 【配音與字幕格式】每一鏡輸出：
   1. "narration"：畀香港廣東話語音引擎讀出嚟，唔好寫「旁白：」前綴，亦唔好加表情符號。
-  2. "subtitle"：片底大字字幕（12–26 字，可用 \\n 分兩行）。
+  2. "subtitle"：片底大字字幕，係金句／笑點，同 narration 唔同；每行 ≤ 12 字，最多兩行（用 \\n 分行）。
 
 ${sceneDocBlock()}
 
@@ -1337,15 +1414,16 @@ ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'
   2. 相鄰兩鏡唔可以係同一個場景；全片至少要有 4 個明顯不同嘅場景／地點。
   3. 下面 sceneDocBlock 嘅例子只示範「格式」，**絕對唔准照抄內容**（例如唔好每逢科幻就抄土星環）。
   4. 唔准用 props 或 kind 代替 objects；每鏡 objects 至少 3 件。
+· 角色可以係人，亦可以係動物：故事講動物就用 characters[].species（cat／sheep／dog／rabbit／bear／fox／panda）；人類就填 human。
+· 動物識行：要佢跑／爬／跟住行就用 posture: quadruped；企喺度講嘢、著衫就用 biped。
+· 服裝由你按故事設計（outfit.style 七選一 ＋ 三個顏色）。除非故事明確講童軍，唔好預設童軍制服；太空故事可以太空衣、魔法故事可以斗篷。
 · 唔准加任何產品／App／網站介紹或「功能示範」字眼。`;
 
-  const castSchema = (S.cast && S.cast.length)
-    ? `,
+  const castSchema = `,
   "characters": [
-    {"section": "${heroSec}", "actor_skin": "${actor}"},
-    {"section": "由你決定嘅角色請填真實支部 key", "actor_skin": "human 或 ai_robot"}
-  ]`
-    : '';
+    {"section": "${heroSec}", "actor_skin": "${actor}", "species": "human 或 cat/sheep/dog/rabbit/bear/fox/panda", "posture": "biped 或 quadruped（動物先用）", "outfit": {"style": "tee/hoodie/dress/spacesuit/armor/cape/raincoat", "top": "#RRGGBB", "bottom": "#RRGGBB", "accent": "#RRGGBB"}}${(S.cast && S.cast.length) ? `,
+    {"section": "由你決定嘅角色請填真實支部 key", "actor_skin": "human 或 ai_robot", "species": "同上", "outfit": {"style": "...", "top": "#RRGGBB"}}` : ''}
+  ]`;
 
   const shotSchema = (S.director === 'full')
     ? `    {
@@ -1641,7 +1719,13 @@ function parseStoryJson(raw, allowUniform){
           const obj = (c && typeof c === 'object') ? c : { section: c };
           const sec = detectSectionFromText(String(obj.section || obj.story_section || '')) || '';
           const skin = /robot|機械|机械|ai/i.test(String(obj.actor_skin || obj.skin || '')) ? 'ai_robot' : 'human';
-          return { section: sec, skin };
+          return {
+            section: sec,
+            skin,
+            species: normSpecies(obj.species || obj.animal),
+            outfit: normOutfit(obj.outfit || obj.clothes || obj.costume),
+            posture: normPosture(obj.posture || obj.pose || obj.gait)
+          };
         })
       : [];
     return {
@@ -1772,6 +1856,75 @@ async function doStory(mode){
 /* ══════════════════════════════════════════════════════════════════
    組裝 Episode JSON + 壓縮成方法 A CMD 指令（連埋 s3d_custom 穿搭資料！）
    ══════════════════════════════════════════════════════════════════ */
+const SPECIES_KEYS = ['cat', 'sheep', 'dog', 'rabbit', 'bear', 'fox', 'panda'];
+const OUTFIT_KEYS = ['tee', 'hoodie', 'dress', 'spacesuit', 'armor', 'cape', 'raincoat'];
+function speciesOptions(cur){
+  const list = [['', '由 AI 決定'], ['human', '人類'], ['cat', '貓'], ['sheep', '綿羊'], ['dog', '狗'], ['rabbit', '兔'], ['bear', '熊'], ['fox', '狐狸'], ['panda', '熊貓']];
+  const v = String(cur || '');
+  return list.map(([val, label]) => `<option value="${val}"${val === v ? ' selected' : ''}>${label}</option>`).join('');
+}
+function outfitOptions(cur){
+  const list = [['', '由 AI 設計'], ['tee', 'T 裇'], ['hoodie', '衛衣'], ['dress', '裙'], ['spacesuit', '太空衣'], ['armor', '盔甲'], ['cape', '斗篷'], ['raincoat', '雨衣']];
+  const v = String(cur || '');
+  return list.map(([val, label]) => `<option value="${val}"${val === v ? ' selected' : ''}>${label}</option>`).join('');
+}
+function postureOptions(cur){
+  const list = [['', '由 AI 決定'], ['biped', '雙足'], ['quadruped', '四足']];
+  const v = String(cur || '');
+  return list.map(([val, label]) => `<option value="${val}"${val === v ? ' selected' : ''}>${label}</option>`).join('');
+}
+function normPosture(v){
+  const k = String(v || '').trim().toLowerCase();
+  if(['quadruped', 'quad', 'walk', 'walking', 'four-leg', '四足', '四腳', '四脚'].indexOf(k) >= 0) return 'quadruped';
+  if(['biped', 'stand', 'standing', '雙足', '站立'].indexOf(k) >= 0) return 'biped';
+  return '';
+}
+function normSpecies(v){
+  const k = String(v || '').trim().toLowerCase();
+  if(!k) return '';
+  if(k === 'human' || k === '人' || k === '人類' || k === '人类') return 'human';
+  const alias = { '貓': 'cat', '猫': 'cat', '羊': 'sheep', '綿羊': 'sheep', '狗': 'dog', '兔': 'rabbit', '兔子': 'rabbit', '熊': 'bear', '狐狸': 'fox', '熊貓': 'panda', '熊猫': 'panda' };
+  const key = alias[k] || k;
+  return SPECIES_KEYS.indexOf(key) >= 0 ? key : '';
+}
+function normOutfit(v){
+  if(v && typeof v === 'object'){
+    const out = {};
+    const st = String(v.style || v.type || '').trim().toLowerCase();
+    if(OUTFIT_KEYS.indexOf(st) >= 0) out.style = st;
+    ['top', 'bottom', 'accent'].forEach(k => {
+      const hex = String(v[k] || '').trim();
+      if(/^#?[0-9a-fA-F]{6}$/.test(hex)) out[k] = hex[0] === '#' ? hex : '#' + hex;
+    });
+    return Object.keys(out).length ? out : null;
+  }
+  const st = String(v || '').trim().toLowerCase();
+  return OUTFIT_KEYS.indexOf(st) >= 0 ? { style: st } : null;
+}
+function castPickPosture(c, i){
+  const manual = normPosture(c.posture);
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
+  return ai ? normPosture(ai.posture || ai.pose || ai.gait) : '';
+}
+function heroPosture(){
+  const manual = normPosture(($('f_posture') || {}).value || '');
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[0]) ? S.aiCast[0] : null;
+  return ai ? normPosture(ai.posture || ai.pose || ai.gait) : '';
+}
+function castPickSpecies(c, i){
+  const manual = normSpecies(c.species);
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
+  return ai ? normSpecies(ai.species || ai.animal) : '';
+}
+function castPickOutfit(c, i){
+  const manual = normOutfit(c.outfit);
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
+  return ai ? normOutfit(ai.outfit || ai.clothes || ai.costume) : null;
+}
 function castPickSection(c, i){
   if(c.section && c.section !== 'auto' && SECTION_MAP[c.section]) return c.section;
   const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
@@ -1785,14 +1938,38 @@ function castPickSkin(c, i){
   const ai = (S.aiCast && S.aiCast[i + 1]) ? S.aiCast[i + 1] : null;
   return (ai && ai.skin === 'ai_robot') ? 'ai_robot' : 'human';
 }
+function heroSpecies(){
+  const manual = normSpecies(($('f_species') || {}).value || '');
+  if(manual) return manual === 'human' ? '' : manual;
+  const ai = (S.aiCast && S.aiCast[0]) ? S.aiCast[0] : null;
+  const sp = ai ? normSpecies(ai.species || ai.animal) : '';
+  return sp === 'human' ? '' : sp;
+}
+function heroOutfit(){
+  const manual = normOutfit(($('f_outfit') || {}).value || '');
+  if(manual) return manual;
+  const ai = (S.aiCast && S.aiCast[0]) ? S.aiCast[0] : null;
+  return ai ? normOutfit(ai.outfit || ai.clothes || ai.costume) : null;
+}
 function buildCharacters(sec, actor){
+  const heroSp = heroSpecies();
+  const heroFo = heroOutfit();
   const list = [{ section: sec, actor_skin: actor, name: '主角' }];
+  if(heroSp) list[0].species = heroSp;
+  if(heroFo) list[0].outfit = heroFo;
+  if(heroPosture()) list[0].posture = heroPosture();
   (S.cast || []).forEach((c, i) => {
     const entry = {
       section: castPickSection(c, i),
       actor_skin: castPickSkin(c, i),
       name: '角色' + (i + 2)
     };
+    const sp = castPickSpecies(c, i);
+    const fo = castPickOutfit(c, i);
+    const po = castPickPosture(c, i);
+    if(sp && sp !== 'human') entry.species = sp;
+    if(fo) entry.outfit = fo;
+    if(po) entry.posture = po;
     const code = String(c.code || '').trim();
     if(code) entry.uniform_code = code;
     list.push(entry);
@@ -1817,6 +1994,12 @@ function buildEpisodeSpec(){
     hero_style: S.heroStyle,
     voice: S.voice,
     voice_rate: $('f_rate').value || '+6%',
+    ...(heroSpecies() ? { species: heroSpecies() } : {}),
+    ...(heroOutfit() ? { outfit: heroOutfit() } : {}),
+    ...(heroPosture() ? { posture: heroPosture() } : {}),
+    voice_engine: ($('f_tts_engine') && $('f_tts_engine').value) || 'edge',
+    ...(($('f_tts_model') && $('f_tts_model').value.trim()) ? { voice_model: $('f_tts_model').value.trim() } : {}),
+    ...(($('f_tts_cmd') && $('f_tts_cmd').value.trim()) ? { tts_command: $('f_tts_cmd').value.trim() } : {}),
     bgm_mood: 'comedy_to_hero',
     shots: S.shots.map(sh => {
       const p = (S.director === 'full' && PRESET_MAP[S.fixedScene])
@@ -2003,6 +2186,9 @@ function renderCastEditor(){
         <div class="cgrid">
           <div class="cfield"><span>支部制服</span><select class="js-csec">${sectionOptions(c.section)}</select></div>
           <div class="cfield"><span>角色類型</span><select class="js-cskin">${skinOptions(c.skin)}</select></div>
+          <div class="cfield"><span>物種</span><select class="js-cspecies">${speciesOptions(c.species)}</select></div>
+          <div class="cfield"><span>服裝</span><select class="js-coutfit">${outfitOptions(c.outfit)}</select></div>
+          <div class="cfield"><span>姿勢</span><select class="js-cposture">${postureOptions(c.posture)}</select></div>
           <div class="cfield full"><span>制服碼（選填 · S3D1_...）</span><input class="js-ccode" placeholder="貼呢位角色自己嘅 SCOUT 3D 穿搭碼，留空＝用支部快速制服" value="${esc(c.code || '')}"></div>
         </div>
       </div>`).join('');
@@ -2022,6 +2208,18 @@ function renderCastEditor(){
     row.querySelector('.js-cskin').addEventListener('change', async e => {
       S.cast[i].skin = e.target.value;
       updateContextHints();
+      await refreshAllOutputs();
+    });
+    row.querySelector('.js-cspecies').addEventListener('change', async e => {
+      S.cast[i].species = e.target.value;
+      await refreshAllOutputs();
+    });
+    row.querySelector('.js-coutfit').addEventListener('change', async e => {
+      S.cast[i].outfit = e.target.value;
+      await refreshAllOutputs();
+    });
+    row.querySelector('.js-cposture').addEventListener('change', async e => {
+      S.cast[i].posture = e.target.value;
       await refreshAllOutputs();
     });
     row.querySelector('.js-ccode').addEventListener('input', async e => {
@@ -2351,6 +2549,19 @@ function bindEvents(){
 
   $('btnAi').addEventListener('click', () => doStory('ai'));
   $('btnManual').addEventListener('click', () => doStory('manual'));
+
+  function syncTtsEngineUi(){
+    const eng = ($('f_tts_engine') || {}).value || 'edge';
+    $('ttsCmdField').hidden = eng !== 'command';
+    $('f_tts_model').disabled = eng === 'edge' || eng === 'command';
+  }
+  ['f_tts_engine', 'f_tts_model', 'f_tts_cmd'].forEach(id => {
+    const el = $(id);
+    if(!el) return;
+    el.addEventListener('input', () => { syncTtsEngineUi(); refreshAllOutputs(); });
+    el.addEventListener('change', () => { syncTtsEngineUi(); refreshAllOutputs(); });
+  });
+  syncTtsEngineUi();
 
   ['f_rate', 'f_series', 'f_epid'].forEach(id => {
     $(id).addEventListener('input', () => refreshAllOutputs());
