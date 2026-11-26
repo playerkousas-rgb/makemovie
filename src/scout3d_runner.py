@@ -292,44 +292,275 @@ def _norm_prop(value: Any) -> Optional[str]:
     return _PROP_ALIASES.get(key)
 
 
-def _norm_scene(value: Any) -> Optional[Dict[str, Any]]:
-    """Normalize an AI-designed scene dict (kind + props + framing + palette)."""
+def _hex_or_none(value: Any) -> Optional[str]:
+    col = str(value or "").strip()
+    return col if re.match(r"^#[0-9a-fA-F]{6}$", col) else None
+
+
+def _vec3_or(value: Any, default: Tuple[float, float, float]) -> Tuple[float, float, float]:
+    if isinstance(value, (int, float)):
+        return (float(value),) * 3
+    if isinstance(value, dict):
+        try:
+            return (float(value.get("x", default[0])), float(value.get("y", default[1])), float(value.get("z", default[2])))
+        except (TypeError, ValueError):
+            return default
+    if isinstance(value, (list, tuple)) and value:
+        try:
+            if len(value) == 1:
+                return (float(value[0]),) * 3
+            return (float(value[0]), float(value[1]), float(value[2]) if len(value) > 2 else default[2])
+        except (TypeError, ValueError):
+            return default
+    return default
+
+
+_NO_OBJECT_SHAPES = {"sphere", "ellipsoid", "box", "capsule", "cylinder", "ring"}
+_BLUEPRINT_SHAPE_ALIASES: Dict[str, str] = {
+    "sphere": "sphere", "ball": "sphere", "球": "sphere", "圓球": "sphere", "星球": "sphere",
+    "星": "sphere", "太陽": "sphere", "月亮": "sphere", "石頭": "sphere", "球體": "sphere",
+    "ellipsoid": "ellipsoid", "橢球": "ellipsoid", "橢圓": "ellipsoid", "卵形": "ellipsoid", "蛋": "ellipsoid",
+    "box": "box", "cube": "box", "方塊": "box", "盒": "box", "立方體": "box", "箱": "box",
+    "capsule": "capsule", "膠囊": "capsule", "藥丸": "capsule",
+    "cylinder": "cylinder", "柱": "cylinder", "圓柱": "cylinder", "柱體": "cylinder", "管": "cylinder",
+    "ring": "ring", "環": "ring", "光環": "ring", "圈": "ring", "軌道": "ring", "土星環": "ring", "呼拉圈": "ring",
+}
+
+
+def _norm_shape(value: Any, fallback: Optional[str] = None) -> Optional[str]:
+    key = re.sub(r"[\s\-]+", "_", str(value or "").strip().lower())
+    if not key:
+        return fallback
+    if key in _NO_OBJECT_SHAPES:
+        return key
+    return _BLUEPRINT_SHAPE_ALIASES.get(key, fallback)
+
+
+def _safe_float(value: Any, default: float, lo: float, hi: float) -> float:
+    try:
+        return max(lo, min(hi, float(value)))
+    except (TypeError, ValueError):
+        return max(lo, min(hi, float(default)))
+
+
+def _norm_anim(value: Any) -> Optional[Dict[str, Any]]:
     if isinstance(value, str):
-        kind = _norm_scene_kind(value)
-        return {"kind": kind, "props": list(_DEFAULT_SCENE_PROPS.get(kind or "", []))} if kind else None
+        value = {"kind": value}
     if not isinstance(value, dict):
         return None
-    kind = _norm_scene_kind(value.get("kind") or value.get("type") or value.get("backdrop") or value.get("place"))
-    props_raw = value.get("props") or value.get("objects") or value.get("items") or []
-    if isinstance(props_raw, str):
-        props_raw = re.split(r"[,、/|]+", props_raw)
-    props: List[str] = []
-    for item in list(props_raw)[:10]:
-        p = _norm_prop(item)
-        if p and p not in props:
-            props.append(p)
-    if not props and kind:
-        props = list(_DEFAULT_SCENE_PROPS.get(kind, []))
-    if not kind and not props:
-        return None
+    kind_raw = str(value.get("kind") or value.get("type") or "").strip().lower()
+    kinds = {
+        "bob": "bob", "float": "bob", "浮": "bob", "漂浮": "bob", "上下": "bob",
+        "drift": "drift", "飄": "drift", "飄移": "drift",
+        "spin": "spin", "rotate": "spin", "轉": "spin", "旋轉": "spin",
+        "pulse": "pulse", "閃": "pulse", "呼吸": "pulse", "閃爍": "pulse",
+        "none": "none", "still": "none",
+    }
+    kind = kinds.get(kind_raw)
     if not kind:
-        kind = "sky"
+        return None
+    try:
+        amp = max(0.0, min(6.0, float(value.get("amp", value.get("amount", 0.12)))))
+        speed = max(0.0, min(12.0, float(value.get("speed", 1.0))))
+        phase = float(value.get("phase", 0.0))
+    except (TypeError, ValueError):
+        amp, speed, phase = 0.12, 1.0, 0.0
+    return {"kind": kind, "amp": amp, "speed": speed, "phase": phase}
+
+
+def _norm_repeat(value: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(value, dict):
+        return None
+    try:
+        count = int(max(1, min(80, int(value.get("count", value.get("n", 12))))))
+    except (TypeError, ValueError):
+        return None
+    area_raw = value.get("area") or value.get("box") or value.get("range") or [[-3, 3], [0, 4], [-6, -2]]
+    if isinstance(area_raw, dict):
+        area = [
+            (float(area_raw.get("x0", -3)), float(area_raw.get("x1", 3))),
+            (float(area_raw.get("y0", 0)), float(area_raw.get("y1", 4))),
+            (float(area_raw.get("z0", -6)), float(area_raw.get("z1", -2))),
+        ]
+    else:
+        try:
+            if isinstance(area_raw, (list, tuple)) and len(area_raw) == 6:
+                area = [(float(area_raw[0]), float(area_raw[1])), (float(area_raw[2]), float(area_raw[3])), (float(area_raw[4]), float(area_raw[5]))]
+            else:
+                area = [
+                    (float(area_raw[0][0]), float(area_raw[0][1])),
+                    (float(area_raw[1][0]), float(area_raw[1][1])),
+                    (float(area_raw[2][0]), float(area_raw[2][1])),
+                ]
+        except (TypeError, ValueError, IndexError):
+            return None
+    try:
+        seed = int(value.get("seed", 17))
+    except (TypeError, ValueError):
+        seed = 17
+    return {"count": count, "area": area, "seed": seed}
+
+
+def _norm_blueprint_object(raw: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(raw, dict):
+        return None
+    shape = _norm_shape(raw.get("shape") or raw.get("type") or raw.get("form"), "sphere")
+    if not shape:
+        return None
+    pos = _vec3_or(raw.get("pos") or raw.get("position") or raw.get("at") or raw.get("center"), (0.0, 1.2, -3.0))
+    pos = tuple(max(-40.0, min(40.0, c)) for c in pos)
+    size = _vec3_or(raw.get("size") or raw.get("scale") or raw.get("radii") or raw.get("radius"), (0.5, 0.5, 0.5))
+    size = tuple(max(0.01, min(20.0, abs(c))) for c in size)
+    rot = _vec3_or(raw.get("rot") or raw.get("rotation"), (0.0, 0.0, 0.0))
+    color = _hex_or_none(raw.get("color") or raw.get("colour")) or "#C9D4EA"
+    try:
+        glow = max(0.0, min(1.0, float(raw.get("glow", raw.get("emissive", 0.0)))))
+        rough = max(0.05, min(1.0, float(raw.get("roughness", raw.get("rough", 0.5)))))
+    except (TypeError, ValueError):
+        glow, rough = 0.0, 0.5
+    try:
+        count = int(max(2, min(96, int(raw.get("count", 48)))))
+    except (TypeError, ValueError):
+        count = 48
+    return {
+        "shape": shape,
+        "pos": pos,
+        "size": size,
+        "rot": rot,
+        "color": color,
+        "glow": glow,
+        "rough": rough,
+        "anim": _norm_anim(raw.get("anim") or raw.get("animation") or raw.get("motion")),
+        "repeat": _norm_repeat(raw.get("repeat") or raw.get("copies") or raw.get("scatter")),
+        "count": count,
+        "tube": max(0.008, min(2.0, _safe_float(raw.get("tube"), size[1] if shape == "ring" else 0.12, 0.008, 2.0))),
+        "axis": str(raw.get("axis") or "y").strip().lower()[:1] or "y",
+        "bevel": max(0.0, min(2.0, _safe_float(raw.get("bevel"), min(size) * 0.2, 0.0, 2.0))),
+    }
+
+
+def _norm_scene(value: Any) -> Optional[Dict[str, Any]]:
+    """Normalize an AI scene. Accepts the legacy kind/props kit *and* free-form blueprints.
+
+    Blueprint form (AI can invent anything from engine primitives):
+      {"objects": [{"shape": "ring", "pos": [-2, 3, -5], "size": [1.2, 0.12], "color": "#E3C48A"}],
+       "sky": {"top": "#05081A", "bottom": "#241A46"}, "floor": false,
+       "framing": "wide", "float": true, "cast": true}
+    """
+    if isinstance(value, str):
+        kind = _norm_scene_kind(value)
+        return {"kind": kind, "props": list(_DEFAULT_SCENE_PROPS.get(kind or "", [])), "objects": []} if kind else None
+    if not isinstance(value, dict):
+        return None
+
+    kind = _norm_scene_kind(value.get("kind") or value.get("type") or value.get("backdrop") or value.get("place"))
+
+    # ---- free-form objects / legacy props ----
+    objects: List[Dict[str, Any]] = []
+    props: List[str] = []
+    raw_objects = value.get("objects")
+    if isinstance(raw_objects, list):
+        for item in raw_objects[:48]:
+            if isinstance(item, dict):
+                obj = _norm_blueprint_object(item)
+                if obj:
+                    objects.append(obj)
+            elif isinstance(item, str):
+                p = _norm_prop(item)
+                if p and p not in props:
+                    props.append(p)
+    if not objects:
+        raw_props = value.get("props") or value.get("items") or []
+        if isinstance(raw_props, str):
+            raw_props = re.split(r"[,、/|]+", raw_props)
+        for item in list(raw_props)[:10]:
+            p = _norm_prop(item)
+            if p and p not in props:
+                props.append(p)
+    if not props and kind and not objects:
+        props = list(_DEFAULT_SCENE_PROPS.get(kind, []))
+    if not kind and not props and not objects:
+        return None
+
     framing_raw = str(value.get("framing") or value.get("shot_size") or "").strip().lower()
     framing = _FRAMING_ALIASES.get(framing_raw, "medium")
-    palette_raw = value.get("palette") or value.get("colors") or {}
+
+    # ---- colours: palette / sky / background / floor / light ----
     palette: Dict[str, str] = {}
+    palette_raw = value.get("palette") or {}
     if isinstance(palette_raw, dict):
         for src, dst in (("sky_top", "sky_top"), ("sky_bottom", "sky_bottom"), ("floor", "floor")):
-            col = str(palette_raw.get(src) or "").strip()
-            if re.match(r"^#[0-9a-fA-F]{6}$", col):
+            col = _hex_or_none(palette_raw.get(src))
+            if col:
                 palette[dst] = col
-    return {
-        "kind": kind,
+    sky_raw = value.get("sky") or value.get("background") or value.get("bg")
+    if isinstance(sky_raw, str):
+        col = _hex_or_none(sky_raw)
+        if col:
+            palette["sky_top"] = col
+            palette["sky_bottom"] = col
+    elif isinstance(sky_raw, dict):
+        for src, dst in (("top", "sky_top"), ("sky_top", "sky_top"), ("bottom", "sky_bottom"), ("sky_bottom", "sky_bottom"), ("color", "sky_top")):
+            col = _hex_or_none(sky_raw.get(src))
+            if col:
+                palette[dst] = col
+    elif isinstance(sky_raw, (list, tuple)) and sky_raw:
+        col = _hex_or_none(sky_raw[0])
+        if col:
+            palette["sky_top"] = col
+        if len(sky_raw) > 1:
+            col2 = _hex_or_none(sky_raw[1])
+            if col2:
+                palette["sky_bottom"] = col2
+
+    floor_specified = any(k in value for k in ("floor", "ground"))
+    floor_value: Any = None
+    floor_y = 0.0
+    floor_raw = value.get("floor", value.get("ground"))
+    if floor_raw is False or floor_raw is None and floor_specified:
+        floor_value = False
+    elif isinstance(floor_raw, str):
+        floor_value = _hex_or_none(floor_raw)
+    elif isinstance(floor_raw, dict):
+        floor_value = _hex_or_none(floor_raw.get("color") or floor_raw.get("colour"))
+        try:
+            floor_y = float(floor_raw.get("y", 0.0))
+        except (TypeError, ValueError):
+            floor_y = 0.0
+    elif isinstance(floor_raw, (int, float)) and not isinstance(floor_raw, bool):
+        floor_y = float(floor_raw)
+
+    light_raw = value.get("light") or value.get("lights") or {}
+    light: Dict[str, Any] = {}
+    if isinstance(light_raw, dict):
+        key_col = _hex_or_none(light_raw.get("key") or light_raw.get("key_color"))
+        rim_col = _hex_or_none(light_raw.get("rim") or light_raw.get("rim_color"))
+        if key_col:
+            light["key_color"] = key_col
+        if rim_col:
+            light["rim"] = rim_col
+        if "dir" in light_raw or "direction" in light_raw:
+            light["dir"] = _vec3_or(light_raw.get("dir") or light_raw.get("direction"), (-0.4, 0.7, 0.6))
+
+    float_raw = value.get("float", value.get("floating"))
+    if float_raw is None:
+        floaty = bool(kind in ("space", "void", "sky")) or floor_value is False
+    else:
+        floaty = bool(float_raw)
+
+    scene: Dict[str, Any] = {
+        "kind": kind or "",
         "props": props,
+        "objects": objects,
         "framing": framing,
-        "float": bool(value.get("float", value.get("floating", kind in ("space", "void", "sky")))),
+        "float": floaty,
         "palette": palette,
+        "floor": floor_value,
+        "floor_y": floor_y,
+        "light": light,
+        "cast": bool(value.get("cast", value.get("characters", True))),
     }
+    return scene
 
 
 _STORY_SECTION_ALIASES: Dict[str, str] = {
@@ -1306,6 +1537,121 @@ def _draw_custom_cast(sc: Scene3D, sh: Dict[str, Any], u: float, lt: float, floa
                     t_sec=lt + i * 0.15)
 
 
+def _bp_rot_matrix(rot: Tuple[float, float, float]) -> np.ndarray:
+    return rot_y(float(rot[1])) @ rot_x(float(rot[0])) @ rot_z(float(rot[2]))
+
+
+def _bp_color_pair(color: str, glow: float) -> Tuple[Any, Optional[Any]]:
+    rgb = hex_rgb01(color)
+    if glow <= 0.001:
+        return rgb, None
+    return rgb, tuple(float(c) * glow for c in rgb)
+
+
+def _bp_pose(obj: Dict[str, Any], t_sec: float, seed: float) -> Tuple[float, float, float, float, float]:
+    anim = obj.get("anim")
+    if not anim or anim.get("kind") == "none":
+        return 0.0, 0.0, 0.0, 1.0, 0.0
+    amp = float(anim.get("amp", 0.12))
+    speed = float(anim.get("speed", 1.0))
+    phase = float(anim.get("phase", 0.0)) + seed * 0.37
+    kind = anim.get("kind")
+    if kind == "bob":
+        return 0.0, amp * math.sin(speed * t_sec + phase), 0.0, 1.0, 0.0
+    if kind == "drift":
+        return (amp * math.sin(speed * t_sec + phase),
+                amp * 0.35 * math.sin(speed * 0.7 * t_sec + phase * 1.3),
+                amp * 0.6 * math.cos(speed * 0.8 * t_sec + phase),
+                1.0, 0.0)
+    if kind == "spin":
+        return 0.0, 0.0, 0.0, 1.0, speed * 45.0 * t_sec
+    if kind == "pulse":
+        return 0.0, 0.0, 0.0, max(0.2, 1.0 + amp * math.sin(speed * 2.0 * t_sec + phase)), 0.0
+    return 0.0, 0.0, 0.0, 1.0, 0.0
+
+
+def _bp_draw_copy(
+    sc: Scene3D,
+    obj: Dict[str, Any],
+    center: Tuple[float, float, float],
+    scale: float,
+    extra_rot: float,
+    t_sec: float,
+    floor_y: Optional[float],
+) -> None:
+    shape = obj["shape"]
+    size = obj["size"]
+    rot = obj["rot"]
+    rgb, em = _bp_color_pair(obj["color"], float(obj.get("glow") or 0.0))
+    rough = float(obj.get("rough") or 0.5)
+    scale = max(0.05, scale)
+    cx, cy, cz = center
+
+    if shape == "sphere":
+        radius = max(0.01, size[0] * scale)
+        sc.add_sphere(v3(cx, cy, cz), radius, rgb, roughness=rough, emissive=em)
+        bound = radius
+    elif shape == "ellipsoid":
+        radii = (max(0.01, size[0] * scale), max(0.01, size[1] * scale), max(0.01, size[2] * scale))
+        mat = _bp_rot_matrix((rot[0], rot[1] + extra_rot, rot[2]))
+        sc.add_ellipsoid(v3(cx, cy, cz), v3(*radii), rgb, rot=mat, roughness=rough, emissive=em)
+        bound = max(radii)
+    elif shape == "box":
+        half = (max(0.01, size[0] * scale), max(0.01, size[1] * scale), max(0.01, size[2] * scale))
+        mat = _bp_rot_matrix((rot[0], rot[1] + extra_rot, rot[2]))
+        bevel = max(0.0, min(min(half) * 0.9, float(obj.get("bevel") or 0.0) * scale))
+        sc.add_rounded_box(v3(cx, cy, cz), v3(*half), bevel, rgb, rot=mat, roughness=rough, emissive=em)
+        bound = max(half)
+    elif shape in ("capsule", "cylinder"):
+        radius = max(0.01, size[0] * scale)
+        half_len = max(0.01, size[1] * 0.5 * scale)
+        axis = str(obj.get("axis") or "y").lower()[:1]
+        off = {"x": (half_len, 0.0, 0.0), "z": (0.0, 0.0, half_len)}.get(axis, (0.0, half_len, 0.0))
+        pa = v3(cx - off[0], cy - off[1], cz - off[2])
+        pb = v3(cx + off[0], cy + off[1], cz + off[2])
+        if shape == "capsule":
+            sc.add_capsule(pa, pb, radius, rgb, roughness=rough, emissive=em)
+        else:
+            sc.add_cylinder(pa, pb, radius, rgb, roughness=rough, emissive=em)
+        bound = math.hypot(half_len, radius)
+    elif shape == "ring":
+        radius = max(0.05, size[0] * scale)
+        tube = max(0.008, float(obj.get("tube") or 0.08) * scale)
+        count = int(obj.get("count") or 48)
+        mat = _bp_rot_matrix((rot[0], rot[1] + extra_rot, rot[2]))
+        for i in range(count):
+            ang = 2.0 * math.pi * i / count
+            base = np.array([math.cos(ang) * radius, 0.0, math.sin(ang) * radius], dtype=np.float32)
+            p = mat @ base
+            sc.add_sphere(v3(cx + float(p[0]), cy + float(p[1]), cz + float(p[2])), tube, rgb, roughness=rough, emissive=em)
+        bound = radius + tube
+    else:
+        return
+
+    if floor_y is not None and cy - bound <= floor_y + 0.06:
+        sc.add_floor_shadow(cx, cz, max(0.08, bound * 1.05), 0.16)
+
+
+def _draw_blueprint(sc: Scene3D, scene: Dict[str, Any], t_sec: float, floor_y: Optional[float]) -> None:
+    for i, obj in enumerate(scene.get("objects") or []):
+        repeat = obj.get("repeat")
+        seed = float(obj.get("seed") or 0.0) + i * 7.31
+        dx, dy, dz, pulse_scale, extra_rot = _bp_pose(obj, t_sec, seed)
+        if not repeat:
+            _bp_draw_copy(sc, obj, (obj["pos"][0] + dx, obj["pos"][1] + dy, obj["pos"][2] + dz),
+                          pulse_scale, extra_rot, t_sec, floor_y)
+            continue
+        rng = random.Random(int(repeat["seed"]) + i * 977)
+        area = repeat["area"]
+        for _ in range(int(repeat["count"])):
+            px = rng.uniform(area[0][0], area[0][1]) + dx
+            py = rng.uniform(area[1][0], area[1][1]) + dy
+            pz = rng.uniform(area[2][0], area[2][1]) + dz
+            jitter = rng.uniform(0.7, 1.35)
+            _bp_draw_copy(sc, obj, (px, py, pz), pulse_scale * jitter, extra_rot, t_sec, floor_y)
+
+
+
 def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: int) -> Image.Image:
     W_px: int = spec["width"]
     H_px: int = spec["height"]
@@ -1314,9 +1660,19 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
     fov_s, z_s = _cam_framing_scale(aspect)
 
     scene = sh.get("scene") or {}
-    kind = str(scene.get("kind") or "sky")
-    style = _SCENE_STYLES.get(kind, _SCENE_STYLES["sky"])
+    kind = str(scene.get("kind") or "")
+    objects = scene.get("objects") or []
+    style = _SCENE_STYLES.get(kind)
+    if style is None:
+        style = {
+            "bg_top": "#0B1224" if objects else "#63ACE6",
+            "bg_bot": "#1B2440" if objects else "#EAF7FF",
+            "floor": None,
+            "key": (-0.40, 0.72, 0.60),
+            "rim": "#9CC4FF",
+        }
     palette = scene.get("palette") or {}
+    light = scene.get("light") or {}
 
     local_f = frame_idx - sh["start_frame"]
     u = local_f / float(max(1, sh["num_frames"] - 1))
@@ -1340,23 +1696,33 @@ def _render_custom_scene(spec: Dict[str, Any], sh: Dict[str, Any], frame_idx: in
     )
     cam = _apply_camera_move(cam, sh.get("camera"), u, lt)
 
-    floor_hex = palette.get("floor") or style.get("floor")
-    floor_y = 0.0 if floor_hex else None
+    floor_spec = scene.get("floor")
+    if floor_spec is False:
+        floor_hex = None
+    elif isinstance(floor_spec, str) and floor_spec:
+        floor_hex = floor_spec
+    else:
+        floor_hex = palette.get("floor") or style.get("floor")
+    floor_y = None if not floor_hex else float(scene.get("floor_y") or 0.0)
+    key_dir = light.get("dir") or style["key"]
     sc = Scene3D(
         W_px, H_px, cam,
         bg_top=hex_rgb01(palette.get("sky_top") or style["bg_top"]),
         bg_bot=hex_rgb01(palette.get("sky_bottom") or style["bg_bot"]),
         floor_y=floor_y,
         floor_color=hex_rgb01(floor_hex or style["bg_bot"]),
-        key_dir=style["key"],
-        rim_color=hex_rgb01(style["rim"]),
+        key_dir=key_dir,
+        rim_color=hex_rgb01(light.get("rim") or style["rim"]),
     )
 
     if kind in ("space", "night", "void"):
         _draw_stars(sc, lt, 40 if kind == "space" else 30)
-    _draw_weather(sc, kind, lt)
+    if kind:
+        _draw_weather(sc, kind, lt)
+    _draw_blueprint(sc, scene, lt, floor_y)
     _draw_scene_props(sc, scene, lt)
-    _draw_custom_cast(sc, sh, u, lt, bool(scene.get("float")), framing)
+    if scene.get("cast", True) is not False:
+        _draw_custom_cast(sc, sh, u, lt, bool(scene.get("float")), framing)
     return sc.render()
 
 
@@ -2764,6 +3130,7 @@ def main() -> None:
     parser.add_argument("--list-cameras", action="store_true", help="List available camera moves and exit.")
     parser.add_argument("--list-scenes", action="store_true", help="List AI free-scene kinds and props, then exit.")
     parser.add_argument("--list-props", action="store_true", help="List AI free-scene prop ids, then exit.")
+    parser.add_argument("--list-shapes", action="store_true", help="List free-form blueprint shapes and exit.")
     args = parser.parse_args()
 
     if args.list_presets:
@@ -2785,9 +3152,21 @@ def main() -> None:
         return
 
     if args.list_props:
-        print("AI 自由場景 props（可任意組合，每鏡 0–8 個）：")
+        print("AI 自由場景 props（可選捷徑；真正自由用 scene.objects）：")
         for k, desc in PROP_CATALOG.items():
             print(f"  {k:12s} — {desc}")
+        return
+
+    if args.list_shapes:
+        print("AI 自由場景 objects 基本形狀（可以砌任何場景）：")
+        print("  sphere      球（size[0] = 半徑）")
+        print("  ellipsoid   橢球（size = [rx, ry, rz]，可拉長／壓扁）")
+        print("  box         圓角方塊（size = [半邊長 x, y, z]，bevel 控制圓角）")
+        print("  capsule     膠囊（size = [半徑, 長度]，axis x/y/z）")
+        print("  cylinder    圓柱（size = [半徑, 長度]，axis x/y/z）")
+        print("  ring        環（size = [半徑, 粗幼]，tube 控制每節粗幼，count 控制密度）")
+        print("\n每個 object 可用：pos, size, rot, color, glow, roughness, anim{bob,drift,spin,pulse}, repeat{count,area}")
+        print("scene 層可用：objects, sky{top,bottom}, floor{color,y}|false, framing, float, cast")
         return
 
     if args.b64:

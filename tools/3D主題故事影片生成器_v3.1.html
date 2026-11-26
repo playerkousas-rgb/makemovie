@@ -4,20 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="copyright" content="© SCOUT SYSTEM">
-<meta name="app-version" content="v3.0.0">
+<meta name="app-version" content="v3.1.0">
 <meta name="robots" content="noindex">
-<title>3D 主題故事影片生成器 v3.0.0 — © SCOUT SYSTEM</title>
+<title>3D 主題故事影片生成器 v3.1.0 — © SCOUT SYSTEM</title>
 <!--
-  3D 主題故事影片生成器 v3.0.0 · © SCOUT SYSTEM
+  3D 主題故事影片生成器 v3.1.0 · © SCOUT SYSTEM
   純前端 · 直呼 Gemini API（支援 Gemini Canvas 自動攔截） · 唔經任何後端
 
-  v3.0 升級重點（由「童軍工具」變成「任何主題 3D 故事生成器」）：
+  v3.1 升級重點（場景真正自由：AI 用基本形狀自己砌，冇清單）：
     1. 【主題自由】唔再綁死童軍／SCOUT 3D 介紹。你打咩主題（飛出太空、海底尋寶、城市天台、恐龍島…）
        AI 就寫嗰個故事；SCOUT 3D 只負責把角色畫成童軍制服 3D 人仔。
-    2. 【AI 自己砌場景】新增 scene 積木：背景 kind（太空／海底／城市／雪地／室內…）＋
-       道具 props（火箭、行星、衛星、棕櫚樹、水晶、大樓、街燈…）＋色盤，AI 可以自由組合，
-       唔再只係喺 9 個地球營地場景入面揀。
-    3. 【場景／運鏡分開】AI 自動導演、我揀運鏡、我全權話事三種模式；逐鏡仍可改場景類型同運鏡。
+    2. 【場景真正自由】scene.objects 用 6 種基本形狀（球／橢球／方塊／膠囊／圓柱／環）＋
+       pos／size／色／發光／動畫／散佈，AI 可以即場發明土星環、冰洞、糖果屋…冇 preset 清單。
+       人手只需要打一句場景描述，AI 翻譯成 objects，直接寫入 CMD。
+    3. 【逐鏡 AI 重畫場景】每鏡有自由文字框；打「土星環上面有條冰跑道」→ 撳一下，AI 自己砌嗰鏡。
+       仲有 AI 自動導演／我揀運鏡／我全權話事。
     4. 【多角色陣容】最多 5 位角色，每位可獨立支部、真人／AI 機械人、自己嘅 S3D1 制服碼。
     5. 【舊 spec 照用】冇 scene／characters／camera 嘅舊劇本完全兼容。
 -->
@@ -275,7 +276,7 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
         </div>
       </div>
     </details>
-    <span class="ver" id="ver">v3.0.0</span>
+    <span class="ver" id="ver">v3.1.0</span>
   </div>
 </header>
 
@@ -399,6 +400,11 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
           <label>🎯 今次想講咩主題／故事（推薦填寫）</label>
           <input id="f_focus" placeholder="例：飛出太空 / 海底尋寶 / 城市天台追逐 / AI 加入小童軍">
           <div class="mini">打主題或一句故事重點就得。AI 會自由設計場景同道具，唔會夾硬留喺地球營地；SCOUT 3D 只係角色畫風。</div>
+        </div>
+        <div class="field">
+          <label>🌍 場景／世界觀描述（選填 · 你打，AI 翻譯成 3D 物件）</label>
+          <textarea id="f_scene_hint" rows="2" placeholder="例：土星環上面有條發光冰跑道，遠處見到地球；全片色調偏藍紫"></textarea>
+          <div class="mini">呢度打嘅場景會交給 AI 自己砌 objects；留空就由 AI 按主題自由創作。</div>
         </div>
         <div class="field">
           <label>🔗 參考連結（選填 · 一行一條）</label>
@@ -548,8 +554,8 @@ main{max-width:1400px;margin:0 auto;padding:22px;display:grid;grid-template-colu
 /* ══════════════════════════════════════════════════════════════════
    基本設定（對齊 IG貼文生成器 v1.4.0 Canvas 自動攔截機制）
    ══════════════════════════════════════════════════════════════════ */
-const VERSION = 'v3.0.0';
-const APP_VERSION = 'v3.0.0';
+const VERSION = 'v3.1.0';
+const APP_VERSION = 'v3.1.0';
 const apiKey  = "";   /* 【唔好改】Gemini Canvas 環境會透過 fetch 攔截自動注入 */
 let   userKey = "";
 
@@ -1204,22 +1210,35 @@ function directorRule(){
 }
 
 function sceneDocBlock(){
-  const kinds = SCENE_KINDS.map(k => `· "${k.id}" — ${k.name}：${k.note}`).join('\n');
-  const props = SCENE_PROPS.map(pr => pr.id).join('、');
-  return `【AI 自由場景積木（重點：場景由你砌，唔係只揀現成背景）】
-背景 kind（每鏡揀一個）：
-${kinds}
-道具 props（每鏡可揀 0–8 個，任意組合）：${props}
-framing：wide（遠景）／medium（中景）／closeup（特寫）
-float：角色係咪漂浮（太空／天空／虛空建議 true）
-palette（選填）：{"sky_top":"#0B1038","sky_bottom":"#2A1B4A","floor":"#335544"} 自訂天空／地面顏色
+  return `【🏞️ 自由場景：由你自己砌，冇現成清單、冇 preset 限制】
+你可以用以下 6 種引擎基本形狀，自由發明任何場景（土星環、冰洞、糖果屋、恐龍骨架、太空站…）：
+· sphere 球　· ellipsoid 橢球（可拉長／壓扁）　· box 圓角方塊　· capsule 膠囊　· cylinder 圓柱　· ring 環（tube 控制粗幼）
 
-【例子（直接影響你點寫）】
-· 主題「飛出太空」→ 第 1 鏡 Earth 營地，第 2 鏡 {"kind":"space","props":["stars","planet","rocket"],"float":true,"framing":"wide"}，第 3 鏡月球表面。
-· 主題「海底尋寶」→ {"kind":"underwater","props":["bubble","rock","crystal"],"framing":"medium"}。
-· 主題「城市天台」→ {"kind":"city","props":["building","streetlamp"],"framing":"wide"}。
-· 主題「雪地迷路」→ {"kind":"snow","props":["snowman","pine"],"framing":"wide"}。
-你可以自由創作，唔限於以上例子。`;
+每個 object 嘅欄位：
+· pos [x,y,z]：角色企喺 y≈0、鏡頭望住原點 (0,1.2,0)；x 大約 ±2 以內係畫面中心
+· size：球＝半徑；橢球＝[rx,ry,rz]；方塊＝[半邊長x,y,z]；圓柱／膠囊＝[半徑, 長度]；環＝[半徑, 粗幼]
+· color "#RRGGBB"、glow 0–1（發光）、rot [x,y,z] 度、roughness 0–1
+· anim：{"kind":"bob|drift|spin|pulse","amp":0.15,"speed":1.0}
+· repeat：{"count":40,"area":[[x0,x1],[y0,y1],[z0,z1]]} 一次過散佈多件（星星、碎石、螢火蟲）
+
+scene 層：
+· objects：上面嘅物件陣列（1–24 件；repeat.count ≤ 60）
+· sky：{"top":"#0A0E22","bottom":"#2A2144"}（或者單一色）
+· floor：{"color":"#C9B48A","y":0}；唔想有地面就 false
+· framing：wide（遠景）／medium（中景）／closeup（特寫）
+· float：角色漂浮（無地面／太空建議 true）
+· cast：false＝純景物鏡（唔出角色），適合開場空鏡
+
+【完整例子：土星環上面嘅冰跑道 + 遠處地球】
+{"objects":[
+  {"shape":"ring","pos":[0,0.12,-5.0],"size":[2.6,0.1],"tube":0.055,"color":"#E8D5A8","count":64,"rot":[10,0,-6]},
+  {"shape":"sphere","pos":[0,0.12,-5.0],"size":[0.75],"color":"#D6A26A"},
+  {"shape":"box","pos":[0,0.02,-1.7],"size":[1.5,0.04,0.45],"color":"#BFE9FF","roughness":0.15,"rot":[0,-12,0]},
+  {"shape":"sphere","pos":[2.6,1.0,-9.0],"size":[0.34],"color":"#5B9BFF","glow":0.35},
+  {"shape":"ellipsoid","pos":[-1.8,2.4,-6.5],"size":[0.1,0.1,0.1],"color":"#FFFFFF","glow":0.9,"repeat":{"count":40,"area":[[-4,4],[0.5,4.5],[-8,-4]]}}
+],"sky":{"top":"#0A0E22","bottom":"#2A2144"},"floor":false,"framing":"wide","float":true}
+
+★ 你亦可以選擇性用 kind 快速設定天空／地面底色（space／night／sky／sunset／forest／beach／snow／city／indoor／underwater／void），但 objects 先係主角，唔好因為 kind 而限制創意。`;
 }
 
 function castPromptBlock(heroSec, actor){
@@ -1294,7 +1313,7 @@ ${directorRule()}`;
 ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'}
 
 · 場景要跟住主題走：講太空就出太空、講海底就出海底、講城市就出城市；唔好全片都留喺地球營地。
-· 可以用 scene.props 加火箭、行星、衛星、棕櫚樹、水晶、大樓、街燈、雪人……去建立世界觀。
+· 每鏡自己用 scene.objects 砌景（唔係揀 preset、唔係揀 props 清單）；道具／建築／地形全部用基本形狀組合出嚟。
 · 唔准加任何產品／App／網站介紹或「功能示範」字眼。`;
 
   const castSchema = (S.cast && S.cast.length)
@@ -1313,7 +1332,7 @@ ${briefText || '（未填，請自行構思一個有驚喜嘅原創短故事）'
       "subtitle": "片底大字兩行短字幕（可用 \\n 換行）"
     }`
     : `    {
-      "scene": {"kind": "上面 kind 之一", "props": ["上面 props ID"], "framing": "wide|medium|closeup", "float": false},
+      "scene": {"objects": [{"shape": "sphere|ellipsoid|box|capsule|cylinder|ring", "pos": [x,y,z], "size": [...], "color": "#RRGGBB", "glow": 0, "anim": {"kind": "bob"}}], "sky": {"top": "#0A0E22", "bottom": "#2A2144"}, "floor": false, "framing": "wide", "float": true},
       "camera": "上面運鏡 ID 之一",
       "narration": "地道香港廣東話口語旁白",
       "subtitle": "片底大字兩行短字幕（可用 \\n 換行）"
@@ -1334,12 +1353,125 @@ ${shotSchema}
   const rawCtx = (mode === 'ai' && window.__URL_CTX)
     ? `【參考資料（只作世界觀參考，唔好照抄廣告）】\n${window.__URL_CTX}\n`
     : '';
+  const sceneHint = ($('f_scene_hint') ? $('f_scene_hint').value.trim() : '');
+  const sceneHintBlock = sceneHint
+    ? `【用戶指定場景／世界觀（最高優先，必須照住做）】\n${sceneHint}\n→ 將上面描述翻譯成 scene.objects 嘅形狀、顏色、位置；唔好無視，亦唔好夾硬換返營地。\n`
+    : '';
 
   if(mode === 'manual'){
-    return `${common}\n\n${storyRules}\n\n旁白語氣：${tone}\n請跟足我寫嘅大綱脈絡，執靚地道廣東話旁白＋片底字幕，並為每鏡設計最貼切嘅 scene 同 camera。\n\n${rawCtx}${jsonBlock}`;
+    return `${common}\n\n${storyRules}\n\n${sceneHintBlock}旁白語氣：${tone}\n請跟足我寫嘅大綱脈絡，執靚地道廣東話旁白＋片底字幕，並為每鏡設計最貼切嘅 scene 同 camera。\n\n${rawCtx}${jsonBlock}`;
   }
 
-  return `${common}\n\n${storyRules}\n\n${rawCtx}${jsonBlock}`;
+  return `${common}\n\n${storyRules}\n\n${sceneHintBlock}${rawCtx}${jsonBlock}`;
+}
+
+/* 🧩 AI 自由場景：唔係名單，係 AI 用引擎基本形狀砌出嚟 */
+const BP_SHAPES = ['sphere', 'ellipsoid', 'box', 'capsule', 'cylinder', 'ring'];
+const BP_SHAPE_ALIAS = {
+  ball:'sphere', 球:'sphere', 圓球:'sphere', 星球:'sphere', 星:'sphere', 太陽:'sphere', 月亮:'sphere',
+  cube:'box', 方塊:'box', 盒:'box', 立方體:'box', 箱:'box',
+  膠囊:'capsule', 柱:'cylinder', 圓柱:'cylinder', 柱體:'cylinder', 管:'cylinder',
+  環:'ring', 光環:'ring', 圈:'ring', 軌道:'ring', 土星環:'ring'
+};
+function bpNum(v, d, lo, hi){
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d;
+}
+function bpVec(v, d){
+  if(typeof v === 'number') return [v, v, v];
+  if(v && !Array.isArray(v) && typeof v === 'object') return [Number(v.x)||0, Number(v.y)||0, Number(v.z)||0];
+  if(Array.isArray(v) && v.length) return [Number(v[0])||0, Number(v[1])||0, v.length > 2 ? (Number(v[2])||0) : 0];
+  return d.slice();
+}
+function bpColor(v, d){
+  const s = String(v || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(s) ? s : d;
+}
+function normBlueprintObject(raw){
+  if(!raw || typeof raw !== 'object') return null;
+  const key = String(raw.shape || raw.type || raw.form || 'sphere').trim().toLowerCase();
+  const shape = BP_SHAPE_ALIAS[key] || (BP_SHAPES.includes(key) ? key : '');
+  if(!shape) return null;
+  const size = bpVec(raw.size || raw.scale || raw.radii || raw.radius, [0.5, 0.5, 0.5])
+    .map(x => Math.max(0.01, Math.min(20, Math.abs(x))));
+  const o = {
+    shape,
+    pos: bpVec(raw.pos || raw.position || raw.at || raw.center, [0, 1.2, -3])
+      .map(x => Math.max(-40, Math.min(40, x))),
+    size,
+    rot: bpVec(raw.rot || raw.rotation, [0, 0, 0]),
+    color: bpColor(raw.color || raw.colour, '#C9D4EA'),
+    glow: bpNum(raw.glow ?? raw.emissive, 0, 0, 1),
+    rough: bpNum(raw.roughness ?? raw.rough, 0.5, 0.05, 1),
+    count: Math.round(bpNum(raw.count, 48, 2, 96)),
+    tube: bpNum(raw.tube, size[1], 0.008, 2),
+    axis: String(raw.axis || 'y').toLowerCase().slice(0, 1) || 'y',
+    bevel: bpNum(raw.bevel, Math.min.apply(null, size) * 0.2, 0, 2)
+  };
+  const anim = raw.anim || raw.animation || raw.motion;
+  if(anim && typeof anim === 'object'){
+    const k = String(anim.kind || anim.type || '').toLowerCase();
+    const kind = ({bob:'bob', float:'bob', drift:'drift', spin:'spin', rotate:'spin', pulse:'pulse', none:'none'})[k];
+    if(kind){
+      o.anim = { kind, amp: bpNum(anim.amp, 0.12, 0, 6), speed: bpNum(anim.speed, 1, 0, 12), phase: bpNum(anim.phase, 0, -100, 100) };
+    }
+  }
+  const rep = raw.repeat || raw.copies || raw.scatter;
+  if(rep && typeof rep === 'object'){
+    const areaRaw = rep.area || rep.box || rep.range;
+    let area = [[-3, 3], [0, 4], [-6, -2]];
+    if(Array.isArray(areaRaw) && areaRaw.length === 6){
+      area = [[Number(areaRaw[0])||0, Number(areaRaw[1])||0], [Number(areaRaw[2])||0, Number(areaRaw[3])||0], [Number(areaRaw[4])||0, Number(areaRaw[5])||0]];
+    }else if(Array.isArray(areaRaw) && areaRaw.length === 3){
+      area = areaRaw.map((p, i) => Array.isArray(p) ? [Number(p[0])||0, Number(p[1])||0] : area[i]);
+    }
+    o.repeat = { count: Math.round(bpNum(rep.count ?? rep.n, 12, 1, 60)), area, seed: Math.round(bpNum(rep.seed, 17, 0, 9999)) };
+  }
+  return o;
+}
+
+
+function buildScenePrompt(desc, sh){
+  return `你係一位 3D 場景美術指導。用戶會用一句話形容想要嘅場景，你要將佢翻譯成引擎用到嘅 JSON。
+
+【用戶場景描述】
+${desc}
+
+【呢一鏡嘅劇情／字幕】
+${sh && (sh.subtitle || sh.narration) ? (sh.subtitle || sh.narration) : '（無）'}
+
+${sceneDocBlock()}
+
+【輸出規則】
+· 只輸出純 JSON，唔要解釋、唔要 markdown code fence。
+· 格式：{"scene":{"objects":[...],"sky":{"top":"#...","bottom":"#..."},"floor":false,"framing":"wide","float":true}}
+· 依照用戶描述嘅氣氛、顏色、物件去砌；用戶冇提嘅嘢可以合理補完。
+· 角色會企喺畫面中央，物件唔好遮住角色面部。
+· 如果描述係純景物（例如「土星環空鏡」），設 "cast": false。`;
+}
+
+async function designShotScene(idx){
+  const sh = S.shots[idx];
+  const desc = String(sh.sceneText || '').trim();
+  if(!desc){
+    showToast('請先打場景描述（例如：土星環上面嘅冰跑道）');
+    return;
+  }
+  setStatus('busy', `AI 正在按你嘅描述設計第 ${idx + 1} 鏡場景…`);
+  try{
+    const resp = await callText(buildScenePrompt(desc, sh));
+    const scene = parseSceneResponse(pickText(resp));
+    if(!scene) throw new FriendlyError('⚠️ AI 回傳嘅場景格式未能解析，請再撳一次。');
+    S.shots[idx].scene = scene;
+    renderShotsEditor();
+    await refreshAllOutputs();
+    setStatus('ok', `✅ 第 ${idx + 1} 鏡場景已由 AI 設計：${sceneSummary(scene)}`);
+    showToast('🎨 AI 已重畫場景');
+  }catch(err){
+    const msg = (err instanceof FriendlyError) ? err.message : ('⚠️ ' + (err && err.message ? err.message : 'AI 場景設計失敗'));
+    setStatus('err', msg);
+    showToast(msg);
+  }
 }
 
 const SCENE_SHORTHAND = {
@@ -1350,6 +1482,7 @@ const SCENE_SHORTHAND = {
   '城市':'city','都市':'city','室內':'indoor','屋企':'indoor','海底':'underwater',
   '海洋':'underwater','水底':'underwater','虛空':'void','黑底':'void'
 };
+
 function normSceneClient(v){
   if(!v) return null;
   let o = v;
@@ -1360,16 +1493,83 @@ function normSceneClient(v){
     o = { kind };
   }
   if(typeof o !== 'object') return null;
-  const kind = String(o.kind || o.scene_kind || '').trim().toLowerCase();
-  if(!SCENE_KIND_MAP[kind]) return null;
-  const props = Array.isArray(o.props)
-    ? o.props.map(x => String(x).trim().toLowerCase()).filter(x => SCENE_PROP_MAP[x]).slice(0, 8)
-    : [];
-  const fr = String(o.framing || '').trim().toLowerCase();
+
+  const kindRaw = String(o.kind || o.scene_kind || '').trim().toLowerCase();
+  const kind = SCENE_KIND_MAP[kindRaw] ? kindRaw : '';
+
+  const objectsIn = o.objects || o.primitives || o.blueprint || [];
+  const objects = Array.isArray(objectsIn) ? objectsIn.map(normBlueprintObject).filter(Boolean).slice(0, 48) : [];
+
+  const propsIn = Array.isArray(o.props) ? o.props : [];
+  const props = propsIn.map(x => String(x).trim().toLowerCase()).filter(x => SCENE_PROP_MAP[x]).slice(0, 10);
+
+  if(!kind && !objects.length && !props.length) return null;
+
+  const fr = String(o.framing || o.shot_size || '').trim().toLowerCase();
   const framing = ['wide', 'medium', 'closeup'].includes(fr) ? fr : 'medium';
-  const palette = (o.palette && typeof o.palette === 'object') ? o.palette : undefined;
-  return { kind, props, framing, float: !!o.float, palette };
+
+  const palette = {};
+  const pal = (o.palette && typeof o.palette === 'object') ? o.palette : {};
+  ['sky_top', 'sky_bottom', 'floor'].forEach(k => {
+    if(/^#[0-9a-fA-F]{6}$/.test(String(pal[k] || ''))) palette[k] = pal[k];
+  });
+  const sky = o.sky || o.background;
+  if(typeof sky === 'string' && /^#[0-9a-fA-F]{6}$/.test(sky)){
+    palette.sky_top = sky; palette.sky_bottom = sky;
+  }else if(sky && typeof sky === 'object'){
+    if(/^#[0-9a-fA-F]{6}$/.test(String(sky.top || ''))) palette.sky_top = sky.top;
+    if(/^#[0-9a-fA-F]{6}$/.test(String(sky.bottom || ''))) palette.sky_bottom = sky.bottom;
+  }
+
+  let floor;
+  if(Object.prototype.hasOwnProperty.call(o, 'floor') || Object.prototype.hasOwnProperty.call(o, 'ground')){
+    const raw = o.floor !== undefined ? o.floor : o.ground;
+    if(raw === false) floor = false;
+    else if(typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw)) floor = raw;
+    else if(raw && typeof raw === 'object' && /^#[0-9a-fA-F]{6}$/.test(String(raw.color || ''))) floor = raw;
+    else if(typeof raw === 'number') floor = { y: raw };
+  }
+
+  const light = {};
+  if(o.light && typeof o.light === 'object'){
+    if(/^#[0-9a-fA-F]{6}$/.test(String(o.light.key || ''))) light.key_color = o.light.key;
+    if(/^#[0-9a-fA-F]{6}$/.test(String(o.light.rim || ''))) light.rim = o.light.rim;
+    if(o.light.dir) light.dir = bpVec(o.light.dir, [-0.4, 0.7, 0.6]);
+  }
+
+  const floaty = (o.float === undefined && o.floating === undefined)
+    ? (['space', 'void', 'sky'].includes(kind) || floor === false)
+    : !!(o.float ?? o.floating);
+
+  return {
+    kind, props, objects, framing, float: floaty, palette,
+    floor: floor === undefined ? undefined : floor,
+    light: Object.keys(light).length ? light : undefined,
+    cast: o.cast === false ? false : true
+  };
 }
+
+function sceneSummary(sc){
+  if(!sc) return 'preset';
+  const parts = [];
+  const k = SCENE_KIND_MAP[sc.kind];
+  if(k) parts.push(k.emoji + ' ' + k.name);
+  if(sc.objects && sc.objects.length) parts.push('🧩 ' + sc.objects.length + ' 件物件');
+  if(sc.props && sc.props.length) parts.push(sc.props.map(x => (SCENE_PROP_MAP[x] || {name:x}).name).join('／'));
+  return parts.join(' · ') || '🧩 自由場景';
+}
+
+function parseSceneResponse(raw){
+  let t = String(raw || '').trim()
+    .replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if(a < 0 || b < a) return null;
+  try{
+    const j = JSON.parse(t.slice(a, b + 1));
+    return normSceneClient(j.scene || j);
+  }catch(e){ return null; }
+}
+
 
 function parseStoryJson(raw, allowUniform){
   let t = String(raw || '').trim();
@@ -1495,7 +1695,7 @@ async function doStory(mode){
       S.shots.forEach(sh => { sh.camera = 'auto'; });
     }else if(S.director === 'full'){
       const fp = PRESET_MAP[S.fixedScene] || PRESETS[0];
-      S.shots.forEach(sh => { sh.preset = fp.id; sh.duration = fp.defDur; sh.camera = 'auto'; delete sh.scene; delete sh.sceneKind; });
+      S.shots.forEach(sh => { sh.preset = fp.id; sh.duration = fp.defDur; sh.camera = 'auto'; delete sh.scene; });
     }
     if(parsed.series_badge){
       S.seriesBadge = parsed.series_badge;
@@ -1597,11 +1797,6 @@ function buildEpisodeSpec(){
       const estSpeak = S.voice === 'none' ? compact : Math.max(2.2, nar.replace(/\s+/g,'').length * 0.135 + 0.55);
       const dur = Number(Math.max(2.2, estSpeak).toFixed(1));
       let sc = sh.scene ? normSceneClient(sh.scene) : null;
-      if(sh.sceneKind && sh.sceneKind !== 'auto' && SCENE_KIND_MAP[sh.sceneKind]){
-        /* 用戶手動改場景類型：只用新 kind，道具交返俾預設組合 */
-        sc = { kind: sh.sceneKind };
-        if(sh.sceneKind === 'space' || sh.sceneKind === 'void' || sh.sceneKind === 'sky') sc.float = true;
-      }
       if(S.director === 'full') sc = null;
       const out = {
         preset: p,
@@ -1906,15 +2101,11 @@ function renderShotsEditor(){
     const opts = `<optgroup label="童軍故事場景">${storyOpts}</optgroup><optgroup label="制服／徽章示範">${uniOpts}</optgroup>`;
     const curCam = (sh.camera && CAMERA_MAP[sh.camera]) ? sh.camera : 'auto';
     const camOpts = CAMERAS.map(c => `<option value="${c.id}" ${c.id === curCam ? 'selected' : ''}>${c.emoji} ${esc(c.name)}</option>`).join('');
-    const curScene = (sh.sceneKind && sh.sceneKind !== 'auto') ? sh.sceneKind : 'auto';
-    const sceneOpts = `<option value="auto" ${curScene === 'auto' ? 'selected' : ''}>🤖 ${sh.scene ? sceneZh(sh.scene.kind) : '跟 AI／preset'}</option>`
-      + SCENE_KINDS.map(k => `<option value="${k.id}" ${curScene === k.id ? 'selected' : ''}>${k.emoji} ${esc(k.name)}</option>`).join('');
     return `
       <div class="pagecard" data-idx="${idx}">
         <div class="ph">
           <b>第 ${idx + 1} 鏡</b>
-          <select class="js-scene" title="場景類型（AI 自由場景）">${sceneOpts}</select>
-          <select class="js-preset" title="進階：固定鏡位 preset（想用 9 個經典營地場景先改）">${opts}</select>
+          <select class="js-preset" title="進階備用：舊 preset（AI 自由場景會優先）">${opts}</select>
           <select class="js-cam" title="呢一鏡嘅運鏡">${camOpts}</select>
           <div class="sp">
             <button class="btn xs js-up" title="上移" ${idx === 0 ? 'disabled' : ''}>↑</button>
@@ -1923,6 +2114,17 @@ function renderShotsEditor(){
           </div>
         </div>
         <div class="pb">
+          <div class="vo-row">
+            <div class="vo-lbl">
+              <span>🏞️ 場景描述（自己打字，AI 翻譯成 3D 物件）</span>
+              <span>${sh.scene ? '✅ ' + esc(sceneSummary(sh.scene)) : '未有場景：會跟故事／preset'}</span>
+            </div>
+            <textarea class="vo-in js-scene-desc" rows="2" placeholder="例：土星環上面有條發光冰跑道，遠處見到地球，仲有幾粒流星飛過…">${esc(sh.sceneText || '')}</textarea>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+              <button class="btn sm js-scene-ai">🎨 叫 AI 用呢段描述重畫場景</button>
+              <span class="mini js-scene-note">${sh.scene ? '場景會寫入 CMD payload' : '打描述 → AI 砌 objects → 入 CMD'}</span>
+            </div>
+          </div>
           <div class="vo-row">
             <div class="vo-lbl">
               <span>🎙️ 廣東話旁白（配音讀出）</span>
@@ -1949,16 +2151,21 @@ function renderShotsEditor(){
       S.shots[idx].duration = (PRESET_MAP[e.target.value] || {defDur:3.2}).defDur;
       await refreshAllOutputs();
     });
-    card.querySelector('.js-scene').addEventListener('change', async e => {
-      const v = e.target.value;
-      if(v === 'auto'){
-        delete S.shots[idx].sceneKind;
-      }else{
-        S.shots[idx].sceneKind = v;
-        if(S.shots[idx].scene) delete S.shots[idx].scene;
+    card.querySelector('.js-scene-desc').addEventListener('input', e => {
+      S.shots[idx].sceneText = e.target.value;
+    });
+    card.querySelector('.js-scene-ai').addEventListener('click', async e => {
+      const btn = e.currentTarget;
+      if(btn.disabled) return;
+      const old = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳ AI 設計場景中…';
+      try{
+        await designShotScene(idx);
+      }finally{
+        btn.disabled = false;
+        btn.textContent = old;
       }
-      renderShotsEditor();
-      await refreshAllOutputs();
     });
     card.querySelector('.js-cam').addEventListener('change', async e => {
       S.shots[idx].camera = e.target.value;
@@ -2002,11 +2209,9 @@ function renderPreviewAndStats(spec){
     const p = PRESET_MAP[sh.preset] || PRESETS[0];
     const camId = (sh.camera && sh.camera !== 'auto') ? sh.camera : (S.director !== 'ai' ? S.camera : 'auto');
     const camObj = CAMERA_MAP[camId] || CAMERA_MAP.auto;
-    const sceneId = (sh.sceneKind && sh.sceneKind !== 'auto') ? sh.sceneKind
-      : (sh.scene ? sh.scene.kind : null);
-    const sceneLabel = sceneId
-      ? `${sceneZh(sceneId)}${sh.scene && sh.scene.props && sh.scene.props.length ? ' · ' + sh.scene.props.map(x => (SCENE_PROP_MAP[x] || {name:x}).name).join('／') : ''}`
-      : `${p.emoji} ${esc(p.name.split('：')[0])}`;
+    const sceneLabel = sh.scene
+      ? `${esc(sceneSummary(sh.scene))}`
+      : `${p.emoji} ${esc(p.name.split('：')[0])}（preset）`;
     return `
       <div class="shotpv">
         <div class="shotpv-top">
@@ -2277,8 +2482,8 @@ async function runSelfTest(){
   const sampleCmd = await buildMethodACommand();
   checks.push(['CMD 短碼輸出', sampleCmd.includes('src/scout3d_runner.py --b64 z_')]);
   const pureStoryPrompt = buildStoryPrompt('ai');
-  checks.push(['主題提示零廣告', /唔准加任何產品/.test(pureStoryPrompt) && /AI 自由場景積木/.test(pureStoryPrompt)]);
-  checks.push(['AI 自由場景', SCENE_KINDS.length === 11 && SCENE_PROPS.length === 20 && !!specProbe.shots[0].scene]);
+  checks.push(['主題提示零廣告', /唔准加任何產品/.test(pureStoryPrompt) && /自由場景：由你自己砌/.test(pureStoryPrompt)]);
+  checks.push(['AI 自由場景 primitives', SCENE_KINDS.length === 11 && BP_SHAPES.length === 6 && !!normSceneClient({objects:[{shape:'ring',size:[1,0.1]}]})]);
   checks.push(['支部／主角入 spec', !!specProbe.story_section && !!specProbe.actor_skin]);
   checks.push(['11 種運鏡', CAMERAS.length === 11]);
   checks.push(['逐鏡運鏡入 spec', !!specProbe.shots[0].camera]);

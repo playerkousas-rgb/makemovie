@@ -28,10 +28,10 @@
 - `src/scout3d_whatif.py`：《如果系列 EP.01：如果你有 SCOUT 3D》完整渲染管線。
 - `src/scout3d_runner.py`：通用劇本＋香港廣東話配音執行引擎（支援 `--b64 z_...` 短碼免開檔直接貼落 Windows `CMD` 一鍵出片；內置 `edge-tts` 香港廣東話自然語音合成、**按 `edge-tts` 實測語音長度精準鎖定每鏡秒數（零死空氣）**、以及 BGM 自動壓聲 Ducking；
   另支援 **右下角超小「© SCOUT SYSTEM」水印**（預設只喺片中中間出現 3 秒、有淡入淡出、唔會遮字幕；可用 `watermark: {"enabled": false}` 關閉或自訂文字／`show_sec`）、`story_section`（`grasshopper`／`cub`／`scout`／`sea_scout`／`air_scout`／`venture`／`leader`，貼咗 `S3D1_...` 穿搭碼時以穿搭碼為準）、`actor_skin`（`human`／`ai_robot`）、**`characters` 多角色陣容（1–5 人，每人可獨立支部／真人或 AI／自己嘅制服碼）**，以及 **`camera` 運鏡（可全片固定，亦可逐鏡指定；共 11 種）**）。
-- `tools/3D主題故事影片生成器_v3.0.html`：純前端單檔工具（對齊 `© SCOUT SYSTEM` 介面；支援 **15s / 30s / 45s / 60s / 90s 彈性片長**、**主角支部**、**真人／AI 機械人**、`S3D1_...` 制服碼，簡化成 **「一鍵複製 CMD 出片指令」**）。
+- `tools/3D主題故事影片生成器_v3.1.html`：純前端單檔工具（對齊 `© SCOUT SYSTEM` 介面；支援 **15s / 30s / 45s / 60s / 90s 彈性片長**、**主角支部**、**真人／AI 機械人**、`S3D1_...` 制服碼，簡化成 **「一鍵複製 CMD 出片指令」**）。
   - **🎯 主題自由**：打咩主題就寫咩故事（太空、海底、城市、魔法…），唔會夾硬拉返童軍營地；`SCOUT 3D` 只負責角色畫風。
-  - **🏞️ AI 自由場景（v3.0 重點）**：AI 用 `scene` 積木自己砌背景（11 種 `kind` × 20 種 `props` ＋色盤 ＋鏡位 framing），唔再局限於 9 個 preset。Preset 只係手動備用。
-  - **🎥 場景／運鏡分開**：「AI 自動導演」／「我揀運鏡」／「我全權話事」，劇本生成後仍可逐鏡改場景類型同運鏡。
+  - **🏞️ AI 自由場景（v3.1 重點）**：AI 用 6 種基本形狀砌 `scene.objects`（位置／大小／顏色／發光／動畫／散佈），可以發明土星環、冰洞、糖果屋；冇場景名單。人手打一句描述，AI 翻譯成 objects。
+  - **🎨 逐鏡 AI 重畫場景**：每鏡自由文字框，打「土星環上面有條冰跑道」→ AI 即場砌；亦可揀「AI 自動導演／我揀運鏡／我全權話事」。
   - **👥 多角色陣容**：最多 5 位，每位可獨立支部、真人／AI、自己嘅 `S3D1_...` 制服碼。
   - **水印**：右下角超小「© SCOUT SYSTEM」，只喺片中中間出現 3 秒（可關）。
 
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 > 💡 即使忘記手動安裝新套件，`scout3d_runner.py` 首次啟用廣東話配音時亦會自動幫你安裝 `edge-tts`。
 
 ### 3. 本機極速出片流程（支援 `SCOUT 3D` 穿搭碼 · 免經 Git · 直接貼落 CMD 即刻整片）
-1. 用瀏覽器或放入 Gemini Canvas 打開 `tools/3D主題故事影片生成器_v3.0.html`
+1. 用瀏覽器或放入 Gemini Canvas 打開 `tools/3D主題故事影片生成器_v3.1.html`
 2. 第 1 步先揀 **目標片長**（15 秒～90 秒，自動配對合理分鏡範圍）＋ **主角支部**（可留空由 AI 判斷）＋ **主角類型**（可留空由 AI 判斷，AI／機械人故事會出 3D 機械人角色），並可選填貼入由 `SCOUT 3D` 複製過嚟嘅 **`S3D1_...` 角色穿搭碼**；想成團有唔同支部，可撳 **「＋ 加一位角色」**（最多 5 人，每人可獨立制服碼），再揀 **AI 導演／我揀運鏡／我話事**
 3. 第 2 步打 **主題**（例：`飛出太空`、`海底尋寶`、`如果有個 AI 加入小童軍`），再撳 **「🤖 AI 全自動」** 或 **「✍️ 我作大綱」**：AI 會寫廣東話旁白，**同時自己設計每鏡場景**（唔使你自己揀 preset）
 4. 撳右邊 **「📋 一鍵複製 CMD 出片指令」** ➔ 貼落 Windows `CMD` 按 **Enter**，即喺 `output\<檔名>.mp4` 生成 3D 影片（廣東話配音＋字幕＋BGM＋你嘅角色制服）。
@@ -58,47 +58,79 @@ pip install -r requirements.txt
 
 > 例：只打 `如果有個AI 加入小童軍`（GitHub 留空）→ AI 會寫 `story_section: grasshopper`＋`actor_skin: ai_robot`，3D 畫面就係一個著住小童軍橙色活動服＋棗紅領巾嘅 AI 機械人，喺集會、營地、營火會同隊員一齊活動，最後齊齊敬禮，完全唔會變 `SCOUT 3D` 廣告。
 
-### 5. AI 自由場景 `scene`（v3.0 重點）
+### 5. AI 自由場景（冇清單：AI 用基本形狀自己砌）
 
-你（或者 AI）可以喺 episode 或每一鏡加 `scene`，自由組合背景同道具；**冇 `scene` 就照舊用 `preset`**，所以所有舊劇本完全兼容。
+場景唔係由 preset／props 名單揀。每一鏡嘅 `scene.objects` 由 AI 用 6 種引擎基本形狀砌出嚟，
+所以「土星環」、「冰洞」、「糖果屋」、「恐龍骨架」都可以即場發明。**冇 `scene` 就照舊用 `preset`**，舊劇本完全兼容。
 
 ```json
 {
-  "episode_id": "space_adventure_ep01",
-  "story_section": "grasshopper",
-  "actor_skin": "ai_robot",
-  "shots": [
-    {
-      "duration": 3.4,
-      "camera": "tilt_up",
-      "scene": {
-        "kind": "space",
-        "props": ["stars", "planet", "rocket"],
-        "framing": "wide",
-        "float": true,
-        "palette": {"sky_top": "#05081A", "sky_bottom": "#241A46"}
-      },
-      "narration": "火箭一點火，三、二、一，衝破雲層！",
-      "subtitle": "三、二、一\n衝破雲層！"
-    }
-  ]
+  "episode_id": "ai_scene_test",
+  "shots": [{
+    "duration": 3.4,
+    "camera": "auto",
+    "scene": {
+      "objects": [
+        {"shape": "ring", "pos": [0, 0.12, -5], "size": [2.5, 0.1], "tube": 0.05,
+         "color": "#E8D5A8", "count": 64, "rot": [10, 0, -6]},
+        {"shape": "sphere", "pos": [0, 0.12, -5], "size": [0.75], "color": "#D6A26A"},
+        {"shape": "box", "pos": [0, 0.02, -1.7], "size": [1.5, 0.04, 0.45],
+         "color": "#BFE9FF", "roughness": 0.15, "rot": [0, -12, 0]},
+        {"shape": "ellipsoid", "pos": [-1.8, 2.4, -6.5], "size": [0.1, 0.1, 0.1],
+         "color": "#FFFFFF", "glow": 0.9,
+         "repeat": {"count": 40, "area": [[-4, 4], [0.5, 4.5], [-8, -4]]}}
+      ],
+      "sky": {"top": "#0A0E22", "bottom": "#2A2144"},
+      "floor": false,
+      "framing": "wide",
+      "float": true
+    },
+    "narration": "土星環上面有條發光冰跑道。",
+    "subtitle": "土星環上面\n有條發光冰跑道"
+  }]
 }
 ```
 
-- `kind`（背景）：`space` 太空 · `sky` 高空 · `sunset` 黃昏 · `night` 夜晚 · `forest` 森林／營地 · `beach` 海灘 · `snow` 雪地 · `city` 城市 · `indoor` 室內 · `underwater` 海底 · `void` 虛空
-- `props`（可選 0–8 個）：`stars`、`moon`、`planet`、`rocket`、`satellite`、`asteroid`、`cloud`、`tent`、`campfire`、`pine`、`palm`、`rock`、`crystal`、`snowman`、`balloon`、`building`、`streetlamp`、`book`、`flag`、`bubble`
-- `framing`：`wide`（遠景）／`medium`（中景）／`closeup`（特寫）
-- `float`：角色漂浮（太空／虛空／天空預設 `true`）
-- 亦可寫簡寫：`"scene": "太空"` 或 `"scene": "space"`，道具會用該背景嘅預設組合。
-- 場景可以寫喺 episode 做全片預設，每鏡再覆蓋。
+**6 種 shape**
+
+| shape | size 意思 |
+|---|---|
+| `sphere` | `[半徑]` |
+| `ellipsoid` | `[rx, ry, rz]`（拉長／壓扁） |
+| `box` | `[半邊長 x, y, z]`，`bevel` 控制圓角 |
+| `capsule` / `cylinder` | `[半徑, 長度]`，`axis: x/y/z` |
+| `ring` | `[半徑, 粗幼]`，`tube`、`count` 控制每節粗細／密度 |
+
+每個 object 亦可加：`rot`（度）、`color`、`glow` 0–1、`roughness`、`anim`（`bob` / `drift` / `spin` / `pulse`）、
+`repeat`（`count` + `area` 散佈，適合星星／碎石／螢火蟲）。
+scene 層可用：`sky`、`floor`（`{color,y}` 或 `false`）、`framing`、`float`、`cast:false`（純景物空鏡）。
+
+> `kind`（space／city／snow…）同 `props` 只係可選捷徑，唔再係限制；AI 用 `objects` 就唔會加預設 props。
 
 ```bat
-python src/scout3d_runner.py --list-scenes
-python src/scout3d_runner.py --list-props
+python src/scout3d_runner.py --list-shapes
 python src/scout3d_runner.py --spec episodes/story_example.json
 ```
 
-> 示範成品：`preview/space_adventure_preview.mp4`（夜晚營地 → 火箭升空 → 月球／衛星 → 隕石 → 光環行星插旗 → 太空回望地球）。
+### 5b. 真實 AI 測試（唔用預先寫好嘅場景）
+
+HTML 每一鏡都有 **「場景描述」自由文字框**：你打字，撳 **「🎨 叫 AI 用呢段描述重畫場景」**，
+AI 會將你嘅描述翻譯成 `scene.objects`，再寫入 CMD payload。
+第 2 步亦可以填「場景／世界觀描述」，生成故事時一次過交畀 AI。
+
+想喺 terminal 直接測試 AI（唔經 UI）：
+
+```bat
+set GEMINI_API_KEY=你的key
+python scripts/ai_scene_test.py --text "土星環上面有條發光冰跑道，遠處見到地球" --raw-out output/ai_raw.txt --render
+```
+
+- 你打嘅字直接送去 Gemini，AI 自己決定物件、顏色、位置、動畫
+- Script 只做**格式驗證**（`normalize_episode_spec`），唔會幫 AI 改場景內容
+- `--raw-out` 會保存 AI 原始回覆，方便 debug
+- `--render` 會直接用 AI 回傳嘅 JSON 出 MP4（**冇人手寫嘅場景**）
+- 如果 AI 亂作 shape，script 會報錯並印出可辨識嘅 6 種形狀
+- 已經有 AI 原始回覆？`--raw-file output/ai_raw.txt` 可以離線驗證／渲染
 
 ### 6. 多角色 ＋ 運鏡 spec 寫法（`characters` / `camera`）
 
