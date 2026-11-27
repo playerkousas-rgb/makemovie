@@ -1,0 +1,2205 @@
+{
+ "source_repo": "playerkousas-rgb/SCOUT3D",
+ "source_path": "public/badges",
+ "source_commit": "8f255f9d94d0a28511514e50136a2463c936b3c7",
+ "count": 549,
+ "note": "SCOUT 3D 官方徽章完整鏡像；render 只讀本地，唔會上網。",
+ "files": {
+  "awards/anniv110Bronze.png": {
+   "bytes": 4066,
+   "sha256": "87be83ab7a2a795bd13ddc13e3af641d20c7183039868c550f7b9acbf52ace0d"
+  },
+  "awards/anniv110Silver.png": {
+   "bytes": 3744,
+   "sha256": "c29c3cea5071a0e9fcd98d0de1c54fc93e6d2008fe77c1f2d916f8d4f9d1f3e6"
+  },
+  "awards/anniv110Special.png": {
+   "bytes": 4145,
+   "sha256": "95a060bd166be344d21d8992ac644c8b2dccde072f6afebcd2bd325f86ada62b"
+  },
+  "awards/bronzeWolf.png": {
+   "bytes": 20032,
+   "sha256": "91d66a8c6474c1c6927aa01208f27d6509b49120ba949fede6455baa52d3f52a"
+  },
+  "awards/centenaryBronze.png": {
+   "bytes": 24159,
+   "sha256": "6cb2378732a7607f84c2762b8cf4ea0c0b838df0a71a571d467b08466248e7df"
+  },
+  "awards/centenarySilver.png": {
+   "bytes": 22054,
+   "sha256": "6b547a7f42407f3d4de3baa49ebf3d89d982524e032ec0a788e5a37b3edcad36"
+  },
+  "awards/diamondJubilee.png": {
+   "bytes": 3952,
+   "sha256": "bbb047f3631f9d2bd25e9e2cc9fae64fd85558a6a8d2f28117fec75a56bbd0f1"
+  },
+  "awards/distinguishedService.png": {
+   "bytes": 3752,
+   "sha256": "5fb6dc1b278b502af0c461d33ea34e418c92d6e88b16f312b0c4d34d42e8cdd1"
+  },
+  "awards/dragonGold.png": {
+   "bytes": 4292,
+   "sha256": "37dadb16be91f3cbf100dcba82aeb6916662043387780fb26ded2175402300c3"
+  },
+  "awards/dragonGreen.png": {
+   "bytes": 4462,
+   "sha256": "6ee615414d55822e0f786c703e6f9dca886d28a64bf528bf77696067dc0e665a"
+  },
+  "awards/dragonSilver.png": {
+   "bytes": 5902,
+   "sha256": "7a30ab6b3865151d63224d0d92e18f9ab8c6f11d95c16ee6b90d25017283b88c"
+  },
+  "awards/gallantryBronze.png": {
+   "bytes": 3635,
+   "sha256": "cae43915b79bd22cdf150ab77859e88f3b86b97e39d1de82bb3a71d8182db213"
+  },
+  "awards/gallantryGold.png": {
+   "bytes": 3424,
+   "sha256": "603874688015659a82bdb8ab92e193007255eb9438355fe1cfd82435957f6a9e"
+  },
+  "awards/gallantrySilver.png": {
+   "bytes": 3247,
+   "sha256": "2e5829cdc492df73afa786ad99bb7a3aeb1126957f65223e0b4d16e7a3ae57ce"
+  },
+  "awards/goodService.png": {
+   "bytes": 3685,
+   "sha256": "96ee623b125f71968f182e5aa30633e991178b716670e745b38abea4c496f080"
+  },
+  "awards/healthGuard.png": {
+   "bytes": 4250,
+   "sha256": "37eb64f4ccd2906ca72aa94fd137da82af93bed2d3c353b9d45144a62b067263"
+  },
+  "awards/lanyard_commendation.png": {
+   "bytes": 15535,
+   "sha256": "c7294b9094c24412913bd4d0a211d9c892ee448cd7f10db2b67f9b3b1e6b2f5f"
+  },
+  "awards/lanyard_high_commendation.png": {
+   "bytes": 13216,
+   "sha256": "0cc0d333d848d3845192f509524da66514064819c7df35a840f893f609b33124"
+  },
+  "awards/lanyard_model_scout.png": {
+   "bytes": 26783,
+   "sha256": "b7d05e8a7d91bc6ee6399d23a3984c331a76c4fbb338a5fdba964afc0821b2f8"
+  },
+  "awards/lionBronze.png": {
+   "bytes": 6834,
+   "sha256": "fbeaadf3d48b2ed1007df2ba6cccae8bbb9c547acc81c67327c5accf7e1390a5"
+  },
+  "awards/lionGold.png": {
+   "bytes": 5205,
+   "sha256": "d8564bbb18fa3e69ecddaf3cbb1a88c65b6a66e5d093a0a46a2bc93487c262d4"
+  },
+  "awards/lionSilver.png": {
+   "bytes": 6914,
+   "sha256": "bc94741facbce2607e444da8b1fd13fa1f448055e19cd75da429ce01bd81e913"
+  },
+  "awards/longService.png": {
+   "bytes": 3511,
+   "sha256": "84da4dc85d02192c655793bdfc18693b2a97fdb27e3e313edb02f2678a420a11"
+  },
+  "awards/longService1.png": {
+   "bytes": 3739,
+   "sha256": "b5ccf2ab2cf5f9172f34464c826e54324bcf18e901600915748cd7e6b9302146"
+  },
+  "awards/longService2.png": {
+   "bytes": 3889,
+   "sha256": "179f9e2fd4e412428b03f060a163a639c38dc661bb7b662887f59a52d138ab3f"
+  },
+  "awards/longService3.png": {
+   "bytes": 3900,
+   "sha256": "871e99b78a4bdc10beae11018a6b29e5a0ca071ea21d545b59ed7d92a935454c"
+  },
+  "awards/longService4.png": {
+   "bytes": 3912,
+   "sha256": "f64b03c3ad00d373e3b6cf8021ad1e5d33b1fb193f1a656a1ffbdacec5365b7c"
+  },
+  "awards/longService5.png": {
+   "bytes": 3797,
+   "sha256": "be0f4b5049448e4582f78709abb7faf4624d10134099ecca005c540b00d07cd5"
+  },
+  "awards/longService6.png": {
+   "bytes": 3730,
+   "sha256": "09e5cc20820f175102ce9ffe4dd1b22e4e9c26b223d50c5d46952e4627550f44"
+  },
+  "awards/meritCross.png": {
+   "bytes": 3929,
+   "sha256": "7dacfd0ff4db1528454062479e6ab2c2b917e0657c409f2e8c18217ea34c071a"
+  },
+  "awards/meritMedal.png": {
+   "bytes": 3788,
+   "sha256": "46f407a639e93c124c9e1bf40392d72a32396fe524f21db30dc2752b5d6e07d1"
+  },
+  "awards/metroBronze.png": {
+   "bytes": 4494,
+   "sha256": "378e40b21a18b109de811eb7fcbea3fefb4abdcef957facb0b7d6ec846415577"
+  },
+  "awards/metroSilver.png": {
+   "bytes": 4366,
+   "sha256": "a1f3d8fd6d0a3d8dd7ebecfee77611858503946f334a17b4f3e433ac72c1c519"
+  },
+  "awards/millenniumMedal.png": {
+   "bytes": 3921,
+   "sha256": "fcc890d07ba22d661909c6f92fc9ea01c38b3283da4c5538a5c9717445c7ece0"
+  },
+  "awards/millenniumStar.png": {
+   "bytes": 3619,
+   "sha256": "bb56a2f4400af7fe8536456c9d22fb9d681bc79717afae9c525489fa84451bcc"
+  },
+  "awards/scoutCentre.png": {
+   "bytes": 4306,
+   "sha256": "a60c4c5d132a04fee48fadefe21bdb6bbe638ee6c224e70f2e77628bb159e642"
+  },
+  "awards/serviceBar1.png": {
+   "bytes": 14628,
+   "sha256": "86fcb923e10e1d014351b6713c60061315b9813da078074f505e7d3db33bf2c8"
+  },
+  "awards/serviceBar2.png": {
+   "bytes": 30509,
+   "sha256": "0a611bf20b9be1a89f25dba025fe27b919b0ba824324ba39a7eda639c71ec3f2"
+  },
+  "awards/serviceBar3.png": {
+   "bytes": 45636,
+   "sha256": "d8df6d20abf356126c8867e906c846b16bda01cdb645ed1e04d0726fa3b5bc24"
+  },
+  "awards/serviceBar4.png": {
+   "bytes": 65201,
+   "sha256": "e0c55ea8b1f0ec8224962a9171430d7014bb1cdba192b71aa0359cbd4c3d4e1c"
+  },
+  "awards/shaAdult.png": {
+   "bytes": 32111,
+   "sha256": "18bbe4e61684db3d25c7901458851f701cc581765a1df5c0af78cb7ca40808a6"
+  },
+  "awards/shaYouth.png": {
+   "bytes": 32590,
+   "sha256": "62a7f7e50fa85674f8acd3f47ace1953e10f4f2c973e4e500578ecd80cbb0a03"
+  },
+  "awards/sp100Gold1.png": {
+   "bytes": 3077,
+   "sha256": "715aef591401ce9cc4f95302ac38f76765c7fea945695ab42a9bd8fe48c042ca"
+  },
+  "awards/sp100Gold2.png": {
+   "bytes": 3396,
+   "sha256": "5463b4082c04fb3b5ce14f508185dd57bcae806513f6ab8fd34663eca44df1d6"
+  },
+  "awards/sp100Gold3.png": {
+   "bytes": 3562,
+   "sha256": "3e5ac0afcd495245beda25eb8ec5e47e8ba211c74322ace20a0075f402991137"
+  },
+  "awards/sp100Silver.png": {
+   "bytes": 3042,
+   "sha256": "411c89fc6a140898ffa13d2dbc52bc5acafe40821fa5691d88238510cb1e8369"
+  },
+  "awards/sp95Gold.png": {
+   "bytes": 3382,
+   "sha256": "9369135c62ee1aaf706a964d13577b53b45752358b49c6833031dc4830c07998"
+  },
+  "awards/sp95Silver.png": {
+   "bytes": 3491,
+   "sha256": "5790bb8088c1a3ed0f16d1d8efd577ae134444ea916d2d997e3b81a7cf8bcd24"
+  },
+  "awards/special1.png": {
+   "bytes": 3279,
+   "sha256": "0dd9107c2000a03e34e6f8386d117522b209548afe9469956b259d88aff82ed3"
+  },
+  "awards/special10.png": {
+   "bytes": 3295,
+   "sha256": "e42cea95433c19458e32f634e9c676f27e8fb01fe90a16c79b3eb24c89c219eb"
+  },
+  "awards/special2.png": {
+   "bytes": 3711,
+   "sha256": "1768fa9c182804cbff1593b4b55334b48c152f30e2b3889379312a70c43f2fc6"
+  },
+  "awards/special3.png": {
+   "bytes": 3927,
+   "sha256": "806dfbcb51463d8f38dc1a9fa0c9e2cd89e29887732228f732165ae9f3ee972b"
+  },
+  "awards/special4.png": {
+   "bytes": 4113,
+   "sha256": "f4a38e3921fd4056e427b91844b28bd43df3bb512151b0cf69ca18fdd08f4d3c"
+  },
+  "awards/special5.png": {
+   "bytes": 3235,
+   "sha256": "aa6a7c2a313c8e488de78b793629d085f596e197bc053cd017ef24e85148c7b2"
+  },
+  "awards/special6.png": {
+   "bytes": 2791,
+   "sha256": "421dc6a176221b0fe08333c17f014c8beb066cdea798d8341a5a2ca96c30d8d6"
+  },
+  "awards/special7.png": {
+   "bytes": 2813,
+   "sha256": "fc10fb0e3077198ec9b74af514d3d62857c3e510d1036640a08a0dac6d37a000"
+  },
+  "awards/special8.png": {
+   "bytes": 3112,
+   "sha256": "150711fa3a046c89104e367e5675296f95d540e7afac964a981f6b70c47f7984"
+  },
+  "awards/special9.png": {
+   "bytes": 3337,
+   "sha256": "e263933813fe2f7afac2a5a55827482cb4d42db4a0f6465608476b03ecb32a15"
+  },
+  "awards/specialStar11.png": {
+   "bytes": 3435,
+   "sha256": "70fd0396ada671a62fa3c91ed6abe7324a564def3523293698135c34cc78535a"
+  },
+  "awards/specialStar12.png": {
+   "bytes": 3860,
+   "sha256": "ec7b893707b0e817b233dcb001acb3f4291605f818e1489637d3eb4fd244bbc8"
+  },
+  "awards/specialStar13.png": {
+   "bytes": 3816,
+   "sha256": "dfdcbfb377a5b5325c1c6234d83a1a4fcdf2c216c3aff6929f6c9ab64b2d0326"
+  },
+  "awards/specialStar14.png": {
+   "bytes": 3553,
+   "sha256": "64a265f9d151f3b4c5b3ba2831b7c6022b34113cf746fa785f9b2a832ccc756f"
+  },
+  "awards/specialStar15.png": {
+   "bytes": 3541,
+   "sha256": "b9544d5ada5baf25dd19f50d958ee0b9d53dca8a5ca19d031a9be429529ec824"
+  },
+  "awards/specialStar16.png": {
+   "bytes": 3044,
+   "sha256": "129a40bea4b49ed8d417d5c7db36377c5899f25823837aff6dd908ea4ffd9255"
+  },
+  "awards/thanks_badge.png": {
+   "bytes": 3864,
+   "sha256": "bc01a2b9805e5b0ef3011f98a210c573f10cc15d7b0624ff4e143ddd33bfe165"
+  },
+  "awards/walkTogether.png": {
+   "bytes": 4932,
+   "sha256": "04d8c24afed1d3bc3d703a261d4a0b77e743500483a6cfd2c1336ae86a2b19b3"
+  },
+  "cub/act_animal.png": {
+   "bytes": 2239,
+   "sha256": "83de93a50767c071bd6c453ff4794384df9d56ee5ef14014a6d0e25d12ff6475"
+  },
+  "cub/act_archery_bronze.png": {
+   "bytes": 2272,
+   "sha256": "1b82552fa46b3fbc06b145a9fe4482d5c490dcc2c81d36be485b94fd3b84a955"
+  },
+  "cub/act_archery_gold.png": {
+   "bytes": 2135,
+   "sha256": "972ae5b0dcab78f7c1918bbf1e3d4c322ec99e7ec41f073c0a7901f912bd7d23"
+  },
+  "cub/act_archery_silver.png": {
+   "bytes": 2248,
+   "sha256": "a5b6953831a66d9e8d459ec52d93031b31bf7907dc4042c066674ecf4c43634e"
+  },
+  "cub/act_art.png": {
+   "bytes": 2066,
+   "sha256": "a3826e298265101e3aac811d02e5b2085f532478d513c7d0f5912d8a9a1d4cad"
+  },
+  "cub/act_astronomy.png": {
+   "bytes": 2228,
+   "sha256": "83836723a0956d54ea1a64308f188f6319d3b09d24d6b6246ca7dc047a16bf7d"
+  },
+  "cub/act_athletics_bronze.png": {
+   "bytes": 2314,
+   "sha256": "81ee2068246ee701508a0b7a51023dbb6f03212e32a9548916e88a81d95294ca"
+  },
+  "cub/act_athletics_gold.png": {
+   "bytes": 2193,
+   "sha256": "dbb274f52176089d1880aa526eadebc3a62d5aea06c7af28092381d0a875ee58"
+  },
+  "cub/act_athletics_silver.png": {
+   "bytes": 2292,
+   "sha256": "c62722297781526df62e65ec863c7cb6c7652595d6ce793ecc216926fb0e4336"
+  },
+  "cub/act_camper.png": {
+   "bytes": 1737,
+   "sha256": "b952e4a1d3fff01c71cb64099024c0cadc66af2cab2dd12a877b06ba187e513f"
+  },
+  "cub/act_canoe_bronze.png": {
+   "bytes": 2526,
+   "sha256": "16008b8019c69247bc830db4dec0df8b6f55dabf687984f24bede12dc75998af"
+  },
+  "cub/act_canoe_gold.png": {
+   "bytes": 2363,
+   "sha256": "70452ef9cf77ae5567843f83d847b86ec80a122d4f486796d9961326a100b41e"
+  },
+  "cub/act_canoe_silver.png": {
+   "bytes": 2469,
+   "sha256": "a1e1b067b809fd06607f54b598b04bbeb4dc6ac3174892be7356576bdf5cf773"
+  },
+  "cub/act_collector.png": {
+   "bytes": 2016,
+   "sha256": "dba82a85731be3f7855d818b3e566d43d83e4dde98f3cb4468ca2ef217a13829"
+  },
+  "cub/act_cook.png": {
+   "bytes": 1725,
+   "sha256": "c31ade45b14d8abb9af9cccfe7dddf15d135fe217e6cdd61927f2cb0a9d44842"
+  },
+  "cub/act_cyclist.png": {
+   "bytes": 2448,
+   "sha256": "33a5fe27c332fe7a40f9d91bbd21c93e1c668259e675b1c92c389997859cc3a2"
+  },
+  "cub/act_entertainer.png": {
+   "bytes": 2241,
+   "sha256": "0c253c053b9b141343c332654254c67ecdb3f3a8e5930ac830d38e52ec25d268"
+  },
+  "cub/act_explorer.png": {
+   "bytes": 2069,
+   "sha256": "d492b25789ca38f82b23ab2e99cbf6092a439123a0d2305dd0c4b52b14b98332"
+  },
+  "cub/act_firstAid.png": {
+   "bytes": 1944,
+   "sha256": "3985dc748b334f3cde4c72892d3455a73a15a369e8ed750563150a44f0718fc5"
+  },
+  "cub/act_fitness_bronze.png": {
+   "bytes": 2140,
+   "sha256": "c534ae4204e285ebfeb33a5e3bce026c15399f1f8c76d9411c95443cdd97cac5"
+  },
+  "cub/act_fitness_gold.png": {
+   "bytes": 1992,
+   "sha256": "f24122b9763ae8cdf9e34a31661460413070aeacf4f2bdd50e8f47bf6320d901"
+  },
+  "cub/act_fitness_silver.png": {
+   "bytes": 2071,
+   "sha256": "185cf34f7979a66c3dd7f7a8b04dc5c8481ab41a6dfdf4d323726ffe5dbb232b"
+  },
+  "cub/act_gardener.png": {
+   "bytes": 2357,
+   "sha256": "7de286a8f1b789541392240adf9946e9cb641bf8e01a7438321aa12f1877f4b9"
+  },
+  "cub/act_handicraft.png": {
+   "bytes": 2459,
+   "sha256": "d9c40fa46aedd3d9dad786af4d6369db005e0006d8782415f920ffbba9e0e599"
+  },
+  "cub/act_hkHistory.png": {
+   "bytes": 2037,
+   "sha256": "eb477301fa9406dc46f15b8d7e1113478bd383d310a6624816f8cb1a859196ef"
+  },
+  "cub/act_homeHelp.png": {
+   "bytes": 1856,
+   "sha256": "e6b04784d8f0e0bee3415fe0b06fac5d8ae4f8c914904ba8c62e3bfcc10b6c3e"
+  },
+  "cub/act_inclusion.png": {
+   "bytes": 2508,
+   "sha256": "19ce6bd65951b774fadffc3371203daa0409c6465f778f654955914730b8bd21"
+  },
+  "cub/act_it.png": {
+   "bytes": 2584,
+   "sha256": "2a4fac57c998ff38deb038ee5ee6341a906d5466964af69639a6e13717071a4d"
+  },
+  "cub/act_language.png": {
+   "bytes": 2491,
+   "sha256": "25bd3dbf778662ed36272039050d446a5c8a0c74cce6a43dbdd943947d98b6bb"
+  },
+  "cub/act_media.png": {
+   "bytes": 2023,
+   "sha256": "1275598f12fd587bb1204f4af655ea69bdba54e6778e05deb6b5ee4bc55f6c96"
+  },
+  "cub/act_music_bronze.png": {
+   "bytes": 2838,
+   "sha256": "1fec4a68371fc12cd2f17a93c6858d5a469309883acb801df675e0b2b139b6ef"
+  },
+  "cub/act_music_gold.png": {
+   "bytes": 2761,
+   "sha256": "8a3bb9812c3b9d26f41499ca1ca7bd7f7092b55c2b62b6a1f106ff5645416bce"
+  },
+  "cub/act_music_silver.png": {
+   "bytes": 2802,
+   "sha256": "d147c2167db4a798e9b7b0fd9697951162a5c1865f2bee643cb5b4d8836ca8f1"
+  },
+  "cub/act_orienteering_bronze.png": {
+   "bytes": 2272,
+   "sha256": "e5648500f6ae9d44ef6c56ae3b11afd0eb51ea6730faaa2c980b9347e7435578"
+  },
+  "cub/act_orienteering_gold.png": {
+   "bytes": 2124,
+   "sha256": "33ba736f48044cf9afbb4afefcba5b2d2641e057be15d3d1ce11eba8af2a83ed"
+  },
+  "cub/act_orienteering_silver.png": {
+   "bytes": 2201,
+   "sha256": "619c59b6040656f3ada442765e5d6d128a247cf3b6c68389b29abe8a431bff9d"
+  },
+  "cub/act_pets.png": {
+   "bytes": 2010,
+   "sha256": "6c6194c06e06ae62cb8982edd4135820b77632463022a5392ac627181763e5b9"
+  },
+  "cub/act_photography.png": {
+   "bytes": 2130,
+   "sha256": "d72011d351be7ad68af8b8f344ed9b8054ec64a0ae76800e9fd521dbbb560128"
+  },
+  "cub/act_reader.png": {
+   "bytes": 2011,
+   "sha256": "7a1738e238aaa1c4db0b6056565be8ea8539425f4b93879e6172f3c0520b3d6c"
+  },
+  "cub/act_roadSafety.png": {
+   "bytes": 2338,
+   "sha256": "0f4f6f3fb3f95e2619b5206b89633e845b6d03c07bd9549538e0d12131bdad8f"
+  },
+  "cub/act_sailor.png": {
+   "bytes": 2357,
+   "sha256": "eeb602aebdba0d79a834ed6a1a140ee7999da06ab026fa562e5bf37eac221019"
+  },
+  "cub/act_science.png": {
+   "bytes": 1740,
+   "sha256": "9c023c60137b068366043e636fbee08ecb440af11678bc0415b6fa1baea95715"
+  },
+  "cub/act_sports.png": {
+   "bytes": 2467,
+   "sha256": "139b0e1dcac62901fa076e9a620b661836463667bf97faccfa572aee9f1fce5d"
+  },
+  "cub/act_swimmer_bronze.png": {
+   "bytes": 2191,
+   "sha256": "3c0011f7c046518d601822650697f417fa73cc6b7274f16bb6fad92f69e8f180"
+  },
+  "cub/act_swimmer_gold.png": {
+   "bytes": 2016,
+   "sha256": "26a9e2cda1bfcc4fe7841a98c011c7b73b0a776279386b6130b3a878fc0ec7ce"
+  },
+  "cub/act_swimmer_silver.png": {
+   "bytes": 2113,
+   "sha256": "1210cf0ecfc48e106e3da7237c008243271315a52bd8ca8bc7f949e7606ef4a0"
+  },
+  "cub/act_waterSafety.png": {
+   "bytes": 2368,
+   "sha256": "93b0bcf42045cbafaa0cbdd0ca6e2dcd68cf98b50288a2e14332576ece200c46"
+  },
+  "cub/act_weather.png": {
+   "bytes": 1833,
+   "sha256": "9ee108f5bfadcba49b33daf4159d571f65e74fed9c789250dc95ebe13ff236ff"
+  },
+  "cub/act_windsurf.png": {
+   "bytes": 2288,
+   "sha256": "44936e2983c85ec80ecab3e9e1006a08ba23b0dc348ce65d157571a513d83af3"
+  },
+  "cub/act_worldFriendship.png": {
+   "bytes": 2457,
+   "sha256": "5027b3009cad2a745301b04f93e39d1f786ea43fdcd8799917a86ec463eaf4b2"
+  },
+  "cub/act_writer.png": {
+   "bytes": 1867,
+   "sha256": "8300effca081ea9219aac279272aea489b2285599fe172590f7f07be17ea290e"
+  },
+  "cub/citizen_eme.png": {
+   "bytes": 6193,
+   "sha256": "47bf29853c72d8644c51f22a40e20d49e989badb9c0a52a286d6cf85c84fc63e"
+  },
+  "cub/citizen_nsa.png": {
+   "bytes": 4260,
+   "sha256": "8658d33c7468d5dc43c1c8f0e0d3b682a41052f2f177d4d912983875172d1bd8"
+  },
+  "cub/core_caring_bronze.png": {
+   "bytes": 2433,
+   "sha256": "7482f7ac7a810c66500fe3e9b33b105fb41491a30f7d9e84b4bc9ea113558ad8"
+  },
+  "cub/core_caring_gold.png": {
+   "bytes": 2473,
+   "sha256": "ee797ceb900ad63b06e058a8141cf53d06bee42e043e0afe08451af81dcef764"
+  },
+  "cub/core_caring_silver.png": {
+   "bytes": 2535,
+   "sha256": "881836bd29fcf333c1f432ad3a737bf4b599e869fcd4a8f3e13791517187f68d"
+  },
+  "cub/core_community_bronze.png": {
+   "bytes": 1922,
+   "sha256": "54fee323427a96b61cc574125c9c441c99fbf244fb0d9938e3812e72d1a076f3"
+  },
+  "cub/core_community_gold.png": {
+   "bytes": 2142,
+   "sha256": "56670077ca33350dab7bd9690c7469d5709f1391c2cc013b60af280210ed7ccb"
+  },
+  "cub/core_community_silver.png": {
+   "bytes": 2154,
+   "sha256": "424f37488da3ed5ced4f6344b4b7451f67ab3a871231fd496c3e79bfc1ec0251"
+  },
+  "cub/core_family_bronze.png": {
+   "bytes": 2223,
+   "sha256": "24c9a4d38fcebcb53e3c694b3f712878b4b66e446f163e17685254f219a857bf"
+  },
+  "cub/core_family_gold.png": {
+   "bytes": 3055,
+   "sha256": "0abcbe1e4c34a0cd6e699f995586699e766a1a8c444df2a592b287465c83ce05"
+  },
+  "cub/core_family_silver.png": {
+   "bytes": 2665,
+   "sha256": "a0197b24f3dafa2a867852a8679cfe6746ac16899c206b45a445e050fef605a2"
+  },
+  "cub/core_skills_bronze.png": {
+   "bytes": 2188,
+   "sha256": "99cdd4ccc8506dd954fc23c9b33a424ca02f6d62644d47828536ba1b9cd26c42"
+  },
+  "cub/core_skills_gold.png": {
+   "bytes": 1905,
+   "sha256": "09a0a1cbf4e6a8e5eb0a8dc7df9c8a3ae9e37dbad0975496786438feaa92dad5"
+  },
+  "cub/core_skills_silver.png": {
+   "bytes": 2111,
+   "sha256": "06c14da5a33f84e835001e36dc2a0780afd13487d14cd7ce1f0c027b068bd9ff"
+  },
+  "cub/cub_religious.png": {
+   "bytes": 2512,
+   "sha256": "b914592084c67e7e31fcdfc157ee5fdc37e5e7e9e48f9574360e4b485a26c300"
+  },
+  "cub/progress_advanced.png": {
+   "bytes": 4108,
+   "sha256": "dd6d1659844c4e0c658f2400f4136d8004f1715fbfdaf450475569b6ecec9a69"
+  },
+  "cub/progress_adventure.png": {
+   "bytes": 3989,
+   "sha256": "c04dd52b1472751b5a86adc2f0a943aaa19b0df469d6bf69d2c0e1be98988943"
+  },
+  "cub/progress_bauhinia.png": {
+   "bytes": 2606,
+   "sha256": "22f707552e2565561ccd25ba104a0ba12ef1388f9ed64a94eee537c0eb5ef9fa"
+  },
+  "cub/progress_experience.png": {
+   "bytes": 3643,
+   "sha256": "9805ee21f9589f4a48e672536a5cfbe23b6f157a20ac50d06476e84503be9551"
+  },
+  "cub/scout_link.png": {
+   "bytes": 981,
+   "sha256": "d9e69dd353d292b214b9742bfde64a7c32bcc2252ce8f82708ccb761c81613a4"
+  },
+  "cub_cap_badge.png": {
+   "bytes": 1645,
+   "sha256": "1bd01b588aa2bb692b73a52df7f32db66a98251fd3852ade6a1792fedeb6cef6"
+  },
+  "districts/chai_wan.png": {
+   "bytes": 5551,
+   "sha256": "b9ab4164e2ead7ec8a52c2293696f75f7554705aecf59dedac38f769abb68f66"
+  },
+  "districts/hk_north.png": {
+   "bytes": 3021,
+   "sha256": "8f832490b375556e624a6d87fbac9737dd609b225d735a2f06d7b1ccc33dcb2d"
+  },
+  "districts/hk_south.png": {
+   "bytes": 3619,
+   "sha256": "9a7a7989e80946bbe55a9f0bfea76cc2226e7918ac9ce6637d53d336f0298820"
+  },
+  "districts/hk_west.png": {
+   "bytes": 5691,
+   "sha256": "ce561a2633fe54707aeaa967a93e34cdedf4fe27f0d0ea3e5407c5c914d8e746"
+  },
+  "districts/ho_man_tin.png": {
+   "bytes": 3759,
+   "sha256": "c1d1e5438719c9642920a1f122a2b12232ef372c258d24c2bcf6b3434370752a"
+  },
+  "districts/hung_hom.png": {
+   "bytes": 6284,
+   "sha256": "2465890cbe0b4a46899a17de344176f6b06dc44d018722a92bd340c43783b371"
+  },
+  "districts/island.png": {
+   "bytes": 5213,
+   "sha256": "0400cde7a6ce1baecaee42568eedfcb0cb5b322d6c4bdeb4c45cbcdde25a9291"
+  },
+  "districts/kln_bay.png": {
+   "bytes": 5225,
+   "sha256": "5dbbf5baadb724ec64409cc284f3a7f058906d995363704f33a93970d5348391"
+  },
+  "districts/kr_district_03.png": {
+   "bytes": 4504,
+   "sha256": "54059f5309e89918120b88695ab0ed7f617b1567dc5be0b93b2d5339c8355028"
+  },
+  "districts/kr_district_08.png": {
+   "bytes": 3078,
+   "sha256": "4490351c004d7eba1561a106b22d7c32802e7e634dcba48f4992ac477d8cefd5"
+  },
+  "districts/ktd.png": {
+   "bytes": 4408,
+   "sha256": "8d970c3e7ea3304c606bc92ff669856827d4e1624a754fc3a98ae000d37bf085"
+  },
+  "districts/lantau.png": {
+   "bytes": 5179,
+   "sha256": "a5a2cae41e49e4d8ac968ad4b594706305d042f087ebd88464f1f3a0c37c76f7"
+  },
+  "districts/lei_yue_mun.png": {
+   "bytes": 5130,
+   "sha256": "8911cf76cba0ce697d3b6ee018588c65c6762f0c465e6ec7acd633b4272a59ed"
+  },
+  "districts/mong_kok.png": {
+   "bytes": 4278,
+   "sha256": "ca9e861f30106bfa6bf89c9d32c7f5325c2cb29d6e1e8fd0764bb999ccf05025"
+  },
+  "districts/north_kwai_chung.png": {
+   "bytes": 5504,
+   "sha256": "7793cb1ff2ed3209c9710b70067abdfeff871f47d44043953fc8edbf432ac961"
+  },
+  "districts/pik_fung.png": {
+   "bytes": 4832,
+   "sha256": "b0719c1902b7a6c4cb3cc33f7efec7974c282baac46872701b6b170be263da41"
+  },
+  "districts/region_ekr.png": {
+   "bytes": 4016,
+   "sha256": "2768987c2c03afbbffbeeded51b21a18d0ff705b6012dc032f7f813768f3191f"
+  },
+  "districts/region_hkir.png": {
+   "bytes": 4387,
+   "sha256": "308f414c26daa4eeda9216d58ca61b78bdddb679fb6598fc282ae8717ed34509"
+  },
+  "districts/region_kr.png": {
+   "bytes": 6591,
+   "sha256": "575351b2b4730b92926c4584bd30caa540faeac17e9e5880157ff1f5ad278ef7"
+  },
+  "districts/region_nter.png": {
+   "bytes": 2945,
+   "sha256": "4a3fed11f3ba6d7b75968b7973586c66b63e2c42baad80e036db459220accdec"
+  },
+  "districts/region_ntr.png": {
+   "bytes": 5112,
+   "sha256": "b7e1e68ed1e5c818a1f73ba6eb7c28c8f67d78551b3fff6ad0080fe3da5ed63f"
+  },
+  "districts/sai_kung.png": {
+   "bytes": 2471,
+   "sha256": "ecab649a7f4162cc93c942f145ea5a6c0ad464e8bc73d7da9d90b46d961e8e9f"
+  },
+  "districts/sam_mong.png": {
+   "bytes": 3713,
+   "sha256": "13f5e4d192d25a2a178cc619b79f4196cafb7c881573210082c9941668ae28e3"
+  },
+  "districts/sha_tin_east.png": {
+   "bytes": 3822,
+   "sha256": "a260877dcf8ab25fad99de918e3904bd353398a9e5e72c3dc98a0167d53bfbbf"
+  },
+  "districts/sha_tin_north.png": {
+   "bytes": 3311,
+   "sha256": "be7f1d6fdac1644842067dfcadd12ceaeac330cc199166e3f7d8a7d7699c7295"
+  },
+  "districts/sha_tin_south.png": {
+   "bytes": 3846,
+   "sha256": "694dde268837ad7bc67783ce0b4567dab0290b27455d79e9d5f5fe639cd58999"
+  },
+  "districts/sham_shui_po_east.png": {
+   "bytes": 3765,
+   "sha256": "a3e72cd6ea5f268d3d33f2d7cef1163c15fd59961bb0c428c16b2663d05b0dc2"
+  },
+  "districts/sham_shui_po_west.png": {
+   "bytes": 4669,
+   "sha256": "e2cf33c7cabd829bc59100e7daad2b25d0c6a4654581bee7c7036a6f22c9ac68"
+  },
+  "districts/shap_pat_heung.png": {
+   "bytes": 3406,
+   "sha256": "685fb30a1a73bc585e283ed21da966d0e6dad53a6a57266543b168a9a8c6bf30"
+  },
+  "districts/shau_kei_wan.png": {
+   "bytes": 2484,
+   "sha256": "9a1aef84a177df860d8c9e7f90b6943e88246574ab0fa3974393ca601ce7bb7a"
+  },
+  "districts/sheung_yue.png": {
+   "bytes": 5327,
+   "sha256": "60e610092dd7b1129263e86db25f596c8c00f37954b53855ba67fbde99a5815a"
+  },
+  "districts/silver_jubilee_district.png": {
+   "bytes": 5027,
+   "sha256": "de46a8a2da516970810da2c4ca074cf642d633340a493f12d6f8429d8d9a9700"
+  },
+  "districts/smp.png": {
+   "bytes": 4446,
+   "sha256": "e1284a96c265efc86587798de664d28689b768941811941fc445b5b172679345"
+  },
+  "districts/south_kwai_chung.png": {
+   "bytes": 5453,
+   "sha256": "1c0f3d4316ab97ec0bf8e86fb3b706fc33cf6fae923bd352f7a0cc804b6e867a"
+  },
+  "districts/stw.png": {
+   "bytes": 4236,
+   "sha256": "1cd5ec9e42d6556211e781185b302cb90c38a028b6210e40067e29b9d3f35692"
+  },
+  "districts/tai_po_north.png": {
+   "bytes": 4901,
+   "sha256": "7b6ed6d2f735be11d4567fb5c226e071c5977bf7b1556bdca0b51e78a709d6a6"
+  },
+  "districts/tai_po_south.png": {
+   "bytes": 4735,
+   "sha256": "3fc1e139ddd42147deb7cf1159d4df05c4a68a2960615025d42122f62e163d43"
+  },
+  "districts/tko.png": {
+   "bytes": 4686,
+   "sha256": "dbce29980fb75ad2aadca0904d765df0f0ac8226abcc40f43311ca621cee7c07"
+  },
+  "districts/tme.png": {
+   "bytes": 4092,
+   "sha256": "11d9d3746d76217127a9d2e88294f7f607a090c12480b9069e43ab7a34eedef3"
+  },
+  "districts/tmw.png": {
+   "bytes": 3361,
+   "sha256": "a5cb6dff51e099da06acd7316d6b2b465631d349b25ed93bca0b06b8bd43b1f5"
+  },
+  "districts/tsuen_wan.png": {
+   "bytes": 5105,
+   "sha256": "fa9f453bae5377992689ce04a6d3466f8bb97d443678b5d32698b6243a16a9d9"
+  },
+  "districts/tws.png": {
+   "bytes": 5844,
+   "sha256": "f5c3b106319a48df9e29d93eadb5b6e0ad7716b100e133daaa0179c4c2371cf3"
+  },
+  "districts/ty.png": {
+   "bytes": 3353,
+   "sha256": "b1c9a44ceba9cce0c4c871cdd5e6e048b6bfc78cc9b270adceac6174a8748cb2"
+  },
+  "districts/vic2.png": {
+   "bytes": 5431,
+   "sha256": "abd497681f660566206923cd02649598c512de0151a562099082afa9619e7e86"
+  },
+  "districts/wan_chai.png": {
+   "bytes": 2918,
+   "sha256": "80cbf8a2cd1890390ebb7c2c04d9a274001cda5c5cd79c2c5670711f4120a7d5"
+  },
+  "districts/wts.png": {
+   "bytes": 5970,
+   "sha256": "1c1cc9f4613d6026734910cb6ae8cbfcc91a6696d4a5c34c6c5c2d0860a3511a"
+  },
+  "districts/yau_tsim.png": {
+   "bytes": 3036,
+   "sha256": "835d8865cf7f2db1518d7d7f317f021beeb2a493302267b9869fda3a8d81209b"
+  },
+  "districts/yle.png": {
+   "bytes": 6011,
+   "sha256": "421c64a9af6a96e12b367e7435973c4b6443a2b89960c92d5b53207ec2bd0860"
+  },
+  "districts/ylw.png": {
+   "bytes": 4155,
+   "sha256": "9489d1d13de137168308f4be3ee8dee78d6444e701004a9f1efd2eb281750d43"
+  },
+  "extra/air_crew.png": {
+   "bytes": 6805,
+   "sha256": "e43f9b912c5ef3aa58fc94d46af88b27ad46e7cdf92869363097027be284868d"
+  },
+  "extra/atas.png": {
+   "bytes": 7544,
+   "sha256": "32468536371d059c7776b033a801a50cfe7a4fec26f6221f6624a2e835bb8b83"
+  },
+  "extra/bp_award.png": {
+   "bytes": 12834,
+   "sha256": "a8b50fb1c2642afbbed65dc2a0e972156144a5221f879587dec8490f47b5390b"
+  },
+  "extra/catholic1.png": {
+   "bytes": 10500,
+   "sha256": "d3ff3b2f3f024b91f2d648cbf7642e00f1f2f56951280cc7d95451eca1dd760a"
+  },
+  "extra/catholic2.png": {
+   "bytes": 8067,
+   "sha256": "fd42b8dd1bac181f40341a9ef11dfdf41a1eed1fe63dd32132e3836b90904eda"
+  },
+  "extra/catholic3.png": {
+   "bytes": 12277,
+   "sha256": "de74d4a434057531b847935cefd2233f8652ca888bfdc509da8fe15fea54cf48"
+  },
+  "extra/catholic4.png": {
+   "bytes": 11209,
+   "sha256": "85843d2ee28aaf7ab25e21560326fcc940cd9a946d65c1e4c806c6db8ace3a53"
+  },
+  "extra/catholicAdult.png": {
+   "bytes": 10852,
+   "sha256": "c175a122626c218e0981aafd6f70486d3cd90ab3406fdcaf1e75c9525fa67ece"
+  },
+  "extra/citizen_child.png": {
+   "bytes": 12898,
+   "sha256": "7cc24c1e64b7032e89549a19e3dd3c537f425df3ab253b28734f6683688a94ba"
+  },
+  "extra/citizen_drug.png": {
+   "bytes": 12595,
+   "sha256": "22c892abb9eae9733365ac020ff963197b4a34b8a5790954b283196d26b8bfd0"
+  },
+  "extra/citizen_emergency.png": {
+   "bytes": 6862,
+   "sha256": "d08331a65926fcc286ed3c550b9846be547f9e0836a858d773c3e6e5ca8d2100"
+  },
+  "extra/citizen_green.png": {
+   "bytes": 6893,
+   "sha256": "7ce29cda76f64f5f4d8b42fd42aecdc7d7bf4ef8eea7b91a28bea20f78f60504"
+  },
+  "extra/citizen_scam.png": {
+   "bytes": 7466,
+   "sha256": "b6c498e020fa884a29ea10471a65e74211d46479c3f89bf168acbf36c14ac3a1"
+  },
+  "extra/dragon_award.png": {
+   "bytes": 57516,
+   "sha256": "f557ec017d59078bc7a8fafc612fc4f33b5127db9662e5a6dcaf62e3263f2419"
+  },
+  "extra/earth_tribe.png": {
+   "bytes": 4703,
+   "sha256": "ca183f01839caf6f06f54ab61a875ddf935f110f6591d773858d7d3fa42e67cf"
+  },
+  "extra/emblem_bauhinia.png": {
+   "bytes": 3068,
+   "sha256": "8a9d985020f3b287bc58f15e6a4fc59199191fbb702d7f603541e85147649e85"
+  },
+  "extra/emblem_chief.png": {
+   "bytes": 5003,
+   "sha256": "05b56efd680149ab2c41bddcb5c4cd7b603889e3d3c0ca797135d614aada4c34"
+  },
+  "extra/emblem_scoutAward.png": {
+   "bytes": 5964,
+   "sha256": "deedbe27bed37d52dfe0286cf88cc977de8fe9ffbeaa12b1ad0ac17bf3c22bfc"
+  },
+  "extra/flying.png": {
+   "bytes": 5825,
+   "sha256": "65bebdd93774bc49fcf4461e5959f62351d889ca3533e00b03b4320793122a7c"
+  },
+  "extra/go_solar.png": {
+   "bytes": 7002,
+   "sha256": "3cd7a093b54c60e01cf6704069835223d7af822a6aacd5f0ec6e8586bbfe2e3e"
+  },
+  "extra/gold_bar.png": {
+   "bytes": 1139,
+   "sha256": "cd15c4d1ba5b09b2062be69657ed5dc4fc52508a624ee1d112be9e0890237dc7"
+  },
+  "extra/helmsman.png": {
+   "bytes": 6387,
+   "sha256": "623c8d9770da5eae63e3e692c5b90ef3259ac76a7314a7b8701369b810180d8e"
+  },
+  "extra/heritage.png": {
+   "bytes": 5258,
+   "sha256": "b8390e94e98c8562da124574a8ee0d5c1e995159ef44e6d191ac1d9100a36a37"
+  },
+  "extra/hkayp_bronze.png": {
+   "bytes": 48081,
+   "sha256": "27c088e9959e05e66c28bff8d75d5f8ec6f6960b164e57cb51c6953fc3bf2008"
+  },
+  "extra/hkayp_gold.png": {
+   "bytes": 4480,
+   "sha256": "4f099e396c05f0d1ea90d055b6ff8d83c2ce50edc8680cd8ea032ea68ff8555e"
+  },
+  "extra/hkayp_silver.png": {
+   "bytes": 4475,
+   "sha256": "1a3d1575d6f3188d1e4074716d87f427e0a7c7eb21ad0b35c6205c245b66434d"
+  },
+  "extra/leader_bar_assistant.png": {
+   "bytes": 3213,
+   "sha256": "8b0529b8c45dc149a4c6e53812c7b0a83b592db4793b9930b8120d760eb4db82"
+  },
+  "extra/leader_bar_patrol.png": {
+   "bytes": 6278,
+   "sha256": "320bb240e13fd4a09aa68ce6a1dd8f3479a862b43ec735e23feb7ba5d4c90f10"
+  },
+  "extra/leader_bar_senior.png": {
+   "bytes": 5517,
+   "sha256": "a385e9e2cf58451da2140fe3d3212cf7ca67cc18e186b9aff02fc8a8cccbd46d"
+  },
+  "extra/leader_bp.png": {
+   "bytes": 3412,
+   "sha256": "c333fec15016417e77c9c2d6afd36ff091dc527160f17a2c38cffed45d9a5ed8"
+  },
+  "extra/leader_scoutAward.png": {
+   "bytes": 5941,
+   "sha256": "527c2ab91dcc3c84d389da4d414b941f129cf5a57ac5edc4d548ba0acce31ca9"
+  },
+  "extra/lifesaving.png": {
+   "bytes": 7985,
+   "sha256": "03fe46b4df69a8a5d16a3efc096d3bfb769043eb4a176f4398d8ef158aea87e3"
+  },
+  "extra/nature_champions.png": {
+   "bytes": 7416,
+   "sha256": "14628c434d0600ec36d9b6f853be9b9abec0cae5072dfdcd01fc8d711aafc854"
+  },
+  "extra/parachute.png": {
+   "bytes": 7541,
+   "sha256": "feebf26f25e0f395a88c79b53f1482b73b764f90388719405485fe05c98e2912"
+  },
+  "extra/peace.png": {
+   "bytes": 9652,
+   "sha256": "54dcb5dd0222214512db989144e67dfe4e5b467ae5436cb13a3c90027eee2642"
+  },
+  "extra/plastic_tide.png": {
+   "bytes": 8857,
+   "sha256": "1812e8c870f0258c1391d52ca7a458a7708b62ac4e52f1ddea77b3ee5ac62087"
+  },
+  "extra/rover_award.png": {
+   "bytes": 11687,
+   "sha256": "8881cfbb846dcf84f6d37fd6e7554e0a8b8f66f8c1d45888b9ea4ef34b459148"
+  },
+  "extra/rover_community.png": {
+   "bytes": 12096,
+   "sha256": "3243ba7dd92d4ea3ee7e5dccc2b892117628ac37bbe9e77c320e7f8d6aa9badc"
+  },
+  "extra/rover_first_aid.png": {
+   "bytes": 3073,
+   "sha256": "7f091b980d03c99ee887ac9236bd48339e651ffb6ac23ed50e579ca90cc7631f"
+  },
+  "extra/rover_link.png": {
+   "bytes": 7328,
+   "sha256": "b85e9d5e569b5f1971dc5a1745f8fbf9388c1ea00fffa8a7bd44dc363f849eaa"
+  },
+  "extra/rover_religious.png": {
+   "bytes": 7525,
+   "sha256": "eb874270eb7e0aad49a63ef63265e6faf98b1f287d444178c1be26fb1827ae43"
+  },
+  "extra/service_star_cub_1.png": {
+   "bytes": 2254,
+   "sha256": "055eebe88271c6dfbb3391609fd03478f0077b236f9bafbf45e530ddedb8df5b"
+  },
+  "extra/service_star_cub_2.png": {
+   "bytes": 2340,
+   "sha256": "24618b973d50d15bdd20a06067bc6131c94564ab32379c7753f073b8b6234a1c"
+  },
+  "extra/service_star_cub_3.png": {
+   "bytes": 2440,
+   "sha256": "88755318d199f4514496634983ec0a0cb33f5b82aa3743efd436f7175f1f11bc"
+  },
+  "extra/service_star_cub_4.png": {
+   "bytes": 2364,
+   "sha256": "93b41815e22e2748fb12787c97c0ddae5e41cfc79c7ad7266002f3640c2d1bf2"
+  },
+  "extra/service_star_grasshopper_1.png": {
+   "bytes": 2338,
+   "sha256": "8ebc742d13317bbf45a241297117fd688e6b21ef66a4ec90e3d9d443c2f5b7ad"
+  },
+  "extra/service_star_grasshopper_2.png": {
+   "bytes": 2506,
+   "sha256": "14fded9915f418bcd4302eaedd5364f814f67f5aa8637a3cc50fc2e3e17e079b"
+  },
+  "extra/service_star_grasshopper_3.png": {
+   "bytes": 2505,
+   "sha256": "e6675f2d2c3caf139fded60db9c18bc4430004aacabc7f3c99cc8b8c1016deb2"
+  },
+  "extra/service_star_rover_1.png": {
+   "bytes": 1001,
+   "sha256": "924baf9a85b0b443477068cefbb1cfaf6e27df74ffab80307cef0e0ad343d182"
+  },
+  "extra/service_star_rover_2.png": {
+   "bytes": 1021,
+   "sha256": "251d8b5d2a987c6496131db61843b6a85a20aa4c3f493af95807f5fb361b68d3"
+  },
+  "extra/service_star_rover_3.png": {
+   "bytes": 1039,
+   "sha256": "9c67a40e69d4704a8561d9c36f9c540569469ce3e43b8f3cc6067789b8efc848"
+  },
+  "extra/service_star_rover_4.png": {
+   "bytes": 1029,
+   "sha256": "f560e29e34f4858e5babf4a1186b3ce2c2b78307c53f15bcb3b4978dabd1f390"
+  },
+  "extra/service_star_rover_5.png": {
+   "bytes": 1026,
+   "sha256": "34e2f48362dfe0010cbcbc6cd214c876962e056f83c042d0412a9a1f023449e4"
+  },
+  "extra/service_star_rover_6.png": {
+   "bytes": 1038,
+   "sha256": "f9348940fa9be45659bb86a462b8352724e2eb4a0db77d59e03a8e847a16321b"
+  },
+  "extra/service_star_rover_7.png": {
+   "bytes": 1002,
+   "sha256": "b4666971f0f4c92c2040acd33d61c1386e00efac0e7407b1267f4c910175ace0"
+  },
+  "extra/service_star_scout_1.png": {
+   "bytes": 2442,
+   "sha256": "5b1139e53fa6407bfa2f3888aead69c327f558cf2bb6ed4fba4601ff91a9b7a9"
+  },
+  "extra/service_star_scout_2.png": {
+   "bytes": 2631,
+   "sha256": "f1f74308a13b96565a42d3450aba59ad324def1fe67bfeebdfee304cd953dc06"
+  },
+  "extra/service_star_scout_3.png": {
+   "bytes": 2576,
+   "sha256": "49f75308549a45c700d86b0fc359acd0cc1bc43fdd4f95058746798ad2387e7a"
+  },
+  "extra/service_star_scout_4.png": {
+   "bytes": 2486,
+   "sha256": "50e77ca404fb4f2ed0974d1dc0b6190358e5caef3b306c41e0ecf88bf58c6edf"
+  },
+  "extra/service_star_scout_5.png": {
+   "bytes": 2551,
+   "sha256": "d478a6fdcc42fca5558082c1474766334003a3e521efe3475215aeec52e30a04"
+  },
+  "extra/service_star_venture_1.png": {
+   "bytes": 2372,
+   "sha256": "11529a1f4a94e475841c9b5b11cf9490568126d2becd483c4632705f7253742a"
+  },
+  "extra/service_star_venture_2.png": {
+   "bytes": 2510,
+   "sha256": "b7ef903d8019b9d4611610baab6a7b3829e6168bdb85bfb9ab02457f20f9d9d8"
+  },
+  "extra/service_star_venture_3.png": {
+   "bytes": 2552,
+   "sha256": "c24f8951d861f7eaf8ef02388b761df64af164744fd642746b2a548c07fe2b49"
+  },
+  "extra/service_star_venture_4.png": {
+   "bytes": 2458,
+   "sha256": "2f9c06e6b4071f7b8596a3923e142543f32fa47eb0b3fe97d1b94f734b40fbf2"
+  },
+  "extra/service_star_venture_5.png": {
+   "bytes": 2468,
+   "sha256": "4ccccb0d4cf631f0b1ee226c1245b134627e037e74f6b60995a5e3ec51ed84ad"
+  },
+  "extra/service_star_venture_6.png": {
+   "bytes": 2584,
+   "sha256": "f8f1a6803b303e5dfac1d925ac73e61a38d85210cbd7f7acdd66a8357b3e7ba2"
+  },
+  "extra/stage_exploration.png": {
+   "bytes": 47633,
+   "sha256": "7adeec2034e5afa176c437e376107fed6b566e78a81b0afb9e871a888af4fabc"
+  },
+  "extra/stage_project.png": {
+   "bytes": 45974,
+   "sha256": "e25d02db197a2ab0c459b099e087fa926e1a5acc03280c187e99273ea6d5803f"
+  },
+  "extra/stage_service.png": {
+   "bytes": 50542,
+   "sha256": "40079362b534d944aa7c6a8be3331c3e9bbb7483f19dc3b30778779be44da25e"
+  },
+  "extra/stage_skills.png": {
+   "bytes": 45421,
+   "sha256": "c777e2d247df8dc230b88ab7175e08865977c3444441a5b72f7f552d24ba6514"
+  },
+  "extra/venture_award.png": {
+   "bytes": 56161,
+   "sha256": "bf69c1dddfd6897677aa55777218e6caa6857b3893ca074b47c7f8520c61c315"
+  },
+  "extra/venture_community.png": {
+   "bytes": 43757,
+   "sha256": "0f570c4ec645f396b294bcd02fcfd4523a6fc0fe9d1e3bdd30edea1c25b51a51"
+  },
+  "extra/venture_first_aid.png": {
+   "bytes": 42841,
+   "sha256": "d8448520681b1b0693a6c875a81a3a0e712b755c66b31262af118c85a0aee373"
+  },
+  "extra/venture_link.png": {
+   "bytes": 19337,
+   "sha256": "426f2fe3c82837aba1b54628cb1b79c2269feb1f8d5b5f896fa38d44e1c65f05"
+  },
+  "extra/venture_religious.png": {
+   "bytes": 45445,
+   "sha256": "2b453b5764d8fb8cb8074b6a7c04f3d13faf109ed2468908e98136433fda1d0a"
+  },
+  "extra/world_scout.png": {
+   "bytes": 12667,
+   "sha256": "c9b8dbe659be82d4f80136b749a1eea6eaa1c7c179a12a3d64ee25536d12cbb9"
+  },
+  "grasshopper_award.png": {
+   "bytes": 8653,
+   "sha256": "cb256ab24f8647da019f33c0e2b310db1bf9299852ec4557c1f89f989034af01"
+  },
+  "grasshopper_membership.png": {
+   "bytes": 9997,
+   "sha256": "8a3c88daa3ca59dc4907813d5a853f1de6c7435d72d901111f49730a0671b4d6"
+  },
+  "grasshopper_progress1_red.png": {
+   "bytes": 9729,
+   "sha256": "7f5c5ce4ac7b856cf54f6f93546bc1fe765644d38d0952bb7d46fa364a8d034a"
+  },
+  "grasshopper_progress2_brown.png": {
+   "bytes": 9390,
+   "sha256": "d2b17c371f04444be2c2dcd8cc2792492f1707ce0a4387d2385f73c08761d48a"
+  },
+  "grasshopper_progress3_blue.png": {
+   "bytes": 14117,
+   "sha256": "e9289f3036ca8ebdfb32957cc9e16eaa236a452f98a76e1603028abba806e716"
+  },
+  "grasshopper_progress4_green.png": {
+   "bytes": 9168,
+   "sha256": "0637bfb690891780fadb9121197fc705aa3f5e9f55287a88c1a9cd3d32a9bf91"
+  },
+  "handbook_example_commemorative.png": {
+   "bytes": 1048,
+   "sha256": "7a0a9e0d880fc92c8b7a3e0c5c7b3daf7f7c055edc7251e71d19a8f2011e3c73"
+  },
+  "handbook_example_district.png": {
+   "bytes": 2562,
+   "sha256": "dd5f6fde8356bb071f27c64e13b4b161e65da9136fdb76ce2c7c05991bf4557b"
+  },
+  "handbook_example_meritorious.png": {
+   "bytes": 3068,
+   "sha256": "210a66d8a9bf152b699dba2757f81dc0aa6b9c3bbe6baf7303722bb223479650"
+  },
+  "handbook_example_region.png": {
+   "bytes": 356,
+   "sha256": "08b5121e3481461c2715342574a7c2e11317ec70a2147eeb1cbfd45c5efebf8d"
+  },
+  "handbook_example_troop.png": {
+   "bytes": 3765,
+   "sha256": "a3073bd319da58de173ad101d6714d0823ac99b36b5f4144080e1ddace91e9ce"
+  },
+  "hong_kong_badge.png": {
+   "bytes": 7860,
+   "sha256": "cbeb9df49dfd99b90bf016d164cfb284b4401d130fc19176407f212dc3eb30a5"
+  },
+  "leader/ahq_badge.png": {
+   "bytes": 21552,
+   "sha256": "3204bef9100f015421b3ef92889821d8667cb5a1d5bbd00913accf39d202aff3"
+  },
+  "leader/cap_blue.png": {
+   "bytes": 3961,
+   "sha256": "5fe1006e59c19b024d537c77eb95d4a8a9e237743b899e2ab8bb969a61479d9f"
+  },
+  "leader/cap_brown.png": {
+   "bytes": 4040,
+   "sha256": "21e4afba0b946888c232166f27385051146576046b3473a59db648c9da6ec08f"
+  },
+  "leader/cap_darkblue.png": {
+   "bytes": 4625,
+   "sha256": "71f56268594df586208915095dac058f717441de7aba8b85cc14d960deaa77c3"
+  },
+  "leader/cap_green.png": {
+   "bytes": 3590,
+   "sha256": "0a10f740154d46c4c10aa7d0ef1013b33e4d768f2a689f25b7b42fd33d33528d"
+  },
+  "leader/cap_greenwhite.png": {
+   "bytes": 3757,
+   "sha256": "5bdcba2849a1f6604527fa5c2d6b334579977ecfe3a82f1b0aaedd9f03a58b82"
+  },
+  "leader/cap_grey.png": {
+   "bytes": 3636,
+   "sha256": "b0ff04e977f90a325e8addc5380e44021983b2e5fa69f308a30d50b35c015b3f"
+  },
+  "leader/cap_purple.png": {
+   "bytes": 4215,
+   "sha256": "b5954e37bbc590831e9f22c2e52b7076c1878c254fccdd666e425eae32271b53"
+  },
+  "leader/cap_red.png": {
+   "bytes": 4750,
+   "sha256": "2fc6633f24f17dfe16a579e86d745f909f3edf26f4d987c6898d1260675a4808"
+  },
+  "leader/cap_yellow.png": {
+   "bytes": 3640,
+   "sha256": "aed211541abd3641db0d3fd25fc57524099fa7d897d09b71b3bfdffaeaf339d2"
+  },
+  "leader/epaulette_asl.png": {
+   "bytes": 7569,
+   "sha256": "f443782cee3f6af4c589323cba1e9ff5a4b2b2b9b765321b8dc5d1e6015de523"
+  },
+  "leader/epaulette_asst_cc.png": {
+   "bytes": 12239,
+   "sha256": "8cfb5df45337412f6be2e569121aed29e1362ac60d4f92cff610cde956b47763"
+  },
+  "leader/epaulette_asst_deputy.png": {
+   "bytes": 7565,
+   "sha256": "d29e1797870e9f9c36b4f2090a405f10d1d38cc666b92ad66ef31b240ad089c6"
+  },
+  "leader/epaulette_asst_hq_comm.png": {
+   "bytes": 6692,
+   "sha256": "47dea014f8ca47fdd2c106b2ad0d4a1f3c708b378e361dfe537e7ce13fa885ee"
+  },
+  "leader/epaulette_asst_leader.png": {
+   "bytes": 7238,
+   "sha256": "ad5b493741ccf4f5fe30856e947f0bedbb9f88d17168f3f33d11ee55b37079a5"
+  },
+  "leader/epaulette_cc.png": {
+   "bytes": 12196,
+   "sha256": "6a1c4e035d959446cb10c0da4e0f9179e1e2dc40277688eb1639e0cc6971df69"
+  },
+  "leader/epaulette_chief.png": {
+   "bytes": 12155,
+   "sha256": "1911ab4e96833bb8018278de751d82cdab5007b80eda342a3d5f9dd2cfb6d72c"
+  },
+  "leader/epaulette_committee.png": {
+   "bytes": 7512,
+   "sha256": "cbbae8c752dfe0333cba3ea640ffb59999e3e8f7ef08ce454021571c03ecea80"
+  },
+  "leader/epaulette_deputy.png": {
+   "bytes": 4198,
+   "sha256": "e4c248aaedfc0d4d6dac4dbf9c029ebba920b56993ffcf811b0ffe12cb157307"
+  },
+  "leader/epaulette_deputy_cc.png": {
+   "bytes": 12105,
+   "sha256": "ae03cabf5e0f4dcb7c1604315d19808539f9bb5b54856632c7d0c2b7caf92c52"
+  },
+  "leader/epaulette_district_chief.png": {
+   "bytes": 6924,
+   "sha256": "e0734721610f333a5b9b34ce8035abbfa3e9c6881fe2f2755ad2c791e20ca069"
+  },
+  "leader/epaulette_gsl.png": {
+   "bytes": 6616,
+   "sha256": "a2c3581839953cbbd4d4e0d61cf09eeef2b437b9f251d9b2ad666f8a4d295831"
+  },
+  "leader/epaulette_hq_comm.png": {
+   "bytes": 7422,
+   "sha256": "4f49c5b2fb796e543728a862861ef370fed42fe820a5778c52907cee58517091"
+  },
+  "leader/epaulette_hq_leader.png": {
+   "bytes": 6276,
+   "sha256": "382fee719284c9f21e7496b2e1348e6f188c6556e4337ff8231dda98f8e361ed"
+  },
+  "leader/epaulette_professional.png": {
+   "bytes": 7235,
+   "sha256": "cee81e96138375f68f55589f41cd7d09a00873118709ab465743f714f078f534"
+  },
+  "leader/epaulette_sl.png": {
+   "bytes": 7090,
+   "sha256": "fb1fe57a0efde3067058fd423ddd8b6b8d612a80c83892f305669f7e1f6a18f2"
+  },
+  "leader/gilwell_tartan.png": {
+   "bytes": 3578,
+   "sha256": "1bcaaa65bf8d523f2a306f6de4850a51a54fddc05417b5642db54f9724cfed4e"
+  },
+  "leader/hong_kong_shoulder_title.png": {
+   "bytes": 14495,
+   "sha256": "8bb4347639a0749ee56b418300aa0aea0ca5596b391282a66caed2d01e8b95a3"
+  },
+  "leader/lapel_fleur.png": {
+   "bytes": 681,
+   "sha256": "4efa460182417ff22a240588a0c61bfa362262b3438006bdcdc7d52e1602a162"
+  },
+  "leader/mess_cap_badge.png": {
+   "bytes": 4071,
+   "sha256": "e08780821b3b38f68c95ed4345b4f5e62564528142193d67d236b23c166d4d5c"
+  },
+  "leader/metal_asl_summer.png": {
+   "bytes": 2399,
+   "sha256": "d22d12a2345d3422a54c6176f393b21da60e19ab70ffa9247b81641f458741f4"
+  },
+  "leader/metal_asl_winter.png": {
+   "bytes": 2291,
+   "sha256": "dc4e442cebd1e0cd4741f4b15da23acf0a10af830eb7bae70c9ddc46c2115170"
+  },
+  "leader/metal_asst_cc_summer.png": {
+   "bytes": 3025,
+   "sha256": "898be62d1c24be0206bd70ec67de63a79a44f8e820db4d56ff92fc958b09e028"
+  },
+  "leader/metal_asst_cc_winter.png": {
+   "bytes": 2735,
+   "sha256": "ccd7fadf9851f69bfde3312162f9884e9b7ee2a96416c8855e08e963dcfbc902"
+  },
+  "leader/metal_asst_deputy_summer.png": {
+   "bytes": 2589,
+   "sha256": "fc4051014f45e82bf59ca94cf5bbb6dff38c31036dc757f012f1e6756266216a"
+  },
+  "leader/metal_asst_deputy_winter.png": {
+   "bytes": 2471,
+   "sha256": "0198e0f61abad6b17bc39dda71475de6b6cc0cde4056152610182d4efc9f305f"
+  },
+  "leader/metal_asst_hq_comm_summer.png": {
+   "bytes": 2516,
+   "sha256": "059bf7d49be5903eed8c9d2935df5a96227b07d2330d98435ca9b3c3e9705887"
+  },
+  "leader/metal_asst_hq_comm_winter.png": {
+   "bytes": 2499,
+   "sha256": "ebb1e6a421d61fc17fc0a927713fcfd28a208d94ae1f4d4018614db8da1eed0c"
+  },
+  "leader/metal_asst_leader_summer.png": {
+   "bytes": 2454,
+   "sha256": "0a51a5227f440160b97f98f6f5a717a86e30ac18b3a744b7c27fbeed4d8eb6fb"
+  },
+  "leader/metal_asst_leader_winter.png": {
+   "bytes": 2323,
+   "sha256": "7974ad9f8fdad84d3107ab8c7389586e10a2ca273dccf3073121bfff3d0b65d7"
+  },
+  "leader/metal_cc_summer.png": {
+   "bytes": 3103,
+   "sha256": "6affac62655dfe8264745f56a07708f6eaa83dd19534b125877f645201fcbb6f"
+  },
+  "leader/metal_cc_winter.png": {
+   "bytes": 3041,
+   "sha256": "6f243237b18307cfa633fd0ac21e83aab586e65b685571a9e6e72c89c867c2c0"
+  },
+  "leader/metal_deputy_cc_summer.png": {
+   "bytes": 2911,
+   "sha256": "c4765f91fc81952c442578509f56bcff2b9de73aae5a5c37fad62b054b206dce"
+  },
+  "leader/metal_deputy_cc_winter.png": {
+   "bytes": 2759,
+   "sha256": "bfe68ad2adf7cb1cc33facaafc3a9ae8a610e29c9d045bf9abb9162d419d6227"
+  },
+  "leader/metal_deputy_summer.png": {
+   "bytes": 2607,
+   "sha256": "9aa57e3ca8723c85e206c5e6df10c200e4d34f546e7409b5394556fce4a798c2"
+  },
+  "leader/metal_deputy_winter.png": {
+   "bytes": 2566,
+   "sha256": "1c2c0c29ebe18eaa208caf46a4252eac8db61e7dc4d296bc5d6c34a0ff07117d"
+  },
+  "leader/metal_district_chief_summer.png": {
+   "bytes": 2495,
+   "sha256": "0e738010c94828e28211b878b4c22c6c4d22c54cb370ac609477736bb4f08986"
+  },
+  "leader/metal_district_chief_winter.png": {
+   "bytes": 2362,
+   "sha256": "abd26d63455e35012224e52408e71eeb4d9ccfdc6b2e5cc896201fea10e83f5f"
+  },
+  "leader/metal_executive_summer.png": {
+   "bytes": 2455,
+   "sha256": "aa8d8d4153c1868f786a890a6333c7b459e72b528c724f8068c2e8a3e45351af"
+  },
+  "leader/metal_executive_winter.png": {
+   "bytes": 2343,
+   "sha256": "85383f2628e9f2bddfb9189a989ef4d6032beebd38d652c5f42d187e8a4a9763"
+  },
+  "leader/metal_gsl_summer.png": {
+   "bytes": 2444,
+   "sha256": "c15c28372b395e16b42560a7f0e0d4d7480134746e056ddd3c0fa5183698b81e"
+  },
+  "leader/metal_gsl_winter.png": {
+   "bytes": 2282,
+   "sha256": "9d5f388c31a4f4a5908e6aef2baf02fb734b831b9b592c8da172473b82cd4a67"
+  },
+  "leader/metal_hq_comm_summer.png": {
+   "bytes": 2519,
+   "sha256": "f25893ac8c7eb7a00742d58d4f1df8f560f6f3f59eea211567f631a52f148e5d"
+  },
+  "leader/metal_hq_comm_winter.png": {
+   "bytes": 2577,
+   "sha256": "f863fc6623e838a6bc406f0870a1b4a82f1309ce5ac133d64fa1e6b899f2188e"
+  },
+  "leader/metal_hq_leader_summer.png": {
+   "bytes": 2458,
+   "sha256": "42fe84a51c3419e92cd53db5665ee64109df71562de0b9aba6ec6b01233718e2"
+  },
+  "leader/metal_hq_leader_winter.png": {
+   "bytes": 2364,
+   "sha256": "862f9ade0bd5a5d870f62fabb786db7bb4e15bfba9988e329badbeb7adeff9be"
+  },
+  "leader/metal_lay_summer.png": {
+   "bytes": 2453,
+   "sha256": "afb0e04ade3f490fe5607da5acb889ee6dee7ec908573ad6a30d7b9c386aaef7"
+  },
+  "leader/metal_lay_winter.png": {
+   "bytes": 2366,
+   "sha256": "097d7344d8082bdc725a0ef1561edc7e6c52e402cbfd0cc6b3a481e1e762fecb"
+  },
+  "leader/metal_professional_summer.png": {
+   "bytes": 2519,
+   "sha256": "e2d19a843f0d308c80f0322394ef4d977a2c97b58f07c3084407de78b8122ace"
+  },
+  "leader/metal_professional_winter.png": {
+   "bytes": 2426,
+   "sha256": "95562ac214f41cff34fabd6fe2d2c94bef7660dd759ec2f58898b2df0e978cd9"
+  },
+  "leader/metal_sl_summer.png": {
+   "bytes": 2472,
+   "sha256": "f3b036a356913bf82aecc0a6c22553a2ca5d66174bdcb13610b47829bf021097"
+  },
+  "leader/metal_sl_winter.png": {
+   "bytes": 2307,
+   "sha256": "f0a040ab4cd5296dcd580b5f6513a1885a2ee77cf742ad4d52e703711b36417b"
+  },
+  "leader/mourning_band.png": {
+   "bytes": 8834,
+   "sha256": "ba608562f39cab4389d5de8065c0443f1d3dbd023544336981a2e573cc97b8a1"
+  },
+  "leader/name_tag_example.png": {
+   "bytes": 5985,
+   "sha256": "dc20b9d98d9de29b51daed094749a09cf10f0b0e1e1a2714e530152619b45a7b"
+  },
+  "leader/retired_r_pin.png": {
+   "bytes": 1654,
+   "sha256": "98a07e9f06c0c7f2124c390f01fc8700e3f98cc6a3ee2feebd2732928f2ebac8"
+  },
+  "leader/sea_leader_cap_badge.png": {
+   "bytes": 8721,
+   "sha256": "f2839b5065d0d9cd52d508edc777fbd3a23ffdb47ebb5d21befee1c5d29b09fe"
+  },
+  "meritorious_base_blue.png": {
+   "bytes": 7148,
+   "sha256": "89461c5d238db7be4b7678a8ac2520cffa742eafa40a15ba31d74fe2d8f67c33"
+  },
+  "meritorious_base_purple.png": {
+   "bytes": 5369,
+   "sha256": "b7d7749543d71ae84be17d7cc6d95d0c2e856dce6582235d8eceb0ab408c1638"
+  },
+  "meritorious_base_red.png": {
+   "bytes": 6257,
+   "sha256": "04d48f8572f512c4817ffb4efc88b0e3b68d215ff127679e434b0b651b6219dc"
+  },
+  "patrols/badger.png": {
+   "bytes": 267,
+   "sha256": "95f973451027f148b446afe9dfff1a7c1a54a2a98761bc3d5661e05fa2e2c2bc"
+  },
+  "patrols/beaver.png": {
+   "bytes": 292,
+   "sha256": "61212b3121f372fe45b80ed1b4962269859f0ca13270838d0b3147ee2f65ad33"
+  },
+  "patrols/buffalo.png": {
+   "bytes": 302,
+   "sha256": "2eac09ef541d992c5a60be456e1768a98327edb28c4c8d5eb243734d5c5519c9"
+  },
+  "patrols/bull.png": {
+   "bytes": 273,
+   "sha256": "5a3afb98b0a50bdc448247aa24aa20325b6e7f8d93d7cedf5bd1ac2da2d85382"
+  },
+  "patrols/bulldog.png": {
+   "bytes": 271,
+   "sha256": "55b76fa5c5b88a639e8c58ad032394a6254213b08cc5ae16b42eddb49464e76b"
+  },
+  "patrols/cobra.png": {
+   "bytes": 293,
+   "sha256": "53c4e13711c7ba6c5a4ba48109e32761b42b614c22dd016c72417c9ceb3f6eee"
+  },
+  "patrols/cuckoo.png": {
+   "bytes": 284,
+   "sha256": "ab2ab249dde9ba3aed4a050fd69e43c100bd08199085ec2bf4fc99f41e7250b6"
+  },
+  "patrols/curlew.png": {
+   "bytes": 276,
+   "sha256": "95687fb9b49807d43861a6957a50831f5e28d7fd5d0e8ec2998c1fc4a06d9575"
+  },
+  "patrols/eagle.png": {
+   "bytes": 258,
+   "sha256": "ae8185a1c664ec46ca71dc4258c4fc7c1b9eefbc012b727e15a243fb6184731e"
+  },
+  "patrols/falcon.png": {
+   "bytes": 287,
+   "sha256": "0a07e1bd30dd9d9373c851d7d823679769487042becdbee5fb1506a4c02efb09"
+  },
+  "patrols/fox.png": {
+   "bytes": 287,
+   "sha256": "d5b2f4018493d488195e8ca3c0da5ad9745a949ef92e7b199f2904b6c353e55d"
+  },
+  "patrols/gannet.png": {
+   "bytes": 291,
+   "sha256": "63436ff59dccb61543205528c342b438f8aa38ea04086169a29cfb0bcc24dbf7"
+  },
+  "patrols/hawk.png": {
+   "bytes": 254,
+   "sha256": "320948d53d3ad2acb33fdef4d533388e808f8807f36869ac6858d9ca2b0392b9"
+  },
+  "patrols/hound.png": {
+   "bytes": 282,
+   "sha256": "808f4033d8bd096168a262c9b62d18f6dae876e9c38b4f43a75fd725190abe63"
+  },
+  "patrols/kestrel.png": {
+   "bytes": 290,
+   "sha256": "e5e234d5aa5f14655200eaa0f4fc8e147236904bfc09da0bc6e59d523b27688f"
+  },
+  "patrols/kingfisher.png": {
+   "bytes": 287,
+   "sha256": "bf6100927cfb7d7fa7014e9005832915c53627d60049e0aa00a29bfa1455b7a0"
+  },
+  "patrols/lion.png": {
+   "bytes": 273,
+   "sha256": "f75e77c4e60af3d56c934c97e2aa806eca976cce8478add1353a676613146f30"
+  },
+  "patrols/merlin.png": {
+   "bytes": 277,
+   "sha256": "e4c3ff8b989f8a4fb40719a3a84d5f594c7bf1efe4480ef77aed3b3c017357a7"
+  },
+  "patrols/otter.png": {
+   "bytes": 293,
+   "sha256": "971e91cf5e295fc87d517e5365a7d8756f5bd85e2db99655fbfc5f2b449128d3"
+  },
+  "patrols/owl.png": {
+   "bytes": 259,
+   "sha256": "c0c1cc09cd5cd2eaa4db0716318b4497274e659f358675e2f983c4a0159134cf"
+  },
+  "patrols/panther.png": {
+   "bytes": 269,
+   "sha256": "ec587109a639022bf7a8a4431c284c6c761334a3e83f3f2bb8cc6864ec977d8c"
+  },
+  "patrols/peewit.png": {
+   "bytes": 293,
+   "sha256": "20e45ec20165719b1590bd5f50da957e5122d2ce98ebff5be88d398bef8a1358"
+  },
+  "patrols/raven.png": {
+   "bytes": 250,
+   "sha256": "c12eab2e0c7e97d76cb6f3ac22c4c2368cea09619ec3f0e3df24740a9cef988f"
+  },
+  "patrols/seagull.png": {
+   "bytes": 295,
+   "sha256": "49f6451230797fcedca07c4a967fb43bad7f0b3500fd620b5be2058ef27a3a2c"
+  },
+  "patrols/snipe.png": {
+   "bytes": 264,
+   "sha256": "f85f42cc15520284514394da05c2ce6905335ca6df9e97e581e8d4b9863c31ec"
+  },
+  "patrols/squirrel.png": {
+   "bytes": 293,
+   "sha256": "4b3f5ca3ae0920941fc0848d3cfddbaf087cd242d514b8263d243350c94034c9"
+  },
+  "patrols/stag.png": {
+   "bytes": 292,
+   "sha256": "2461adef347cb73ab76faf66ff2510f380cd4d0901c8abb892d02f50fd93c160"
+  },
+  "patrols/swift.png": {
+   "bytes": 277,
+   "sha256": "6c6f1e2114ba9f062cdfe53328863cb2219695115aff80ac6d7fd598ecc66197"
+  },
+  "patrols/tiger.png": {
+   "bytes": 277,
+   "sha256": "b46c20f24d660fad4764d70250cb0704ce77dc5d7a40359b2ebd624d7761d5af"
+  },
+  "patrols/wolf.png": {
+   "bytes": 280,
+   "sha256": "57ede7beccb4217b397622bfe80f0dd3f3de6cf60cd14752551feb4bed41de43"
+  },
+  "patrols/wood_pigeon.png": {
+   "bytes": 289,
+   "sha256": "2a2f4b85c071b3e1785885e148700e9b5b8e5f5e7c80fb669c8787cc00ad6b65"
+  },
+  "patrols/woodpecker.png": {
+   "bytes": 282,
+   "sha256": "f46a1e3526f177e434c6a22908ae952420d11251cc57d545df029f3402595aa9"
+  },
+  "ribbons/anniv110_bronze.png": {
+   "bytes": 315,
+   "sha256": "a67d77fa94230f56f07a64229b6d033e1c56fc7f06f80c54d5cbecf8b4800ea0"
+  },
+  "ribbons/anniv110_silver.png": {
+   "bytes": 1557,
+   "sha256": "7642dca3ade48e074b8df4501a91bfe00f7aa1a6d2ecabc947143525a1d75195"
+  },
+  "ribbons/centenary_bronze.png": {
+   "bytes": 1466,
+   "sha256": "a2cc2276efc20f9a2d130e0b3d9aaadd60e43667a343f2e8812e1b600375148f"
+  },
+  "ribbons/centenary_silver.png": {
+   "bytes": 4171,
+   "sha256": "431f91d34abe5ca19930b8f7f1a54b5c2ae9665a4407a03f0af8a13a3d65511e"
+  },
+  "ribbons/diamondJubilee.png": {
+   "bytes": 1431,
+   "sha256": "a29e5bd2873ef491ebc0296151c745cd51cbe71da610ab1e39e5e5ff079d868f"
+  },
+  "ribbons/gallantry_bronze.png": {
+   "bytes": 542,
+   "sha256": "70f3226f2923a2f6aefaaccfdeb28da308a909d1a17dfd487e1329cb8abb2944"
+  },
+  "ribbons/gallantry_gold.png": {
+   "bytes": 630,
+   "sha256": "cc029237b3b7a99e025923e85f841580921cdb325f41132e78229edb1cadd3bc"
+  },
+  "ribbons/gallantry_silver.png": {
+   "bytes": 511,
+   "sha256": "2d700f03c8c6c5054de2e7588d55c5f7489440119f65deb64c125f184edc57b3"
+  },
+  "ribbons/healthGuard.png": {
+   "bytes": 324,
+   "sha256": "22fd37c1f4e99659ef754187be13c2ac9d34490ddde253dd9c71750ef6bb5811"
+  },
+  "ribbons/longService_five.png": {
+   "bytes": 12264,
+   "sha256": "2d12ec7c3d5350f0c34bd8aa347cda77ade1f8dc727c86e6b96d84264ba7b85e"
+  },
+  "ribbons/longService_four.png": {
+   "bytes": 11060,
+   "sha256": "f95001eb93430f3aff004be37bcb4bef0a9989ee96a602d0dd70ec5803431342"
+  },
+  "ribbons/longService_medal.png": {
+   "bytes": 1403,
+   "sha256": "bad405fa4534ccb425b113e767d9beec4dd9e05da8a67f7b629d2e659cde01ed"
+  },
+  "ribbons/longService_one.png": {
+   "bytes": 4151,
+   "sha256": "f319790ca89f83f324ef16fd4624b1bc4a97f8a88255d5562cbb3dc4bbeba01a"
+  },
+  "ribbons/longService_six.png": {
+   "bytes": 12682,
+   "sha256": "6a0bd6e2669df8ff3092a307e0981ec07a42fa5dc7a9702aae4f6f09a7e9104e"
+  },
+  "ribbons/longService_three.png": {
+   "bytes": 9243,
+   "sha256": "e03bf58a6795e69b0237ef619e7fbdd6433e12fbd83440f5bd15f82c1380e088"
+  },
+  "ribbons/longService_two.png": {
+   "bytes": 6737,
+   "sha256": "ef8c9db277a82816fa8e18438159b72121503caf6648cff0f9f08139f451127c"
+  },
+  "ribbons/meritAward_distinguishedService.png": {
+   "bytes": 268,
+   "sha256": "a7ef714358bb925678fd87ed9df42911004f8a7deb320db3e48a8f08cd773bf1"
+  },
+  "ribbons/meritAward_goodService.png": {
+   "bytes": 199,
+   "sha256": "bb5e32b10bc66718e9a48e53a90629f76895b3c78c2d5d167904f25017079d7f"
+  },
+  "ribbons/meritAward_meritCross.png": {
+   "bytes": 281,
+   "sha256": "2a1f5ea0a378509924d978afbf087a858603ae1aa39b4638ba51fb552e8a630d"
+  },
+  "ribbons/meritAward_meritMedal.png": {
+   "bytes": 218,
+   "sha256": "a58301ceb572847d1b39014b377226cadc891b33c659d95fd7152b9e48cd6db6"
+  },
+  "ribbons/metroCamp_bronze.png": {
+   "bytes": 1669,
+   "sha256": "7034fdc8b2124dd1a30c6d4a43ee352359a48424cd017b4fe076db2a4543533c"
+  },
+  "ribbons/metroCamp_silver.png": {
+   "bytes": 5068,
+   "sha256": "c4b93613e1573841377b7441199f9782e42dbb2921fdb57b74017de4731d51e4"
+  },
+  "ribbons/millennium_medal.png": {
+   "bytes": 2354,
+   "sha256": "23257b7bbeee0d63bf2c55db0836a2cdee459205ce56a36063994ace656ac562"
+  },
+  "ribbons/millennium_star.png": {
+   "bytes": 5767,
+   "sha256": "aae8d5b74e5ef1a82d16f897802dda193312cd4bf7f7c8485109a62524aa2677"
+  },
+  "ribbons/neckMedal_bronzeLion.png": {
+   "bytes": 2187,
+   "sha256": "f433b58552b0465c3bc1c378d2bedade8781210a16bdfc6ef37d13b4f4128da9"
+  },
+  "ribbons/neckMedal_bronzeWolf.png": {
+   "bytes": 174,
+   "sha256": "e5844cd14da774c25c781fc0bf2654dcb0af237b5764b6a7f36f05108d1f76da"
+  },
+  "ribbons/neckMedal_goldDragon.png": {
+   "bytes": 215,
+   "sha256": "86e843b489fd6de77f3a97d6f7473b895aa5641fd3a239d99f0b231f310f0ab4"
+  },
+  "ribbons/neckMedal_goldLion.png": {
+   "bytes": 1695,
+   "sha256": "38e9fa8d47a6e3dd1e0e111014588102a413521eb5ed0a0e0a131d2a45eaf01a"
+  },
+  "ribbons/neckMedal_greenDragon.png": {
+   "bytes": 239,
+   "sha256": "c69fb6cc4f2d95baa716c6a1700121518e508424a9be392ae22f855a5d2b0fbf"
+  },
+  "ribbons/neckMedal_silverDragon.png": {
+   "bytes": 258,
+   "sha256": "d0e06c88dd0dc7f797abc183c1f08f85532c4c4f84076929484359b843761eaf"
+  },
+  "ribbons/neckMedal_silverLion.png": {
+   "bytes": 2546,
+   "sha256": "9f86ebc4d75c191b99925298a538098239dd2a17e050d1c0d1eda0d9d2d86e5c"
+  },
+  "ribbons/scoutCentre.png": {
+   "bytes": 1464,
+   "sha256": "016124578baff23f5a54a50e0301968e8f95ceaac1b9debd4a32d488034ba5fb"
+  },
+  "ribbons/sp100_goldone.png": {
+   "bytes": 5988,
+   "sha256": "06bfc06a755313f90af07ac58fb1a784da75eb66994c4bf1047a6e744974ef1b"
+  },
+  "ribbons/sp100_goldthree.png": {
+   "bytes": 11639,
+   "sha256": "6b02c36f0899bd1561a654a107b461dfca10238433c4afdb72b331f9d290242f"
+  },
+  "ribbons/sp100_goldtwo.png": {
+   "bytes": 9603,
+   "sha256": "f43587feaf4ea48f3004a0d1dac97b0eac6078ce68521c1fb1def760e97f95e7"
+  },
+  "ribbons/sp100_silver.png": {
+   "bytes": 1754,
+   "sha256": "96b672b4b3184a79476291021b05915356b8c4afcc4cc5cc18869f5fb9f56d35"
+  },
+  "ribbons/sp110.png": {
+   "bytes": 351,
+   "sha256": "e43f4ba1beab45da6c321e952543d6161d8f5c84568e72745cfe92620a522ba2"
+  },
+  "ribbons/sp95_gold.png": {
+   "bytes": 4935,
+   "sha256": "cbc318cd42e7a1a3ded44b07219bea6b299d66e82a0b2d6783ce97ae537980d1"
+  },
+  "ribbons/sp95_silver.png": {
+   "bytes": 2208,
+   "sha256": "e97690db9891ce72b438ae60c3876342316df8fbce854457c1d83a8427358636"
+  },
+  "ribbons/specialContribution_eight.png": {
+   "bytes": 4479,
+   "sha256": "9429274681195df84d9e8759bd32af28744d4fc983eaa93a7e2dc2822e29da6c"
+  },
+  "ribbons/specialContribution_five.png": {
+   "bytes": 5256,
+   "sha256": "8b841d901b3560f7c5280bb71ca948c595e413928dd9752db1066b15a63e33b5"
+  },
+  "ribbons/specialContribution_four.png": {
+   "bytes": 11874,
+   "sha256": "dea3668ab6e75a3b28cdc5040c4672fd155949d2ef25c28650a4dd2f1bc3bd7a"
+  },
+  "ribbons/specialContribution_nine.png": {
+   "bytes": 7260,
+   "sha256": "001462050a7e300db4153fba4aaaa5b5c9ab7d6b2ead21a47ef94221268b8f28"
+  },
+  "ribbons/specialContribution_one.png": {
+   "bytes": 1535,
+   "sha256": "7e2a5f0c431f05f3eb9e0c70b755f2b832c84123aa32a832b0c81e230e973d6c"
+  },
+  "ribbons/specialContribution_seven.png": {
+   "bytes": 11586,
+   "sha256": "f41a4d8b322077a370f72d3d4b19048e27e9c402a2e52a2fff4675aaec90b89c"
+  },
+  "ribbons/specialContribution_six.png": {
+   "bytes": 9216,
+   "sha256": "7d402ba42d04b42f782090f3c5e1ee3682fb459e5ff73e90c57eddb202e942f0"
+  },
+  "ribbons/specialContribution_ten.png": {
+   "bytes": 9284,
+   "sha256": "65a1f8c56256503bb95361ab48644266f9335722610c0c5814a21f46b87bc214"
+  },
+  "ribbons/specialContribution_three.png": {
+   "bytes": 8784,
+   "sha256": "0278b224c95d26d1b3b40e5e541d9a60fa822ca56ef2d31fac47a95225178412"
+  },
+  "ribbons/specialContribution_two.png": {
+   "bytes": 5381,
+   "sha256": "669db8369788851fad6f61d8508394e4a5633ad6cb67474b62aebe65789eb69b"
+  },
+  "ribbons/specialStar_eleven.png": {
+   "bytes": 4843,
+   "sha256": "b5dfd328d2cef780b969e5dce20a1baef404d80b3c81028b4b8a6375ff3a4101"
+  },
+  "ribbons/specialStar_fifteen.png": {
+   "bytes": 8447,
+   "sha256": "3c5f7874c46d9f4470da3f03121a450855b9c0b239582fb1ffd9ea5393cb7944"
+  },
+  "ribbons/specialStar_fourteen.png": {
+   "bytes": 4816,
+   "sha256": "a57990dcf9cde50850e48256b72ac5fa049e566d39c01f050bcbf8fb26bffe5f"
+  },
+  "ribbons/specialStar_sixteen.png": {
+   "bytes": 10059,
+   "sha256": "dbc47191c9a27225336fd26c3c26fdda5d03edde66d524e2e05c8a5dd23afa23"
+  },
+  "ribbons/specialStar_thirteen.png": {
+   "bytes": 10323,
+   "sha256": "87a705e0227fef18456c3d41919cc109f80605dd2e525bcaaa3179dda1fdba42"
+  },
+  "ribbons/specialStar_twelve.png": {
+   "bytes": 8237,
+   "sha256": "bfa34b1ef2a1c6bd3335cbfec3102ea1277f122c308aa19aacc6781e67a08317"
+  },
+  "ribbons/walkTogether.png": {
+   "bytes": 330,
+   "sha256": "6c5db40c907dd0c6a1ab85e8503396949d7018e563883b2117d874cb0280c5ea"
+  },
+  "rover_epaulette.png": {
+   "bytes": 7936,
+   "sha256": "3ade74c5108086f19ab321c7ea143b43192948c951f6dcd43998eaf292131afc"
+  },
+  "scout_cap_badge.png": {
+   "bytes": 7807,
+   "sha256": "08054d8ecb5e1ea546a3caa2a1e462943a864a20172edbaaa9056a6446c43c24"
+  },
+  "scout_prof/instructor_angler.png": {
+   "bytes": 2177,
+   "sha256": "60943c5958d7cb683aabb48bacfc48718d4aabe2ff81f28978d8f8b71e47df7b"
+  },
+  "scout_prof/instructor_astronomer.png": {
+   "bytes": 2148,
+   "sha256": "887a3e2012b3785ce9b834eddc96b00d9d41357e20c12b8c600f23a570e8a70d"
+  },
+  "scout_prof/instructor_backwoods_cook.png": {
+   "bytes": 1918,
+   "sha256": "91634a69456367fc7a413e4da5cf86d0d2e7ee5c785a56e6b344cea3b5c56ee6"
+  },
+  "scout_prof/instructor_boulderer.png": {
+   "bytes": 1961,
+   "sha256": "41daa8928d886f72953cacfc5c33bd1794218883caca107834d1af00fb8ec206"
+  },
+  "scout_prof/instructor_camper.png": {
+   "bytes": 1699,
+   "sha256": "639877e2b3bf8ff97c6c95f82d6944728ce05c2bc848c2419619844bb3668124"
+  },
+  "scout_prof/instructor_campfire_host.png": {
+   "bytes": 2320,
+   "sha256": "249bccd6b7b1566fc3c3b133c0a5441f19ee65b158bf94eb332b01c2733b2d5a"
+  },
+  "scout_prof/instructor_communicator.png": {
+   "bytes": 1862,
+   "sha256": "932b91cf1838653e86c0a4099064afe1d0b7d78ee03a5ac4f70d966b1aed2a59"
+  },
+  "scout_prof/instructor_cook.png": {
+   "bytes": 1790,
+   "sha256": "0b30bf1407ef8190b367c42b1a3883d550192d96a956b0eaaff094f0f3dfda3a"
+  },
+  "scout_prof/instructor_craftsman.png": {
+   "bytes": 1872,
+   "sha256": "5f711b5fe10247dcce647a8cb95cd0feb2cd948284852ad6edbcc9ef5b9f0e20"
+  },
+  "scout_prof/instructor_cyclist.png": {
+   "bytes": 1859,
+   "sha256": "63f0f6f32df9421b053632cc65c0b9e0f9605f4026fe2aaabdbb393ceeef5f33"
+  },
+  "scout_prof/instructor_flight_simulator.png": {
+   "bytes": 2099,
+   "sha256": "c21923925086e276b79a140c1db750202c09c428a199e63eafaba43adb63e6fe"
+  },
+  "scout_prof/instructor_lifesaver.png": {
+   "bytes": 2104,
+   "sha256": "1c082b887754fc4779fef2c15f2724fc4939089f5f432ff39a6f784a0ca4a453"
+  },
+  "scout_prof/instructor_map_maker.png": {
+   "bytes": 1824,
+   "sha256": "14a336b15d6ceb7903c25011b968b53d38d884864036a680822c07e62f4c3868"
+  },
+  "scout_prof/instructor_map_reader.png": {
+   "bytes": 2384,
+   "sha256": "93ee92f59abd87e49948ab363b95a15c9afd8a049c3804763ee2626e3f5fddb3"
+  },
+  "scout_prof/instructor_mechanic.png": {
+   "bytes": 2009,
+   "sha256": "dc07123ec9c08022dfb76a023585f891f26de04a2d8ce22e97e43fa8b8aa5811"
+  },
+  "scout_prof/instructor_meteorologist.png": {
+   "bytes": 2019,
+   "sha256": "57f93b390ecf5701d80b2527cc776967f0588347653914e0995f8824db6f14a3"
+  },
+  "scout_prof/instructor_model_maker.png": {
+   "bytes": 2108,
+   "sha256": "f7c5e5366683a5f776843ddb7577702b5513b7dea0167f027f9139d4dbb18f23"
+  },
+  "scout_prof/instructor_multimedia_designer.png": {
+   "bytes": 2054,
+   "sha256": "5817b1f0ab9199c4d3e28f7755ced6e203cd6172e045f0f67a278b570ecd9a0e"
+  },
+  "scout_prof/instructor_observer.png": {
+   "bytes": 1551,
+   "sha256": "c274f622feaab67012ae5596bb9bd93bf60d4444bd6cd8597f290747eabec4b1"
+  },
+  "scout_prof/instructor_orienteer.png": {
+   "bytes": 1964,
+   "sha256": "bf55fee4329a4ce1ab0cbf40ecba511012744115a7b1099a168e77ac48721c26"
+  },
+  "scout_prof/instructor_photographer.png": {
+   "bytes": 2118,
+   "sha256": "cd44f0dc8106b010b593694c5a07b42d13125e4797656203f04babdfe88c901e"
+  },
+  "scout_prof/instructor_pioneer.png": {
+   "bytes": 1919,
+   "sha256": "c9bad4402ae8cb93672c4a4a59658fbce1c1fb46272175ad61e1983ab45339ab"
+  },
+  "scout_prof/instructor_programmer.png": {
+   "bytes": 1677,
+   "sha256": "30254c8486c9c2f14294e77330d667e45b9472d996da1cf3e1d712f0a72d5a53"
+  },
+  "scout_prof/instructor_sailor.png": {
+   "bytes": 1836,
+   "sha256": "b1c6883246b89ade90979c0ca1b446c470737966ff67ea493c7a90d28806998b"
+  },
+  "scout_prof/instructor_swimmer.png": {
+   "bytes": 2164,
+   "sha256": "6d657679a8feb804a5532e8dc9b61086f5d15f008922dacfd754364154be7ffc"
+  },
+  "scout_prof/instructor_tree_carer.png": {
+   "bytes": 1570,
+   "sha256": "b40634897cd745bf62075ff4762cdc7b9e3ab16891560843c964650f3bb03558"
+  },
+  "scout_prof/interest_angler.png": {
+   "bytes": 2047,
+   "sha256": "758f71f0c63ee1e25d5de3803ab11152480784c03a7c7ba235fba663f916a402"
+  },
+  "scout_prof/interest_archery.png": {
+   "bytes": 1737,
+   "sha256": "39ac12ef7d114006d0e12498997d8c4960d0a7415c4a93cb780b31926dbd86d0"
+  },
+  "scout_prof/interest_artist.png": {
+   "bytes": 1506,
+   "sha256": "19a86fa818c32132aad8227f001ab50f80c7a96cf7d6a282956b798a06da563c"
+  },
+  "scout_prof/interest_athlete.png": {
+   "bytes": 1657,
+   "sha256": "1bd53825da04482e4bf05f7ba84eebd93ca694face9125a6eaf5052c027010f2"
+  },
+  "scout_prof/interest_birdwatcher.png": {
+   "bytes": 1858,
+   "sha256": "8e1e77b3980a7bd03247231afc59dcddfee49479a374f9939a0d9774632e52eb"
+  },
+  "scout_prof/interest_boulderer.png": {
+   "bytes": 2065,
+   "sha256": "13d6e1246ab4ac94af70d7aaea503f63c2c418bd2ad48d4437dfffee2cbde12b"
+  },
+  "scout_prof/interest_camp_cook.png": {
+   "bytes": 1865,
+   "sha256": "6b201a005dc600db67e4bd6d2a092527958212e5da48c4dff502472dfe4d7ec4"
+  },
+  "scout_prof/interest_campfire_host.png": {
+   "bytes": 2529,
+   "sha256": "4b1974e057765ec914a178a6bbd75aae49d53ea7297a8f810d14c3e8381a8d7d"
+  },
+  "scout_prof/interest_canoeist.png": {
+   "bytes": 2024,
+   "sha256": "876866582afda19452a91e5e3f3ad0a32cc8587b58f5423195747fae6367454a"
+  },
+  "scout_prof/interest_collector.png": {
+   "bytes": 1468,
+   "sha256": "8bc09931916c3fe447ac1bc8990b921a086acca4d45da7d589692895fccb5284"
+  },
+  "scout_prof/interest_computer.png": {
+   "bytes": 1534,
+   "sha256": "c80a2743d8eafc7e3a9f59e086258ad2e7ac3831db4274a58aee8dfd0d28a194"
+  },
+  "scout_prof/interest_cyclist.png": {
+   "bytes": 1699,
+   "sha256": "9f4937a2140a3aefdafe108b9a836f0b88115af40ded8993b022a456980eb83c"
+  },
+  "scout_prof/interest_dragon_boatman.png": {
+   "bytes": 2412,
+   "sha256": "c85822166e5aefd27b3f7f5240be596465c36b932c7e96b6e9391bace6e5d058"
+  },
+  "scout_prof/interest_footdrill.png": {
+   "bytes": 2022,
+   "sha256": "35faf33f25543ffc6e10661d65e7aa0ee5b2fd17fd9a4b4c07e63a6a8baee762"
+  },
+  "scout_prof/interest_geologist.png": {
+   "bytes": 1927,
+   "sha256": "6b2d295470314588a290ab759bc680ec2afa1f7c98aa15d2def92979863f4d49"
+  },
+  "scout_prof/interest_horseman.png": {
+   "bytes": 1992,
+   "sha256": "d8dca1f22627e233c10dec222e3b6425d3471d9ced8e4aa2cf03d2dc8fc98703"
+  },
+  "scout_prof/interest_kite_flyer.png": {
+   "bytes": 1702,
+   "sha256": "5be54d2713b61fc1c99e72b9af07833b45ee3b06cca352af2f6bf083dc044849"
+  },
+  "scout_prof/interest_librarian.png": {
+   "bytes": 1699,
+   "sha256": "19541810d05b53e98f2177337968d8382b190498e9e31c90d379fdd4381e4420"
+  },
+  "scout_prof/interest_meteorologist.png": {
+   "bytes": 1964,
+   "sha256": "c17432e4b3334c98505b669578ba3c30bca90b7ecf9a7aee04011bf652f75b40"
+  },
+  "scout_prof/interest_model_maker.png": {
+   "bytes": 2033,
+   "sha256": "88745a4bf6621bc21f28620694bf92bb5420fb0478de61bd976c7ce5d7963f3e"
+  },
+  "scout_prof/interest_musician.png": {
+   "bytes": 1923,
+   "sha256": "227e23d82d0059337a1524767f2ede3111c36bbd0c351f51dc7c9eb7c0d8e503"
+  },
+  "scout_prof/interest_naturalist.png": {
+   "bytes": 2469,
+   "sha256": "c6368f8ccb32ed60e1a993da648728001dcc401a778c7f4187c4e29bf2970103"
+  },
+  "scout_prof/interest_park_orienteer.png": {
+   "bytes": 2007,
+   "sha256": "a2bd88da156c183369698d5841bcb1cfc8259c6cd82337f1a68671a1f609066f"
+  },
+  "scout_prof/interest_petkeeper.png": {
+   "bytes": 2010,
+   "sha256": "1147707b551210edc12434fe1b8c81b24316a32848f56c4289410512d2c8f397"
+  },
+  "scout_prof/interest_photographer.png": {
+   "bytes": 2010,
+   "sha256": "394dd7c8b571a55e39cde1366c66a627084203e9e981b930f3753d5f97fe7cbd"
+  },
+  "scout_prof/interest_rowing_boatman.png": {
+   "bytes": 1807,
+   "sha256": "cd2dd2b8341e8194653321138acd7c1e43836a0f5d7b04ef64ca4d726a9913cc"
+  },
+  "scout_prof/interest_sailor.png": {
+   "bytes": 1779,
+   "sha256": "6273c9d7c3eedb8e4a24ea0a54990bb0831ad959170f561991d9a7d321a90ba9"
+  },
+  "scout_prof/interest_smallholder.png": {
+   "bytes": 1979,
+   "sha256": "b58a2bd1341c001c273c0ce48be3b66c80cbe194c6bd3a5c90d2ef5d8b3021a8"
+  },
+  "scout_prof/interest_stand_up_paddleboarder.png": {
+   "bytes": 2040,
+   "sha256": "042be3d3d443d28fb964afd1458bad99d9b74350ebc1b3b0ad4ce3ba52899349"
+  },
+  "scout_prof/interest_stand_up_paddling_polo.png": {
+   "bytes": 1996,
+   "sha256": "8f0ccf11fbc9e3501767320c46e3d96d76fcc5b9d47c1ec2a24b69c07c90ed9f"
+  },
+  "scout_prof/interest_swimmer.png": {
+   "bytes": 2088,
+   "sha256": "63238ce1294912a238380a4d8ca603f19c3e6372e1b4814c9c2ce616c91a4422"
+  },
+  "scout_prof/interest_tourism.png": {
+   "bytes": 1617,
+   "sha256": "e7be1bd6eebc926e8355d1a2be5133357ff70418c2feabcd3461d77351d6b836"
+  },
+  "scout_prof/interest_windsurfer.png": {
+   "bytes": 1879,
+   "sha256": "abe6211295d05336ad5475bcad8af368aae4ec21e72f73c217318c5afc41ae32"
+  },
+  "scout_prof/pursuit_3d_printing_technician.png": {
+   "bytes": 1986,
+   "sha256": "63465c6af2bf66307a6fdfe394aed29cd63dcd74e9731aeaac7c5956ab940f23"
+  },
+  "scout_prof/pursuit_abseiler.png": {
+   "bytes": 1856,
+   "sha256": "4068ad899944074fc3304b644eab6a129082daddfa9b4d2b56702b5ad14e31d2"
+  },
+  "scout_prof/pursuit_archery.png": {
+   "bytes": 1699,
+   "sha256": "c146ba6afaec5755d6c322f11f879fc3b011a86d6569ac1beb26e092f6333edc"
+  },
+  "scout_prof/pursuit_astronomer.png": {
+   "bytes": 2071,
+   "sha256": "393b05eaee9f7059982766af3238295b8a31d7336e6cf67c32ca182d275636c3"
+  },
+  "scout_prof/pursuit_aviation_navigator.png": {
+   "bytes": 2234,
+   "sha256": "883b558ac5f860b845fa7085f87da9e157e0d9c9dfa40cc352ceb7035c3252e1"
+  },
+  "scout_prof/pursuit_backwoods_cook.png": {
+   "bytes": 2007,
+   "sha256": "2305572cb32886ad6e5662c571dae9416463f0336f42ba30cfa94fb1b817b757"
+  },
+  "scout_prof/pursuit_camper.png": {
+   "bytes": 1622,
+   "sha256": "c5602910cbede0107a098d175bc96ae2c5867e2a51b7d3813ab961ea43d4b05c"
+  },
+  "scout_prof/pursuit_canoe_polo.png": {
+   "bytes": 1881,
+   "sha256": "63bd08d73dd7cf5a119873c4e3ee7f9008485170a6d3ea76ed2b5db4f53c27b3"
+  },
+  "scout_prof/pursuit_canoeist.png": {
+   "bytes": 2032,
+   "sha256": "8adc404eda16ed4a659a2cd4b981b411767a6a8a927384b799a133fab5b9aec3"
+  },
+  "scout_prof/pursuit_climber.png": {
+   "bytes": 2050,
+   "sha256": "ea07c7260a366035297818357f60a633b946bbf1c37c54484b37969fffb17c22"
+  },
+  "scout_prof/pursuit_communicator.png": {
+   "bytes": 1756,
+   "sha256": "919630731ca29e173b856c27dd1866034afe16685088b13cdc06e5adabe68ef2"
+  },
+  "scout_prof/pursuit_cook.png": {
+   "bytes": 1660,
+   "sha256": "2af8bce9524c11fe3c1f099cf0f231614a9333cc7b49e1a44c5a9c30372a5ba1"
+  },
+  "scout_prof/pursuit_craftsman.png": {
+   "bytes": 1768,
+   "sha256": "b8fbe9c8d65bda0319c85b7501ff2b815fe9d21f66c6be3bf066a47302d0291a"
+  },
+  "scout_prof/pursuit_data_analyst.png": {
+   "bytes": 1959,
+   "sha256": "fcf783edf5ededb68ea87a5d1f295500882341faa3f38b50715a4ea6d1628d1b"
+  },
+  "scout_prof/pursuit_electronics.png": {
+   "bytes": 1947,
+   "sha256": "40e53bd50ecf8b8e32dcf35e57a49293390c89fa9832a6de7385c27241647bb1"
+  },
+  "scout_prof/pursuit_explorer.png": {
+   "bytes": 1932,
+   "sha256": "7e71199671d892160f1da0e970a999125bce6c69c3a53c88072ef538249e2979"
+  },
+  "scout_prof/pursuit_flight_simulator.png": {
+   "bytes": 2155,
+   "sha256": "c2b565a2fb344212f63541bf8d1917f82e617121ca8301026fa7a110a4cb1e56"
+  },
+  "scout_prof/pursuit_footdrill.png": {
+   "bytes": 1894,
+   "sha256": "318e264d2fbb74f1dd63bb002d7f80b729285e07ca30605b1bbfba3a10d9f1ab"
+  },
+  "scout_prof/pursuit_map_maker.png": {
+   "bytes": 1874,
+   "sha256": "0beaef763d3d17c67020395acfc5ff214e9f1801e05bfbc5b9e659306a7320d7"
+  },
+  "scout_prof/pursuit_map_reader.png": {
+   "bytes": 2079,
+   "sha256": "c54cf330e18e85af6f9ed20faec1b759683b56d46782beb423e10b7a83c899da"
+  },
+  "scout_prof/pursuit_marksman.png": {
+   "bytes": 1801,
+   "sha256": "2b5a84d32657cd841bbdbcfff1d80576b013733082adefcc2773e2b820ce5091"
+  },
+  "scout_prof/pursuit_master_at_arms.png": {
+   "bytes": 1682,
+   "sha256": "3de2fd16c08007025745eeb3babb231f3da1b4eb8f170b3c0c1a1583ef903853"
+  },
+  "scout_prof/pursuit_mechanic.png": {
+   "bytes": 1868,
+   "sha256": "53936f33b6df43e8aab23a7ef3655b03c4e1dc84d23a1ae2f6c4a6748793189f"
+  },
+  "scout_prof/pursuit_meteorologist.png": {
+   "bytes": 1813,
+   "sha256": "90bee141ee0acb7665f296353e50bb443f364231d6e548de0b072c2f7211c7a3"
+  },
+  "scout_prof/pursuit_multimedia_designer.png": {
+   "bytes": 2080,
+   "sha256": "677dd740c69ee654612610aa3f79a11b4f34e4d05cc453104bd8fe02be275b85"
+  },
+  "scout_prof/pursuit_navigator.png": {
+   "bytes": 2019,
+   "sha256": "c2fc7df34d85071a1598bc50946d2ddded02494e3babd6ae4f8100ebd9bd1701"
+  },
+  "scout_prof/pursuit_observer.png": {
+   "bytes": 1492,
+   "sha256": "b4ffbdf66fc2e1c9b9132a65533d6cf2d5560ea299fb6066f84fdca53d554440"
+  },
+  "scout_prof/pursuit_orienteer.png": {
+   "bytes": 1942,
+   "sha256": "27638dfb98af035fb082434af9ff13a24eefe1ca0777221afe47b8d89723e89e"
+  },
+  "scout_prof/pursuit_pioneer.png": {
+   "bytes": 1863,
+   "sha256": "373a4a97f6f49c4e9aadc706777b5624b11184040af7ed8430f6ba2e1f9cf958"
+  },
+  "scout_prof/pursuit_programmer.png": {
+   "bytes": 1675,
+   "sha256": "7286c057342f66d240ed5dcc02ff4481eaf64e501953852878485278998141b9"
+  },
+  "scout_prof/pursuit_sailor.png": {
+   "bytes": 1685,
+   "sha256": "4c10eba00b9f977ec79462907944ed3391f76303aff5174bfe907bddd3003536"
+  },
+  "scout_prof/pursuit_skin_diver.png": {
+   "bytes": 1522,
+   "sha256": "3b3d57a835688ab394ad5f174a4c2abae533a28465fd4f043ee63e587b6f2a66"
+  },
+  "scout_prof/pursuit_skipper.png": {
+   "bytes": 2084,
+   "sha256": "feb7d27b8e12436c6c472191240e5ef0de694c7e00409e4ccfa4f1ba6a48ba48"
+  },
+  "scout_prof/pursuit_sportsman.png": {
+   "bytes": 2272,
+   "sha256": "425afc39ad39732111544be9abcc489f09c1e3d1eb9a7d94197828ab6e6ca5d4"
+  },
+  "scout_prof/pursuit_tree_carer.png": {
+   "bytes": 1633,
+   "sha256": "8bdb398e64eeb51baa6d050c3298391effabbd5f968653221e7250cd5b0870c0"
+  },
+  "scout_prof/service_animal_carer.png": {
+   "bytes": 2085,
+   "sha256": "4673eca9b62de6f090413fb9cfc884354ea0fbb1f6b5f64de4dc24c94aa01ee8"
+  },
+  "scout_prof/service_civics.png": {
+   "bytes": 1849,
+   "sha256": "ab9b0a76c4f220f1636b8e3bedf4938cda0a737900f5b82dad735e94919b7352"
+  },
+  "scout_prof/service_cybersecurity_analyst.png": {
+   "bytes": 2453,
+   "sha256": "cafa932d28754fdab8a47a9353648a7005852a463b3e7109f801ed75c7250dc9"
+  },
+  "scout_prof/service_diversity_inclusion_ambassador.png": {
+   "bytes": 2115,
+   "sha256": "c60f4533dc7eba7007b66abfe7ca4afc7cbbdd358775136d71646434894dee50"
+  },
+  "scout_prof/service_fireman.png": {
+   "bytes": 1901,
+   "sha256": "c20e0eaa66ac58f804e9f761eb57142604a4bc76279f239964cd3f5c4aec7210"
+  },
+  "scout_prof/service_first_aider.png": {
+   "bytes": 1663,
+   "sha256": "55fabe371736f0cd555dd17c5a21c006e83e6384d60d9368c62de6e946bfd5ff"
+  },
+  "scout_prof/service_guide.png": {
+   "bytes": 1705,
+   "sha256": "f039dc108f37f0aadbb5a4e97b9e55d102633fc4da59add5531b6682c81997af"
+  },
+  "scout_prof/service_interpreter.png": {
+   "bytes": 1912,
+   "sha256": "964ed84ce0445ec6e7b0b248cd7d5062f78d027f47981a8ecbcecc0d6dbab1b7"
+  },
+  "scout_prof/service_jobman.png": {
+   "bytes": 1754,
+   "sha256": "61b84de38e3c76c2111bb972583734f08a013d62479d23406c614cdefd6bbd42"
+  },
+  "scout_prof/service_lifesaver.png": {
+   "bytes": 2018,
+   "sha256": "09d7e6f6a652710660a21ae7a67605270c0138635344d1529e680563d05caf56"
+  },
+  "scout_prof/service_mental_health_ambassador.png": {
+   "bytes": 2320,
+   "sha256": "4046d8c6dfbd0ef3db871ce9d0d745c0e51719f9ae611d14f284dd9addc8b158"
+  },
+  "scout_prof/service_nutritionist.png": {
+   "bytes": 2227,
+   "sha256": "400df211a42d7dc208ffa5bfafdc7aaff32efc0e43185aa34f1a4e4c59029223"
+  },
+  "scout_prof/service_pilot.png": {
+   "bytes": 1826,
+   "sha256": "63b22313bc1f7e4c4bb19e440cbe7837d1c710c463114043b4179c5b09c72918"
+  },
+  "scout_prof/service_public_health_ambassador.png": {
+   "bytes": 2532,
+   "sha256": "4891b35b9a6841a460af9fb2f2ebf5709322db3974fb1219f62c84d34ea838f9"
+  },
+  "scout_prof/service_quartermaster.png": {
+   "bytes": 1689,
+   "sha256": "007594fe32a184c7b75398628fc3a081d5fa17c59a1d2ddc612603d6fc7922f5"
+  },
+  "scout_prof/service_secretary.png": {
+   "bytes": 1573,
+   "sha256": "4f794711b43cc9e0f742c2e7eecf817d88dee6e48eef1d26ee162732ed92a14b"
+  },
+  "scout_prof/service_world_friendship_ambassador.png": {
+   "bytes": 2227,
+   "sha256": "39ba7ec30d299b30527a03a221e8b5bce0712f68d519d13b5927fd7139aae9cd"
+  },
+  "sea_scout_cap_tally.png": {
+   "bytes": 10381,
+   "sha256": "b9f05f256867ca9bd82ca329d1fc0b635c73f0dcbb10cc9dd3d5b99ca6f23075"
+  },
+  "venture_epaulette.png": {
+   "bytes": 6088,
+   "sha256": "27912cddc604d914bbbbf769453bca2ba9af619bb59edc274046b3b8a0db686d"
+  },
+  "venture_sea_cap_badge.png": {
+   "bytes": 13622,
+   "sha256": "4ac59aff969e9d3249def0ceaa42da97be8213f3bd118f0b526ac6a4b30402fc"
+  },
+  "world_membership.png": {
+   "bytes": 10880,
+   "sha256": "9e2a99eeafecbb21b3abd54decd4aafb07ceaab4d9479b71437eda6fc862b4fa"
+  }
+ }
+}

@@ -291,3 +291,47 @@ findstr /C:"casual" src\scout3d_characters.py
 ```
 
 `0.181 秒／字` 係用你嗰條片校準出嚟（280 字 → 54 秒）。如果你把語速調快，估算會自動跟住變，所以「預估秒數」同「實際片長」應該長期對得上。
+
+### 6f. 徽章資產已內置（v3.5）—— clone 落嚟就有，唔會再「缺章炸片」
+
+以前 `makemovie` 只帶 48 個章 PNG，其餘靠出片時即場去
+`raw.githubusercontent.com/playerkousas-rgb/SCOUT3D/main/public/badges/…` 下載。
+網絡唔通（或者被 proxy 回錯誤頁）就會寫入一版垃圾，之後每次 render 都：
+
+```
+PIL.UnidentifiedImageError: cannot identify image file '...\badges\awards\lanyard_model_scout.png'
+```
+
+v3.5 起，SCOUT 3D 官方**全部 549 個徽章**（`public/badges/`，3.8 MB）已經直接 commit 入
+`assets/scout3d/badges/`，並且：
+
+| 改動 | 效果 |
+| --- | --- |
+| 刪除 runtime 下載 | `src/scout3d_characters.py` 唔再上網；以前嗰段「下載失敗照寫檔」已移除 |
+| 出片前 preflight | `run_episode_dict()` 一開機就驗 spec＋rig 用到嘅章：缺檔／壞檔即刻停（`exit 2`），並列明缺邊個、應該放喺邊 |
+| 唔再用合成章頂替 | 缺章就唔出片（可以選擇 `git checkout -- assets/scout3d/badges` 即時修復） |
+| `manifest.json` | `assets/scout3d/badges/manifest.json`：549 個章嘅路徑、大小、sha256、來源 commit（`8f255f9d`），防止靜靜雞改壞 |
+| 檢查工具 | `python src/check_badge_assets.py`（可加 `--spec` / `--b64` 驗某條片用嘅章） |
+| 同步工具 | `python scripts/sync_scout3d_badges.py`（由 SCOUT3D 拉最新；或用 `--from-dir D:\SCOUT3D\public\badges` 離線同步） |
+
+出片前想確認章庫完整：
+
+```bat
+python src\check_badge_assets.py
+:: ✓ 章庫完整，全部係正常 PNG，manifest 對得上。
+```
+
+缺章時會見到（並唔會出片）：
+
+```
+[scout3d-runner] ✗ 缺失 1 個徽章圖（唔會出片）
+  awards/lanyard_model_scout.png   ← 期望位置 ...\assets\scout3d\badges\awards\lanyard_model_scout.png
+  解決：git checkout -- assets/scout3d/badges（章庫已經內置，缺檔多數係誤刪或 clone 未完成）
+```
+
+想加新章（例如 SCOUT3D 更新咗）：
+
+```bat
+python scripts\sync_scout3d_badges.py
+python src\check_badge_assets.py
+```
