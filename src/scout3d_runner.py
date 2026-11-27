@@ -40,6 +40,7 @@ if str(SRC_DIR) not in sys.path:
 
 from camera import clamp, lerp, smoothstep
 from engine3d import Camera3D, Scene3D, hex_rgb01, rot_x, rot_y, rot_z, v3
+from scout3d_badges import BadgeAssetError, preflight_spec_badges
 from scout3d_characters import (
     CHARACTER_PRESETS,
     COL,
@@ -3371,6 +3372,12 @@ def run_episode_dict(
     """Render an episode dict end-to-end and return the path to the generated MP4."""
     t_all = time.time()
     spec = normalize_episode_spec(raw_spec, subtitle_override=subtitle_override)
+    # v3.5：章圖只讀本地（資產已內置）。缺章／壞章即刻停，唔會出一條缺章嘅片。
+    try:
+        preflight_spec_badges(spec)
+    except BadgeAssetError as exc:
+        print(str(exc))
+        raise SystemExit(2)
     vo_clips = prepare_episode_voiceovers(spec, force=force)
     ep_id = spec["episode_id"]
     total = spec["total_frames"]

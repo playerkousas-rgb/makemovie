@@ -16,7 +16,6 @@ import base64
 import json
 import math
 import re
-import urllib.request
 import zlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -25,6 +24,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from engine3d import RGBf, Scene3D, hex_rgb01, normalize, rot_x, rot_y, rot_z, v3
+from scout3d_badges import BadgeAssetError
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCOUT3D_ASSET_DIR = REPO_ROOT / "assets" / "scout3d"
@@ -302,26 +302,23 @@ def _get_badge_rgba(
     if clean in _TEX_CACHE:
         return _TEX_CACHE[clean]
     full = BADGE_DIR / clean
-    if not full.is_file() and ".." not in clean and not clean.startswith("__"):
-        # Auto-fetch official badge PNG from playerkousas-rgb/SCOUT3D on first local Windows run!
-        url = f"https://raw.githubusercontent.com/playerkousas-rgb/SCOUT3D/main/public/badges/{clean}"
-        try:
-            full.parent.mkdir(parents=True, exist_ok=True)
-            with urllib.request.urlopen(url, timeout=6) as resp:
-                data = resp.read()
-            if data and len(data) > 64:
-                full.write_bytes(data)
-        except Exception:
-            pass
+    # v3.5：SCOUT 3D 官方徽章已經全部鏡像入 assets/scout3d/badges，只讀本地。
+    # 以前呢度會即場上網下載，網絡唔通就會寫入錯誤頁，之後每次 render 都炸。
     if not full.is_file():
-        fb_key = f"__fb__:{shape}:{label_zh or clean}"
-        if fb_key in _TEX_CACHE:
-            return _TEX_CACHE[fb_key]
-        im = _render_dynamic_badge_image({"kind": "fallback", "label": label_zh or "徽章"}, shape=shape)
-        arr = np.asarray(im, dtype=np.float32) / 255.0
-        _TEX_CACHE[fb_key] = arr
-        return arr
-    img = Image.open(full).convert("RGBA")
+        raise BadgeAssetError(
+            f"[scout3d-characters] ✗ 缺少徽章圖：{clean}\n"
+            f"  期望位置：{full}\n"
+            f"  章庫已內置，請執行：git checkout -- assets/scout3d/badges\n"
+            f"  或者跑：python src/check_badge_assets.py 睇缺咩"
+        )
+    try:
+        img = Image.open(full).convert("RGBA")
+    except Exception as exc:
+        raise BadgeAssetError(
+            f"[scout3d-characters] ✗ 徽章圖損壞（唔係正常 PNG）：{clean}\n"
+            f"  檔案：{full}（{full.stat().st_size} bytes）\n"
+            f"  修復：git checkout -- assets/scout3d/badges"
+        ) from exc
     arr = np.asarray(img, dtype=np.float32) / 255.0
     _TEX_CACHE[clean] = arr
     return arr
